@@ -1,8 +1,10 @@
+OPT=-g -O2
+
 test: http_parser.o test.c 
-	gcc -g -O2 $^ -o $@
+	gcc $(OPT) $^ -o $@ 
 
 http_parser.o: http_parser.c http_parser.h Makefile
-	gcc -g -c -O2 $<
+	gcc $(OPT) -c  $<
 
 http_parser.c: http_parser.rl Makefile
 	ragel -s -G2 $< -o $@

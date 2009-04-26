@@ -269,8 +269,8 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 
   Request_Line = ( Method " " Request_URI ("#" Fragment)? " " HTTP_Version CRLF ) ;
 
-  StatusCode = digit digit digit $status_code;
-  ReasonPhrase =  ascii -- ("\r" | "\n");
+  StatusCode = (digit digit digit) $status_code;
+  ReasonPhrase =  ascii+ -- ("\r" | "\n");
   StatusLine = HTTP_Version  " " StatusCode " " ReasonPhrase CRLF;
 
 # chunked message
