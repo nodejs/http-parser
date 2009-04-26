@@ -58,6 +58,7 @@ typedef int (*http_cb) (http_parser*);
 #define HTTP_PUT        0x0800
 #define HTTP_TRACE      0x1000
 #define HTTP_UNLOCK     0x2000
+
 /* Transfer Encodings */
 #define HTTP_IDENTITY   0x01
 #define HTTP_CHUNKED    0x02

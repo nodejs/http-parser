@@ -329,31 +329,36 @@ const struct message responses[] =
 , {.name= NULL } /* sentinel */
 };
 
-int request_path_cb(http_parser *_, const char *p, size_t len)
+int
+request_path_cb (http_parser *_, const char *p, size_t len)
 {
   strncat(messages[num_messages].request_path, p, len);
   return 0;
 }
 
-int request_uri_cb(http_parser *_, const char *p, size_t len)
+int
+request_uri_cb (http_parser *_, const char *p, size_t len)
 {
   strncat(messages[num_messages].request_uri, p, len);
   return 0;
 }
 
-int query_string_cb(http_parser *_, const char *p, size_t len)
+int
+query_string_cb (http_parser *_, const char *p, size_t len)
 {
   strncat(messages[num_messages].query_string, p, len);
   return 0;
 }
 
-int fragment_cb(http_parser *_, const char *p, size_t len)
+int
+fragment_cb (http_parser *_, const char *p, size_t len)
 {
   strncat(messages[num_messages].fragment, p, len);
   return 0;
 }
 
-int header_field_cb(http_parser *_, const char *p, size_t len)
+int
+header_field_cb (http_parser *_, const char *p, size_t len)
 {
   struct message *m = &messages[num_messages];
 
@@ -367,7 +372,8 @@ int header_field_cb(http_parser *_, const char *p, size_t len)
   return 0;
 }
 
-int header_value_cb (http_parser *_, const char *p, size_t len)
+int
+header_value_cb (http_parser *_, const char *p, size_t len)
 {
   struct message *m = &messages[num_messages];
 
@@ -378,14 +384,16 @@ int header_value_cb (http_parser *_, const char *p, size_t len)
   return 0;
 }
 
-int body_handler (http_parser *_, const char *p, size_t len)
+int
+body_cb (http_parser *_, const char *p, size_t len)
 {
   strncat(messages[num_messages].body, p, len);
- // printf("body_handler: '%s'\n", requests[num_messages].body);
+ // printf("body_cb: '%s'\n", requests[num_messages].body);
   return 0;
 }
 
-int message_complete(http_parser *parser)
+int
+message_complete_cb (http_parser *parser)
 {
   messages[num_messages].method = parser->method;
 
@@ -393,7 +401,8 @@ int message_complete(http_parser *parser)
   return 0;
 }
 
-int begin_message (http_parser *_)
+int
+message_begin_cb (http_parser *_)
 {
   return 0;
 }
@@ -407,16 +416,16 @@ parser_init (enum http_parser_type type)
 
   memset(&messages, 0, sizeof messages);
 
-  parser.on_message_begin = begin_message;
-  parser.on_header_field = header_field_cb;
-  parser.on_header_value = header_value_cb;
-  parser.on_path = request_path_cb;
-  parser.on_uri = request_uri_cb;
-  parser.on_fragment = fragment_cb;
-  parser.on_query_string = query_string_cb;
-  parser.on_body = body_handler;
-  parser.on_headers_complete = NULL;
-  parser.on_message_complete = message_complete;
+  parser.on_message_begin     = message_begin_cb;
+  parser.on_header_field      = header_field_cb;
+  parser.on_header_value      = header_value_cb;
+  parser.on_path              = request_path_cb;
+  parser.on_uri               = request_uri_cb;
+  parser.on_fragment          = fragment_cb;
+  parser.on_query_string      = query_string_cb;
+  parser.on_body              = body_cb;
+  parser.on_headers_complete  = NULL;
+  parser.on_message_complete  = message_complete_cb;
 }
 
 void
@@ -432,13 +441,11 @@ request_eq (int index, const struct message *expected)
   assert(0 == strcmp(m->request_path, expected->request_path));
   assert(0 == strcmp(m->request_uri, expected->request_uri));
   assert(m->num_headers == expected->num_headers);
-  for(i = 0; i < m->num_headers; i++) {
+  for (i = 0; i < m->num_headers; i++) {
     assert(0 == strcmp(m->headers[i][0], expected->headers[i][0]));
     assert(0 == strcmp(m->headers[i][1], expected->headers[i][1]));
   }
 }
-
-
 
 void
 parse_messages (int message_count, const struct message *input_messages[])
@@ -495,7 +502,6 @@ test_error (const char *buf)
   assert(http_parser_has_error(&parser));
 }
 
-
 void
 test_multiple3 (const struct message *r1, const struct message *r2, const struct message *r3)
 {
@@ -544,10 +550,10 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
   int ops = 0 ;
 
   int i,j;
-  for(j = 2; j < total_len; j ++ ) {
-    for(i = 1; i < j; i ++ ) {
+  for (j = 2; j < total_len; j ++ ) {
+    for (i = 1; i < j; i ++ ) {
 
-      if(ops % 20 == 0)  {
+      if (ops % 20 == 0)  {
         printf("\b\b\b\b%3.0f%%", 100 * (float)ops /(float)total_ops);
         fflush(stdout);
       }
@@ -595,7 +601,8 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
   printf("\b\b\b\b100%\n");
 }
 
-int main() 
+int
+main (void)
 {
   test_error("hello world");
   test_error("GET / HTP/1.1\r\n\r\n");
@@ -690,4 +697,3 @@ int main()
 
   return 0;
 }
-

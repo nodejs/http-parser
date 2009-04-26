@@ -45,7 +45,7 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 
 #define REMAINING (pe - p)
 #define CALLBACK(FOR)                               \
-  if(parser->FOR##_mark && parser->on_##FOR) {     \
+  if (parser->FOR##_mark && parser->on_##FOR) {     \
     parser->on_##FOR( parser                      \
                     , parser->FOR##_mark                \
                     , p - parser->FOR##_mark            \
@@ -71,7 +71,7 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
     parser->body_read = 0; 
 
 #define END_REQUEST                        \
-    if(parser->on_message_complete) {             \
+    if (parser->on_message_complete) {             \
       parser->on_message_complete(parser);       \
     } \
     RESET_PARSER(parser);
@@ -160,7 +160,7 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   action skip_chunk_data {
     skip_body(&p, parser, MIN(parser->chunk_size, REMAINING));
     fhold; 
-    if(parser->chunk_size > REMAINING) {
+    if (parser->chunk_size > REMAINING) {
       fbreak;
     } else {
       fgoto chunk_end; 
@@ -170,7 +170,7 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   action end_chunked_body {
     END_REQUEST
     //fnext main;
-    if(parser->type == HTTP_REQUEST) {
+    if (parser->type == HTTP_REQUEST) {
       fnext Requests;
     } else {
       fnext Responses;
@@ -178,7 +178,7 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   }
 
   action body_logic {
-    if(parser->transfer_encoding == HTTP_CHUNKED) {
+    if (parser->transfer_encoding == HTTP_CHUNKED) {
       fnext ChunkedBody;
     } else {
       /* this is pretty stupid. i'd prefer to combine this with skip_chunk_data */
@@ -295,7 +295,7 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 
   main := any >{
     fhold;
-    if(parser->type == HTTP_REQUEST) {
+    if (parser->type == HTTP_REQUEST) {
       fgoto Requests;
     } else {
       fgoto Responses;
@@ -308,15 +308,15 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 
 static void
 skip_body(const char **p, http_parser *parser, size_t nskip) {
-  if(parser->on_body && nskip > 0) {
+  if (parser->on_body && nskip > 0) {
     parser->on_body(parser, *p, nskip);
   }
   parser->body_read += nskip;
   parser->chunk_size -= nskip;
   *p += nskip;
-  if(0 == parser->chunk_size) {
+  if (0 == parser->chunk_size) {
     parser->eating = FALSE;
-    if(parser->transfer_encoding == HTTP_IDENTITY) {
+    if (parser->transfer_encoding == HTTP_IDENTITY) {
       END_REQUEST
     }
   } else {
@@ -339,7 +339,7 @@ http_parser_init (http_parser *parser, enum http_parser_type type)
 
 /** exec **/
 size_t
-http_parser_execute(http_parser *parser, const char *buffer, size_t len)
+http_parser_execute (http_parser *parser, const char *buffer, size_t len)
 {
   const char *p, *pe;
   int cs = parser->cs;
@@ -347,18 +347,18 @@ http_parser_execute(http_parser *parser, const char *buffer, size_t len)
   p = buffer;
   pe = buffer+len;
 
-  if(0 < parser->chunk_size && parser->eating) {
+  if (0 < parser->chunk_size && parser->eating) {
     /* eat body */
     size_t eat = MIN(len, parser->chunk_size);
     skip_body(&p, parser, eat);
   } 
 
-  if(parser->header_field_mark)   parser->header_field_mark   = buffer;
-  if(parser->header_value_mark)   parser->header_value_mark   = buffer;
-  if(parser->fragment_mark)       parser->fragment_mark       = buffer;
-  if(parser->query_string_mark)   parser->query_string_mark   = buffer;
-  if(parser->path_mark)           parser->path_mark           = buffer;
-  if(parser->uri_mark)            parser->uri_mark            = buffer;
+  if (parser->header_field_mark)   parser->header_field_mark   = buffer;
+  if (parser->header_value_mark)   parser->header_value_mark   = buffer;
+  if (parser->fragment_mark)       parser->fragment_mark       = buffer;
+  if (parser->query_string_mark)   parser->query_string_mark   = buffer;
+  if (parser->path_mark)           parser->path_mark           = buffer;
+  if (parser->uri_mark)            parser->uri_mark            = buffer;
 
   %% write exec;
 
@@ -376,18 +376,20 @@ http_parser_execute(http_parser *parser, const char *buffer, size_t len)
   return(p - buffer);
 }
 
-int http_parser_has_error(http_parser *parser) 
+int
+http_parser_has_error (http_parser *parser) 
 {
   return parser->cs == http_parser_error;
 }
 
 #if 0
-int http_should_keep_alive(http *request)
+int
+http_should_keep_alive (http *request)
 {
-  if(request->keep_alive == -1)
-    if(request->version_major == 1)
+  if (request->keep_alive == -1)
+    if (request->version_major == 1)
       return (request->version_minor != 0);
-    else if(request->version_major == 0)
+    else if (request->version_major == 0)
       return FALSE;
     else
       return TRUE;
