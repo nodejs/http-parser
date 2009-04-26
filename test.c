@@ -5,16 +5,20 @@
 #include <string.h>
 #include <stdarg.h>
 
+#undef TRUE
 #define TRUE 1
+#undef FALSE
 #define FALSE 0
 
 #define MAX_HEADERS 10
-#define MAX_ELEMENT_SIZE 200
+#define MAX_ELEMENT_SIZE 500
 
 static http_parser parser;
 struct message {
+  const char *name; // for debugging purposes
   const char *raw;
   int method;
+  int status_code;
   char request_path[MAX_ELEMENT_SIZE];
   char request_uri[MAX_ELEMENT_SIZE];
   char fragment[MAX_ELEMENT_SIZE];
@@ -25,33 +29,38 @@ struct message {
   char headers [MAX_HEADERS][2][MAX_ELEMENT_SIZE];
   int should_keep_alive;
 };
+
 static struct message messages[5];
 static int num_messages;
 
-const struct message curl_get = 
-  { raw: "GET /test HTTP/1.1\r\n"
+/* * R E Q U E S T S * */ 
+const struct message requests[] =
+#define CURL_GET 0
+{ {.name= "curl get"
+  ,.raw= "GET /test HTTP/1.1\r\n"
          "User-Agent: curl/7.18.0 (i486-pc-linux-gnu) libcurl/7.18.0 OpenSSL/0.9.8g zlib/1.2.3.3 libidn/1.1\r\n"
-         "Host: 0.0.0.0:5000\r\n"
+         "Host: 0.0.0.0=5000\r\n"
          "Accept: */*\r\n"
          "\r\n"
-  , should_keep_alive: TRUE
-  , method: HTTP_GET
-  , query_string: ""
-  , fragment: ""
-  , request_path: "/test"
-  , request_uri: "/test"
-  , num_headers: 3
-  , headers: 
+  ,.should_keep_alive= TRUE
+  ,.method= HTTP_GET
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/test"
+  ,.request_uri= "/test"
+  ,.num_headers= 3
+  ,.headers= 
     { { "User-Agent", "curl/7.18.0 (i486-pc-linux-gnu) libcurl/7.18.0 OpenSSL/0.9.8g zlib/1.2.3.3 libidn/1.1" }
-    , { "Host", "0.0.0.0:5000" }
+    , { "Host", "0.0.0.0=5000" }
     , { "Accept", "*/*" }
     }
-  , body: ""
-  };
+  ,.body= ""
+  }
 
-const struct message firefox_get = 
-  { raw: "GET /favicon.ico HTTP/1.1\r\n"
-         "Host: 0.0.0.0:5000\r\n"
+#define FIREFOX_GET 1
+, {.name= "firefox get"
+  ,.raw= "GET /favicon.ico HTTP/1.1\r\n"
+         "Host: 0.0.0.0=5000\r\n"
          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9) Gecko/2008061015 Firefox/3.0\r\n"
          "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
          "Accept-Language: en-us,en;q=0.5\r\n"
@@ -60,15 +69,15 @@ const struct message firefox_get =
          "Keep-Alive: 300\r\n"
          "Connection: keep-alive\r\n"
          "\r\n"
-  , should_keep_alive: TRUE
-  , method: HTTP_GET
-  , query_string: ""
-  , fragment: ""
-  , request_path: "/favicon.ico"
-  , request_uri: "/favicon.ico"
-  , num_headers: 8
-  , headers: 
-    { { "Host", "0.0.0.0:5000" }
+  ,.should_keep_alive= TRUE
+  ,.method= HTTP_GET
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/favicon.ico"
+  ,.request_uri= "/favicon.ico"
+  ,.num_headers= 8
+  ,.headers= 
+    { { "Host", "0.0.0.0=5000" }
     , { "User-Agent", "Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9) Gecko/2008061015 Firefox/3.0" }
     , { "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" }
     , { "Accept-Language", "en-us,en;q=0.5" }
@@ -77,160 +86,162 @@ const struct message firefox_get =
     , { "Keep-Alive", "300" }
     , { "Connection", "keep-alive" }
     }
-  , body: ""
-  };
+  ,.body= ""
+  }
 
-const struct message dumbfuck =
-  { raw: "GET /dumbfuck HTTP/1.1\r\n"
+#define DUMBFUCK 2
+, {.name= "dumbfuck"
+  ,.raw= "GET /dumbfuck HTTP/1.1\r\n"
          "aaaaaaaaaaaaa:++++++++++\r\n"
          "\r\n"
-  , should_keep_alive: TRUE
-  , method: HTTP_GET
-  , query_string: ""
-  , fragment: ""
-  , request_path: "/dumbfuck"
-  , request_uri: "/dumbfuck"
-  , num_headers: 1
-  , headers: 
+  ,.should_keep_alive= TRUE
+  ,.method= HTTP_GET
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/dumbfuck"
+  ,.request_uri= "/dumbfuck"
+  ,.num_headers= 1
+  ,.headers= 
     { { "aaaaaaaaaaaaa",  "++++++++++" }
     }
-  , body: ""
-  };
+  ,.body= ""
+  }
 
-const struct message fragment_in_uri = 
-  { raw: "GET /forums/1/topics/2375?page=1#posts-17408 HTTP/1.1\r\n"
+#define FRAGMENT_IN_URI 3
+, {.name= "fragment in uri"
+  ,.raw= "GET /forums/1/topics/2375?page=1#posts-17408 HTTP/1.1\r\n"
          "\r\n"
-  , should_keep_alive: TRUE
-  , method: HTTP_GET
-  , query_string: "page=1"
-  , fragment: "posts-17408"
-  , request_path: "/forums/1/topics/2375"
+  ,.should_keep_alive= TRUE
+  ,.method= HTTP_GET
+  ,.query_string= "page=1"
+  ,.fragment= "posts-17408"
+  ,.request_path= "/forums/1/topics/2375"
   /* XXX request uri does not include fragment? */
-  , request_uri: "/forums/1/topics/2375?page=1" 
-  , num_headers: 0
-  , body: ""
-  };
+  ,.request_uri= "/forums/1/topics/2375?page=1" 
+  ,.num_headers= 0
+  ,.body= ""
+  }
 
-// get - no headers - no body
-const struct message get_no_headers_no_body =  
-  { raw: "GET /get_no_headers_no_body/world HTTP/1.1\r\n"
+#define GET_NO_HEADERS_NO_BODY 4
+, {.name= "get no headers no body"
+  ,.raw= "GET /get_no_headers_no_body/world HTTP/1.1\r\n"
          "\r\n"
-  , should_keep_alive: TRUE
-  , method: HTTP_GET
-  , query_string: ""
-  , fragment: ""
-  , request_path: "/get_no_headers_no_body/world"
-  , request_uri: "/get_no_headers_no_body/world"
-  , num_headers: 0
-  , body: ""
-  };
+  ,.should_keep_alive= TRUE
+  ,.method= HTTP_GET
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/get_no_headers_no_body/world"
+  ,.request_uri= "/get_no_headers_no_body/world"
+  ,.num_headers= 0
+  ,.body= ""
+  }
 
-// get - one header - no body
-const struct message get_one_header_no_body =  
-  { raw: "GET /get_one_header_no_body HTTP/1.1\r\n"
+#define GET_ONE_HEADER_NO_BODY 5
+, {.name= "get one header no body"
+  ,.raw= "GET /get_one_header_no_body HTTP/1.1\r\n"
          "Accept: */*\r\n"
          "\r\n"
-  , should_keep_alive: TRUE
-  , method: HTTP_GET
-  , query_string: ""
-  , fragment: ""
-  , request_path: "/get_one_header_no_body"
-  , request_uri: "/get_one_header_no_body"
-  , num_headers: 1
-  , headers: 
+  ,.should_keep_alive= TRUE
+  ,.method= HTTP_GET
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/get_one_header_no_body"
+  ,.request_uri= "/get_one_header_no_body"
+  ,.num_headers= 1
+  ,.headers= 
     { { "Accept" , "*/*" }
     }
-  , body: ""
-  };
+  ,.body= ""
+  }
 
-// get - no headers - body "HELLO"
-const struct message get_funky_content_length_body_hello =  
-  { raw: "GET /get_funky_content_length_body_hello HTTP/1.0\r\n"
+#define GET_FUNKY_CONTENT_LENGTH 6
+, {.name= "get funky content length body hello"
+  ,.raw= "GET /get_funky_content_length_body_hello HTTP/1.0\r\n"
          "conTENT-Length: 5\r\n"
          "\r\n"
          "HELLO"
-  , should_keep_alive: FALSE
-  , method: HTTP_GET
-  , query_string: ""
-  , fragment: ""
-  , request_path: "/get_funky_content_length_body_hello"
-  , request_uri: "/get_funky_content_length_body_hello"
-  , num_headers: 1
-  , headers: 
+  ,.should_keep_alive= FALSE
+  ,.method= HTTP_GET
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/get_funky_content_length_body_hello"
+  ,.request_uri= "/get_funky_content_length_body_hello"
+  ,.num_headers= 1
+  ,.headers= 
     { { "conTENT-Length" , "5" }
     }
-  , body: "HELLO"
-  };
+  ,.body= "HELLO"
+  }
 
-// post - one header - body "World"
-const struct message post_identity_body_world =  
-  { raw: "POST /post_identity_body_world?q=search#hey HTTP/1.1\r\n"
+#define POST_IDENTITY_BODY_WORLD 7
+, {.name= "post identity body world"
+  ,.raw= "POST /post_identity_body_world?q=search#hey HTTP/1.1\r\n"
          "Accept: */*\r\n"
          "Transfer-Encoding: identity\r\n"
          "Content-Length: 5\r\n"
          "\r\n"
          "World"
-  , should_keep_alive: TRUE
-  , method: HTTP_POST
-  , query_string: "q=search"
-  , fragment: "hey"
-  , request_path: "/post_identity_body_world"
-  , request_uri: "/post_identity_body_world?q=search"
-  , num_headers: 3
-  , headers: 
+  ,.should_keep_alive= TRUE
+  ,.method= HTTP_POST
+  ,.query_string= "q=search"
+  ,.fragment= "hey"
+  ,.request_path= "/post_identity_body_world"
+  ,.request_uri= "/post_identity_body_world?q=search"
+  ,.num_headers= 3
+  ,.headers= 
     { { "Accept", "*/*" }
     , { "Transfer-Encoding", "identity" }
     , { "Content-Length", "5" } 
     }
-  , body: "World"
-  };
+  ,.body= "World"
+  }
 
-// post - no headers - chunked body "all your base are belong to us"
-const struct message post_chunked_all_your_base =  
-  { raw: "POST /post_chunked_all_your_base HTTP/1.1\r\n"
+#define POST_CHUNKED_ALL_YOUR_BASE 8
+, {.name= "post - no headers - chunked body: all your base are belong to us"
+  ,.raw= "POST /post_chunked_all_your_base HTTP/1.1\r\n"
          "Transfer-Encoding: chunked\r\n"
          "\r\n"
          "1e\r\nall your base are belong to us\r\n"
          "0\r\n"
          "\r\n"
-  , should_keep_alive: TRUE
-  , method: HTTP_POST
-  , query_string: ""
-  , fragment: ""
-  , request_path: "/post_chunked_all_your_base"
-  , request_uri: "/post_chunked_all_your_base"
-  , num_headers: 1
-  , headers: 
+  ,.should_keep_alive= TRUE
+  ,.method= HTTP_POST
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/post_chunked_all_your_base"
+  ,.request_uri= "/post_chunked_all_your_base"
+  ,.num_headers= 1
+  ,.headers= 
     { { "Transfer-Encoding" , "chunked" }
     }
-  , body: "all your base are belong to us"
-  };
+  ,.body= "all your base are belong to us"
+  }
 
-// two chunks ; triple zero ending
-const struct message two_chunks_mult_zero_end =  
-  { raw: "POST /two_chunks_mult_zero_end HTTP/1.1\r\n"
+#define TWO_CHUNKS_MULT_ZERO_END 9
+, {.name= "two chunks ; triple zero ending"
+  ,.raw= "POST /two_chunks_mult_zero_end HTTP/1.1\r\n"
          "Transfer-Encoding: chunked\r\n"
          "\r\n"
          "5\r\nhello\r\n"
          "6\r\n world\r\n"
          "000\r\n"
          "\r\n"
-  , should_keep_alive: TRUE
-  , method: HTTP_POST
-  , query_string: ""
-  , fragment: ""
-  , request_path: "/two_chunks_mult_zero_end"
-  , request_uri: "/two_chunks_mult_zero_end"
-  , num_headers: 1
-  , headers: 
+  ,.should_keep_alive= TRUE
+  ,.method= HTTP_POST
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/two_chunks_mult_zero_end"
+  ,.request_uri= "/two_chunks_mult_zero_end"
+  ,.num_headers= 1
+  ,.headers= 
     { { "Transfer-Encoding", "chunked" }
     }
-  , body: "hello world"
-  };
+  ,.body= "hello world"
+  }
 
-// chunked with trailing headers. blech.
-const struct message chunked_w_trailing_headers =  
-  { raw: "POST /chunked_w_trailing_headers HTTP/1.1\r\n"
+#define CHUNKED_W_TRAILING_HEADERS 10 
+, {.name= "chunked with trailing headers. blech."
+  ,.raw= "POST /chunked_w_trailing_headers HTTP/1.1\r\n"
          "Transfer-Encoding: chunked\r\n"
          "\r\n"
          "5\r\nhello\r\n"
@@ -239,74 +250,84 @@ const struct message chunked_w_trailing_headers =
          "Vary: *\r\n"
          "Content-Type: text/plain\r\n"
          "\r\n"
-  , should_keep_alive: TRUE
-  , method: HTTP_POST
-  , query_string: ""
-  , fragment: ""
-  , request_path: "/chunked_w_trailing_headers"
-  , request_uri: "/chunked_w_trailing_headers"
-  , num_headers: 1
-  , headers: 
+  ,.should_keep_alive= TRUE
+  ,.method= HTTP_POST
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/chunked_w_trailing_headers"
+  ,.request_uri= "/chunked_w_trailing_headers"
+  ,.num_headers= 1
+  ,.headers= 
     { { "Transfer-Encoding",  "chunked" }
     }
-  , body: "hello world"
-  };
+  ,.body= "hello world"
+  }
 
-// with bullshit after the length
-const struct message chunked_w_bullshit_after_length =  
-  { raw: "POST /chunked_w_bullshit_after_length HTTP/1.1\r\n"
+#define CHUNKED_W_BULLSHIT_AFTER_LENGTH 11 
+, {.name= "with bullshit after the length"
+  ,.raw= "POST /chunked_w_bullshit_after_length HTTP/1.1\r\n"
          "Transfer-Encoding: chunked\r\n"
          "\r\n"
          "5; ihatew3;whatthefuck=aretheseparametersfor\r\nhello\r\n"
          "6; blahblah; blah\r\n world\r\n"
          "0\r\n"
          "\r\n"
-  , should_keep_alive: TRUE
-  , method: HTTP_POST
-  , query_string: ""
-  , fragment: ""
-  , request_path: "/chunked_w_bullshit_after_length"
-  , request_uri: "/chunked_w_bullshit_after_length"
-  , num_headers: 1
-  , headers: 
+  ,.should_keep_alive= TRUE
+  ,.method= HTTP_POST
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/chunked_w_bullshit_after_length"
+  ,.request_uri= "/chunked_w_bullshit_after_length"
+  ,.num_headers= 1
+  ,.headers= 
     { { "Transfer-Encoding", "chunked" }
     }
-  , body: "hello world"
-  };
-
-const struct message *requests[] =
-  { &curl_get 
-  , &firefox_get 
-  , &dumbfuck , &fragment_in_uri 
-  , &get_no_headers_no_body  
-  , &get_one_header_no_body  
-  , &get_funky_content_length_body_hello  
-  , &post_identity_body_world  
-  , &post_chunked_all_your_base  
-  , &two_chunks_mult_zero_end  
-  , &chunked_w_trailing_headers  
-  , &chunked_w_bullshit_after_length  
-  , NULL
-  };
-
-void
-request_eq (int index, const struct message *expected)
-{
-  int i;
-  struct message *m = &messages[index];
-
-  assert(0 == strcmp(m->body, expected->body));
-  assert(0 == strcmp(m->fragment, expected->fragment));
-  assert(0 == strcmp(m->query_string, expected->query_string));
-  assert(m->method == expected->method);
-  assert(0 == strcmp(m->request_path, expected->request_path));
-  assert(0 == strcmp(m->request_uri, expected->request_uri));
-  assert(m->num_headers == expected->num_headers);
-  for(i = 0; i < m->num_headers; i++) {
-    assert(0 == strcmp(m->headers[i][0], expected->headers[i][0]));
-    assert(0 == strcmp(m->headers[i][1], expected->headers[i][1]));
+  ,.body= "hello world"
   }
-}
+
+, {.name= NULL } /* sentinel */
+};
+
+/* * R E S P O N S E S * */ 
+const struct message responses[] = 
+{ {.name= "google 301"
+  ,.raw= "HTTP/1.1 301 Moved Permanently\r\n"
+         "Location: http://www.google.com/\r\n"
+         "Content-Type: text/html; charset=UTF-8\r\n"
+         "Date: Sun, 26 Apr 2009 11:11:49 GMT\r\n"
+         "Expires: Tue, 26 May 2009 11:11:49 GMT\r\n"
+         "Cache-Control: public, max-age=2592000\r\n"
+         "Server: gws\r\n"
+         "Content-Length: 219\r\n"
+         "\r\n"
+         "<HTML><HEAD><meta http-equiv=\"content-type\" content=\"text/html;charset=utf-8\">\n"
+         "<TITLE>301 Moved</TITLE></HEAD><BODY>\n"
+         "<H1>301 Moved</H1>\n"
+         "The document has moved\n"
+         "<A HREF=\"http://www.google.com/\">here</A>.\r\n"
+         "</BODY></HTML>\r\n"
+  ,.should_keep_alive= TRUE
+  ,.status_code= 301
+  ,.num_headers= 7
+  ,.headers= 
+    { { "Location", "http://www.google.com/" }
+    , { "Content-Type", "text/html; charset=UTF-8" }
+    , { "Date", "Sun, 26 Apr 2009 11:11:49 GMT" }
+    , { "Expires", "Tue, 26 May 2009 11:11:49 GMT" }
+    , { "Cache-Control", "public, max-age=2592000" }
+    , { "Server", "gws" }
+    , { "Content-Length", "219" }
+    }
+  ,.body= "<HTML><HEAD><meta http-equiv=\"content-type\" content=\"text/html;charset=utf-8\">\n"
+          "<TITLE>301 Moved</TITLE></HEAD><BODY>\n"
+          "<H1>301 Moved</H1>\n"
+          "The document has moved\n"
+          "<A HREF=\"http://www.google.com/\">here</A>.\r\n"
+          "</BODY></HTML>\r\n"
+  }
+
+, {.name= NULL } /* sentinel */
+};
 
 int request_path_cb(http_parser *_, const char *p, size_t len)
 {
@@ -382,7 +403,7 @@ parser_init (void)
 {
   num_messages = 0;
 
-  http_parser_init(&parser, 1);
+  http_parser_init(&parser, TRUE);
 
   memset(&messages, 0, sizeof messages);
 
@@ -398,11 +419,29 @@ parser_init (void)
   parser.on_message_complete = message_complete;
 }
 
-
-
-/*
 void
-parse_messages (int message_count, struct message *input_messages[])
+request_eq (int index, const struct message *expected)
+{
+  int i;
+  struct message *m = &messages[index];
+
+  assert(0 == strcmp(m->body, expected->body));
+  assert(0 == strcmp(m->fragment, expected->fragment));
+  assert(0 == strcmp(m->query_string, expected->query_string));
+  assert(m->method == expected->method);
+  assert(0 == strcmp(m->request_path, expected->request_path));
+  assert(0 == strcmp(m->request_uri, expected->request_uri));
+  assert(m->num_headers == expected->num_headers);
+  for(i = 0; i < m->num_headers; i++) {
+    assert(0 == strcmp(m->headers[i][0], expected->headers[i][0]));
+    assert(0 == strcmp(m->headers[i][1], expected->headers[i][1]));
+  }
+}
+
+
+
+void
+parse_messages (int message_count, const struct message *input_messages[])
 {
   // Concat the input messages
   size_t length = 0;
@@ -421,33 +460,15 @@ parse_messages (int message_count, struct message *input_messages[])
   size_t traversed = 0;
   parser_init();
 
-  traversed = http_parser_execute(&parser, total, strlen(total));
+  traversed = http_parser_execute(&parser, total, length);
 
-  if( http_parser_has_error(&parser) ) {
-    puts("parser error");
-    return FALSE;
-  }
+  assert(!http_parser_has_error(&parser));
+  assert(num_messages == message_count);
 
-  if(num_messages != 3) {
-    printf("num_messages expected 3 got %d\n", num_messages);
-    return FALSE;
+  for (i = 0; i < message_count; i++) {
+    request_eq(i, input_messages[i]);
   }
-
-  if(!request_eq(0, r1)) {
-    puts("request 1 error.");
-    return FALSE;
-  }
-  if(!request_eq(1, r2)) {
-    puts("request 2 error.");
-    return FALSE;
-  }
-  if(!request_eq(2, r3)) {
-    puts("request 3 error.");
-    return FALSE;
-  }
-
 }
-*/
 
 
 void
@@ -456,17 +477,14 @@ test_request (const struct message *message)
   size_t traversed = 0;
   parser_init();
 
-  traversed = http_parser_execute( &parser
-                                        , message->raw 
-                                        , strlen(message->raw)
-                                        );
+  traversed = http_parser_execute(&parser, message->raw, strlen(message->raw));
   assert(!http_parser_has_error(&parser));
   assert(num_messages == 1);
 
   request_eq(0, message);
 }
 
-int
+void
 test_error (const char *buf)
 {
   size_t traversed = 0;
@@ -474,7 +492,7 @@ test_error (const char *buf)
 
   traversed = http_parser_execute(&parser, buf, strlen(buf));
 
-  return http_parser_has_error(&parser);
+  assert(http_parser_has_error(&parser));
 }
 
 
@@ -504,58 +522,12 @@ test_multiple3 (const struct message *r1, const struct message *r2, const struct
   request_eq(2, r3);
 }
 
-/**
- * SCAN through every possible breaking to make sure the 
+/* SCAN through every possible breaking to make sure the 
  * parser can handle getting the content in any chunks that
  * might come from the socket
  */
 void
-test_scan2 (const struct message *r1, const struct message *r2, const struct message *r3)
-{
-  char total[80*1024] = "\0";
-  char buf1[80*1024] = "\0";
-  char buf2[80*1024] = "\0";
-
-  strcat(total, r1->raw); 
-  strcat(total, r2->raw); 
-  strcat(total, r3->raw); 
-
-  int total_len = strlen(total);
-
-  //printf("total_len = %d\n", total_len);
-  int i;
-  for(i = 1; i < total_len - 1; i ++ ) {
-
-    parser_init();
-
-    int buf1_len = i;
-    strncpy(buf1, total, buf1_len);
-    buf1[buf1_len] = 0;
-
-    int buf2_len = total_len - i;
-    strncpy(buf2, total+i, buf2_len);
-    buf2[buf2_len] = 0;
-
-    http_parser_execute(&parser, buf1, buf1_len);
-
-    assert(!http_parser_has_error(&parser));
-    /*
-    if(http_parser_is_finished(&parser)) 
-      return FALSE;
-    */
-
-    http_parser_execute(&parser, buf2, buf2_len);
-
-    assert(! http_parser_has_error(&parser));
-    assert(3 == num_messages);
-    request_eq(0, r1);
-    request_eq(1, r2);
-    request_eq(2, r3);
-  }
-}
-
-void
-test_scan3 (const struct message *r1, const struct message *r2, const struct message *r3)
+test_scan (const struct message *r1, const struct message *r2, const struct message *r3)
 {
   char total[80*1024] = "\0";
   char buf1[80*1024] = "\0";
@@ -568,15 +540,20 @@ test_scan3 (const struct message *r1, const struct message *r2, const struct mes
 
   int total_len = strlen(total);
 
-  //printf("total_len = %d\n", total_len);
+  int total_ops = (total_len - 1) * (total_len - 2) / 2; 
+  int ops = 0 ;
+
   int i,j;
-  for(j = 2; j < total_len - 1; j ++ ) {
+  for(j = 2; j < total_len; j ++ ) {
     for(i = 1; i < j; i ++ ) {
 
+      if(ops % 20 == 0)  {
+        printf("\b\b\b\b%3.0f%%", 100 * (float)ops /(float)total_ops);
+        fflush(stdout);
+      }
+      ops += 1;
+
       parser_init();
-
-
-
 
       int buf1_len = i;
       strncpy(buf1, total, buf1_len);
@@ -615,49 +592,50 @@ test_scan3 (const struct message *r1, const struct message *r2, const struct mes
       request_eq(2, r3);
     }
   }
+  printf("\b\b\b\b100%\n");
 }
 
 int main() 
 {
+  test_error("hello world");
+  test_error("GET / HTP/1.1\r\n\r\n");
 
-  assert(test_error("hello world"));
-  assert(test_error("GET / HTP/1.1\r\n\r\n"));
-
-  const char *dumbfuck2 = "GET / HTTP/1.1\r\n"
-                          "X-SSL-Bullshit:   -----BEGIN CERTIFICATE-----\r\n"
-                          "\tMIIFbTCCBFWgAwIBAgICH4cwDQYJKoZIhvcNAQEFBQAwcDELMAkGA1UEBhMCVUsx\r\n"
-                          "\tETAPBgNVBAoTCGVTY2llbmNlMRIwEAYDVQQLEwlBdXRob3JpdHkxCzAJBgNVBAMT\r\n"
-                          "\tAkNBMS0wKwYJKoZIhvcNAQkBFh5jYS1vcGVyYXRvckBncmlkLXN1cHBvcnQuYWMu\r\n"
-                          "\tdWswHhcNMDYwNzI3MTQxMzI4WhcNMDcwNzI3MTQxMzI4WjBbMQswCQYDVQQGEwJV\r\n"
-                          "\tSzERMA8GA1UEChMIZVNjaWVuY2UxEzARBgNVBAsTCk1hbmNoZXN0ZXIxCzAJBgNV\r\n"
-                          "\tBAcTmrsogriqMWLAk1DMRcwFQYDVQQDEw5taWNoYWVsIHBhcmQYJKoZIhvcNAQEB\r\n"
-                          "\tBQADggEPADCCAQoCggEBANPEQBgl1IaKdSS1TbhF3hEXSl72G9J+WC/1R64fAcEF\r\n"
-                          "\tW51rEyFYiIeZGx/BVzwXbeBoNUK41OK65sxGuflMo5gLflbwJtHBRIEKAfVVp3YR\r\n"
-                          "\tgW7cMA/s/XKgL1GEC7rQw8lIZT8RApukCGqOVHSi/F1SiFlPDxuDfmdiNzL31+sL\r\n"
-                          "\t0iwHDdNkGjy5pyBSB8Y79dsSJtCW/iaLB0/n8Sj7HgvvZJ7x0fr+RQjYOUUfrePP\r\n"
-                          "\tu2MSpFyf+9BbC/aXgaZuiCvSR+8Snv3xApQY+fULK/xY8h8Ua51iXoQ5jrgu2SqR\r\n"
-                          "\twgA7BUi3G8LFzMBl8FRCDYGUDy7M6QaHXx1ZWIPWNKsCAwEAAaOCAiQwggIgMAwG\r\n"
-                          "\tA1UdEwEB/wQCMAAwEQYJYIZIAYb4QgHTTPAQDAgWgMA4GA1UdDwEB/wQEAwID6DAs\r\n"
-                          "\tBglghkgBhvhCAQ0EHxYdVUsgZS1TY2llbmNlIFVzZXIgQ2VydGlmaWNhdGUwHQYD\r\n"
-                          "\tVR0OBBYEFDTt/sf9PeMaZDHkUIldrDYMNTBZMIGaBgNVHSMEgZIwgY+AFAI4qxGj\r\n"
-                          "\tloCLDdMVKwiljjDastqooXSkcjBwMQswCQYDVQQGEwJVSzERMA8GA1UEChMIZVNj\r\n"
-                          "\taWVuY2UxEjAQBgNVBAsTCUF1dGhvcml0eTELMAkGA1UEAxMCQ0ExLTArBgkqhkiG\r\n"
-                          "\t9w0BCQEWHmNhLW9wZXJhdG9yQGdyaWQtc3VwcG9ydC5hYy51a4IBADApBgNVHRIE\r\n"
-                          "\tIjAggR5jYS1vcGVyYXRvckBncmlkLXN1cHBvcnQuYWMudWswGQYDVR0gBBIwEDAO\r\n"
-                          "\tBgwrBgEEAdkvAQEBAQYwPQYJYIZIAYb4QgEEBDAWLmh0dHA6Ly9jYS5ncmlkLXN1\r\n"
-                          "\tcHBvcnQuYWMudmT4sopwqlBWsvcHViL2NybC9jYWNybC5jcmwwPQYJYIZIAYb4QgEDBDAWLmh0\r\n"
-                          "\tdHA6Ly9jYS5ncmlkLXN1cHBvcnQuYWMudWsvcHViL2NybC9jYWNybC5jcmwwPwYD\r\n"
-                          "\tVR0fBDgwNjA0oDKgMIYuaHR0cDovL2NhLmdyaWQt5hYy51ay9wdWIv\r\n"
-                          "\tY3JsL2NhY3JsLmNybDANBgkqhkiG9w0BAQUFAAOCAQEAS/U4iiooBENGW/Hwmmd3\r\n"
-                          "\tXCy6Zrt08YjKCzGNjorT98g8uGsqYjSxv/hmi0qlnlHs+k/3Iobc3LjS5AMYr5L8\r\n"
-                          "\tUO7OSkgFFlLHQyC9JzPfmLCAugvzEbyv4Olnsr8hbxF1MbKZoQxUZtMVu29wjfXk\r\n"
-                          "\thTeApBv7eaKCWpSp7MCbvgzm74izKhu3vlDk9w6qVrxePfGgpKPqfHiOoGhFnbTK\r\n"
-                          "\twTC6o2xq5y0qZ03JonF7OJspEd3I5zKY3E+ov7/ZhW6DqT8UFvsAdjvQbXyhV8Eu\r\n"
-                          "\tYhixw1aKEPzNjNowuIseVogKOLXxWI5vAi5HgXdS0/ES5gDGsABo4fqovUKlgop3\r\n"
-                          "\tRA==\r\n"
-                          "\t-----END CERTIFICATE-----\r\n"
-                          "\r\n";
-  assert(test_error(dumbfuck2));
+  const char *dumbfuck2 =
+    "GET / HTTP/1.1\r\n"
+    "X-SSL-Bullshit:   -----BEGIN CERTIFICATE-----\r\n"
+    "\tMIIFbTCCBFWgAwIBAgICH4cwDQYJKoZIhvcNAQEFBQAwcDELMAkGA1UEBhMCVUsx\r\n"
+    "\tETAPBgNVBAoTCGVTY2llbmNlMRIwEAYDVQQLEwlBdXRob3JpdHkxCzAJBgNVBAMT\r\n"
+    "\tAkNBMS0wKwYJKoZIhvcNAQkBFh5jYS1vcGVyYXRvckBncmlkLXN1cHBvcnQuYWMu\r\n"
+    "\tdWswHhcNMDYwNzI3MTQxMzI4WhcNMDcwNzI3MTQxMzI4WjBbMQswCQYDVQQGEwJV\r\n"
+    "\tSzERMA8GA1UEChMIZVNjaWVuY2UxEzARBgNVBAsTCk1hbmNoZXN0ZXIxCzAJBgNV\r\n"
+    "\tBAcTmrsogriqMWLAk1DMRcwFQYDVQQDEw5taWNoYWVsIHBhcmQYJKoZIhvcNAQEB\r\n"
+    "\tBQADggEPADCCAQoCggEBANPEQBgl1IaKdSS1TbhF3hEXSl72G9J+WC/1R64fAcEF\r\n"
+    "\tW51rEyFYiIeZGx/BVzwXbeBoNUK41OK65sxGuflMo5gLflbwJtHBRIEKAfVVp3YR\r\n"
+    "\tgW7cMA/s/XKgL1GEC7rQw8lIZT8RApukCGqOVHSi/F1SiFlPDxuDfmdiNzL31+sL\r\n"
+    "\t0iwHDdNkGjy5pyBSB8Y79dsSJtCW/iaLB0/n8Sj7HgvvZJ7x0fr+RQjYOUUfrePP\r\n"
+    "\tu2MSpFyf+9BbC/aXgaZuiCvSR+8Snv3xApQY+fULK/xY8h8Ua51iXoQ5jrgu2SqR\r\n"
+    "\twgA7BUi3G8LFzMBl8FRCDYGUDy7M6QaHXx1ZWIPWNKsCAwEAAaOCAiQwggIgMAwG\r\n"
+    "\tA1UdEwEB/wQCMAAwEQYJYIZIAYb4QgHTTPAQDAgWgMA4GA1UdDwEB/wQEAwID6DAs\r\n"
+    "\tBglghkgBhvhCAQ0EHxYdVUsgZS1TY2llbmNlIFVzZXIgQ2VydGlmaWNhdGUwHQYD\r\n"
+    "\tVR0OBBYEFDTt/sf9PeMaZDHkUIldrDYMNTBZMIGaBgNVHSMEgZIwgY+AFAI4qxGj\r\n"
+    "\tloCLDdMVKwiljjDastqooXSkcjBwMQswCQYDVQQGEwJVSzERMA8GA1UEChMIZVNj\r\n"
+    "\taWVuY2UxEjAQBgNVBAsTCUF1dGhvcml0eTELMAkGA1UEAxMCQ0ExLTArBgkqhkiG\r\n"
+    "\t9w0BCQEWHmNhLW9wZXJhdG9yQGdyaWQtc3VwcG9ydC5hYy51a4IBADApBgNVHRIE\r\n"
+    "\tIjAggR5jYS1vcGVyYXRvckBncmlkLXN1cHBvcnQuYWMudWswGQYDVR0gBBIwEDAO\r\n"
+    "\tBgwrBgEEAdkvAQEBAQYwPQYJYIZIAYb4QgEEBDAWLmh0dHA6Ly9jYS5ncmlkLXN1\r\n"
+    "\tcHBvcnQuYWMudmT4sopwqlBWsvcHViL2NybC9jYWNybC5jcmwwPQYJYIZIAYb4QgEDBDAWLmh0\r\n"
+    "\tdHA6Ly9jYS5ncmlkLXN1cHBvcnQuYWMudWsvcHViL2NybC9jYWNybC5jcmwwPwYD\r\n"
+    "\tVR0fBDgwNjA0oDKgMIYuaHR0cDovL2NhLmdyaWQt5hYy51ay9wdWIv\r\n"
+    "\tY3JsL2NhY3JsLmNybDANBgkqhkiG9w0BAQUFAAOCAQEAS/U4iiooBENGW/Hwmmd3\r\n"
+    "\tXCy6Zrt08YjKCzGNjorT98g8uGsqYjSxv/hmi0qlnlHs+k/3Iobc3LjS5AMYr5L8\r\n"
+    "\tUO7OSkgFFlLHQyC9JzPfmLCAugvzEbyv4Olnsr8hbxF1MbKZoQxUZtMVu29wjfXk\r\n"
+    "\thTeApBv7eaKCWpSp7MCbvgzm74izKhu3vlDk9w6qVrxePfGgpKPqfHiOoGhFnbTK\r\n"
+    "\twTC6o2xq5y0qZ03JonF7OJspEd3I5zKY3E+ov7/ZhW6DqT8UFvsAdjvQbXyhV8Eu\r\n"
+    "\tYhixw1aKEPzNjNowuIseVogKOLXxWI5vAi5HgXdS0/ES5gDGsABo4fqovUKlgop3\r\n"
+    "\tRA==\r\n"
+    "\t-----END CERTIFICATE-----\r\n"
+    "\r\n";
+  test_error(dumbfuck2);
 
   // no content-length
   // error if there is a body without content length
@@ -665,7 +643,7 @@ int main()
                                            "Accept: */*\r\n"
                                            "\r\n"
                                            "HELLO";
-  assert(test_error(bad_get_no_headers_no_body)); 
+  test_error(bad_get_no_headers_no_body); 
 
 
   /* TODO sending junk and large headers gets rejected */
@@ -673,33 +651,43 @@ int main()
 
   /* check to make sure our predefined requests are okay */
   int i;
-  for (i = 0; requests[i]; i++) {
-    test_request(requests[i]);
+  for (i = 0; requests[i].name; i++) {
+    test_request(&requests[i]);
   }
 
-  // three requests - no bodies
-  test_multiple3(&get_no_headers_no_body, &get_one_header_no_body, &get_no_headers_no_body);
+  int request_count; 
+  for (request_count = 0; requests[request_count].name; request_count++);
 
-  // three requests - one body
-  test_multiple3(&get_no_headers_no_body, &get_funky_content_length_body_hello, &get_no_headers_no_body);
+  int j, k;
+  for (i = 0; i < request_count; i++) {
+    for (j = 0; j < request_count; j++) {
+      for (k = 0; k < request_count; k++) {
+        //printf("%d %d %d\n", i, j, k);
+        test_multiple3(&requests[i], &requests[j], &requests[k]);
+      }
+    }
+  }
 
-  // three requests with bodies -- last is chunked
-  test_multiple3(&get_funky_content_length_body_hello, &post_identity_body_world, &post_chunked_all_your_base);
+  printf("request scan 1/3      ");
+  test_scan( &requests[GET_NO_HEADERS_NO_BODY]
+           , &requests[GET_ONE_HEADER_NO_BODY]
+           , &requests[GET_NO_HEADERS_NO_BODY]
+           );
 
-  // three chunked requests
-  test_multiple3(&two_chunks_mult_zero_end, &post_chunked_all_your_base, &chunked_w_trailing_headers);
+  printf("request scan 2/3      ");
+  test_scan( &requests[GET_FUNKY_CONTENT_LENGTH]
+           , &requests[POST_IDENTITY_BODY_WORLD]
+           , &requests[POST_CHUNKED_ALL_YOUR_BASE]
+           );
 
+  printf("request scan 3/3      ");
+  test_scan( &requests[TWO_CHUNKS_MULT_ZERO_END]
+           , &requests[CHUNKED_W_TRAILING_HEADERS]
+           , &requests[CHUNKED_W_BULLSHIT_AFTER_LENGTH]
+           );
 
-  test_scan2(&get_no_headers_no_body, &get_one_header_no_body, &get_no_headers_no_body);
-  test_scan2(&get_funky_content_length_body_hello, &post_identity_body_world, &post_chunked_all_your_base);
-  test_scan2(&two_chunks_mult_zero_end, &chunked_w_trailing_headers, &chunked_w_bullshit_after_length);
+  puts("okay");
 
-  test_scan3(&get_no_headers_no_body, &get_one_header_no_body, &get_no_headers_no_body);
-  test_scan3(&get_funky_content_length_body_hello, &post_identity_body_world, &post_chunked_all_your_base);
-  test_scan3(&two_chunks_mult_zero_end, &chunked_w_trailing_headers, &chunked_w_bullshit_after_length);
-
-
-  printf("okay\n");
   return 0;
 }
 
