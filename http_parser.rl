@@ -1,8 +1,9 @@
 /* Copyright (c) 2008, 2009 Ryan Dahl (ry@tinyclouds.org)
- * All rights reserved.
  *
- * This parser is based on code from Zed Shaw's Mongrel.
+ * Based on Zed Shaw's Mongrel.
  * Copyright (c) 2005 Zed A. Shaw
+ *
+ * All rights reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -168,7 +169,12 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 
   action end_chunked_body {
     END_REQUEST
-    fnext main;
+    //fnext main;
+    if(parser->is_request_stream) {
+      fnext Requests;
+    } else {
+      fnext Responses;
+    }
   }
 
   action body_logic {
@@ -284,10 +290,21 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   Request = (Request_Line Headers) @body_logic;
   Response = (StatusLine Headers) @body_logic;
 
-  Requests = Request*;
-  Responses = Response*;
+  Requests := Request*;
+  Responses := Response*;
 
-  main := Requests | Responses ;
+  #main := (Requests when { parser->is_request_stream })?
+  #      | (Responses when { !parser->is_request_stream })?
+  #      ;
+  main := any >{
+    fhold;
+    if(parser->is_request_stream) {
+      fgoto Requests;
+    } else {
+      fgoto Responses;
+    }
+  };
+
 }%%
 
 %% write data;

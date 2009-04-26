@@ -7,8 +7,10 @@ http_parser.o: http_parser.c http_parser.h Makefile
 http_parser.c: http_parser.rl Makefile
 	ragel -s -G2 $< -o $@
 
+tags: http_parser.rl http_parser.h test.c
+	ctags $^
+
 clean:
 	rm -f *.o http_parser.c test
 
-.PHONY: clean 
-
+.PHONY: clean
