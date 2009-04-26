@@ -399,11 +399,11 @@ int begin_message (http_parser *_)
 }
 
 void
-parser_init (void)
+parser_init (enum http_parser_type type)
 {
   num_messages = 0;
 
-  http_parser_init(&parser, TRUE);
+  http_parser_init(&parser, type);
 
   memset(&messages, 0, sizeof messages);
 
@@ -458,7 +458,7 @@ parse_messages (int message_count, const struct message *input_messages[])
 
   // Parse the stream
   size_t traversed = 0;
-  parser_init();
+  parser_init(HTTP_REQUEST);
 
   traversed = http_parser_execute(&parser, total, length);
 
@@ -475,7 +475,7 @@ void
 test_request (const struct message *message)
 {
   size_t traversed = 0;
-  parser_init();
+  parser_init(HTTP_REQUEST);
 
   traversed = http_parser_execute(&parser, message->raw, strlen(message->raw));
   assert(!http_parser_has_error(&parser));
@@ -488,7 +488,7 @@ void
 test_error (const char *buf)
 {
   size_t traversed = 0;
-  parser_init();
+  parser_init(HTTP_REQUEST);
 
   traversed = http_parser_execute(&parser, buf, strlen(buf));
 
@@ -511,7 +511,7 @@ test_multiple3 (const struct message *r1, const struct message *r2, const struct
   strcat(total, r3->raw); 
 
   size_t traversed = 0;
-  parser_init();
+  parser_init(HTTP_REQUEST);
 
   traversed = http_parser_execute(&parser, total, strlen(total));
 
@@ -553,7 +553,7 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
       }
       ops += 1;
 
-      parser_init();
+      parser_init(HTTP_REQUEST);
 
       int buf1_len = i;
       strncpy(buf1, total, buf1_len);

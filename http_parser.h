@@ -62,10 +62,12 @@ typedef int (*http_cb) (http_parser*);
 #define HTTP_IDENTITY   0x01
 #define HTTP_CHUNKED    0x02
 
+enum http_parser_type { HTTP_REQUEST, HTTP_RESPONSE };
+
 struct http_parser {
   /** PRIVATE **/
   int cs;
-  int is_request_stream;
+  enum http_parser_type type;
 
   size_t chunk_size;
   unsigned eating:1;
@@ -112,7 +114,7 @@ struct http_parser {
  * it will be parsing requests or responses. Set the second argument to 1
  * for requests; 0 for responses.
  */
-void http_parser_init (http_parser *parser, int is_request_stream);
+void http_parser_init (http_parser *parser, enum http_parser_type);
 
 size_t http_parser_execute (http_parser *parser, const char *data, size_t len);
 

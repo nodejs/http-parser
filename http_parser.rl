@@ -170,7 +170,7 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   action end_chunked_body {
     END_REQUEST
     //fnext main;
-    if(parser->is_request_stream) {
+    if(parser->type == HTTP_REQUEST) {
       fnext Requests;
     } else {
       fnext Responses;
@@ -293,12 +293,9 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   Requests := Request*;
   Responses := Response*;
 
-  #main := (Requests when { parser->is_request_stream })?
-  #      | (Responses when { !parser->is_request_stream })?
-  #      ;
   main := any >{
     fhold;
-    if(parser->is_request_stream) {
+    if(parser->type == HTTP_REQUEST) {
       fgoto Requests;
     } else {
       fgoto Responses;
@@ -327,20 +324,22 @@ skip_body(const char **p, http_parser *parser, size_t nskip) {
   }
 }
 
-void http_parser_init(http_parser *parser, int is_request_stream) 
+void
+http_parser_init (http_parser *parser, enum http_parser_type type) 
 {
   memset(parser, 0, sizeof(struct http_parser));
 
   int cs = 0;
   %% write init;
   parser->cs = cs;
-  parser->is_request_stream = is_request_stream;
+  parser->type = type;
 
   RESET_PARSER(parser);
 }
 
 /** exec **/
-size_t http_parser_execute(http_parser *parser, const char *buffer, size_t len)
+size_t
+http_parser_execute(http_parser *parser, const char *buffer, size_t len)
 {
   const char *p, *pe;
   int cs = parser->cs;
