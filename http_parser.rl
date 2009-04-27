@@ -26,9 +26,7 @@
  */
 #include "http_parser.h"
 
-#include <stdio.h>
 #include <assert.h>
-#include <string.h>
 
 static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
                      ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
@@ -42,6 +40,7 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 #define TRUE 1
 #define FALSE 0
 #define MIN(a,b) (a < b ? a : b)
+#define NULL (void*)(0)
 
 #define REMAINING (pe - p)
 #define CALLBACK(FOR)                                                       \
@@ -64,7 +63,6 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
     parser->transfer_encoding = HTTP_IDENTITY; \
     parser->version_major = 0; \
     parser->version_minor = 0; \
-    parser->number_of_headers = 0; \
     parser->keep_alive = -1; \
     parser->content_length = 0; \
     parser->body_read = 0; 
@@ -346,12 +344,20 @@ do {                                                                 \
 void
 http_parser_init (http_parser *parser, enum http_parser_type type) 
 {
-  memset(parser, 0, sizeof(struct http_parser));
-
   int cs = 0;
   %% write init;
   parser->cs = cs;
   parser->type = type;
+
+  parser->on_message_begin = NULL;
+  parser->on_path = NULL;
+  parser->on_query_string = NULL;
+  parser->on_uri = NULL;
+  parser->on_header_field = NULL;
+  parser->on_header_value = NULL;
+  parser->on_headers_complete = NULL;
+  parser->on_body = NULL;
+  parser->on_message_complete = NULL;
 
   RESET_PARSER(parser);
 }

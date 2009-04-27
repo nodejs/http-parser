@@ -82,13 +82,12 @@ struct http_parser {
   const char *fragment_mark; 
 
   /** READ-ONLY **/
-  unsigned int status_code; /* responses only */
-  unsigned int method;      /* requests only */
-  int transfer_encoding;
-  unsigned int version_major;
-  unsigned int version_minor;
-  unsigned int number_of_headers;
-  int keep_alive;
+  unsigned short status_code; /* responses only */
+  unsigned short method;      /* requests only */
+  short transfer_encoding;
+  unsigned short version_major;
+  unsigned short version_minor;
+  short keep_alive;
   size_t content_length;
 
   /** PUBLIC **/
@@ -112,8 +111,7 @@ struct http_parser {
 };
 
 /* Initializes an http_parser structure.  The second argument specifies if
- * it will be parsing requests or responses. Set the second argument to 1
- * for requests; 0 for responses.
+ * it will be parsing requests or responses. 
  */
 void http_parser_init (http_parser *parser, enum http_parser_type);
 
@@ -122,8 +120,6 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len);
 int http_parser_has_error (http_parser *parser);
 
 int http_parser_should_keep_alive (http_parser *parser);
-#define http_message_has_body(parser) \
-  (parser->transfer_encoding == HTTP_CHUNKED || parser->content_length > 0 )
 
 #ifdef __cplusplus
 }
