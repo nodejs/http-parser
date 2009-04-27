@@ -121,7 +121,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len);
 
 int http_parser_has_error (http_parser *parser);
 
-int http_message_should_keep_alive (http_parser *message);
+int http_parser_should_keep_alive (http_parser *parser);
 #define http_message_has_body(parser) \
   (parser->transfer_encoding == HTTP_CHUNKED || parser->content_length > 0 )
 

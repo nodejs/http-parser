@@ -65,7 +65,7 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
     parser->version_major = 0; \
     parser->version_minor = 0; \
     parser->number_of_headers = 0; \
-    parser->keep_alive = 0; \
+    parser->keep_alive = -1; \
     parser->content_length = 0; \
     parser->body_read = 0; 
 
@@ -146,15 +146,17 @@ do {                                                                 \
   }
 
   action headers_complete {
-    if(parser->on_headers_complete)
+    if(parser->on_headers_complete) {
       callback_return_value = parser->on_headers_complete(parser);
-    if (callback_return_value != 0) fbreak;
+      if (callback_return_value != 0) fbreak;
+    }
   }
 
   action begin_message {
-    if(parser->on_message_begin)
+    if(parser->on_message_begin) {
       callback_return_value = parser->on_message_begin(parser);
-    if (callback_return_value != 0) fbreak;
+      if (callback_return_value != 0) fbreak;
+    }
   }
 
   action content_length {
@@ -401,18 +403,16 @@ http_parser_has_error (http_parser *parser)
   return parser->cs == http_parser_error;
 }
 
-#if 0
 int
-http_should_keep_alive (http *request)
+http_parser_should_keep_alive (http_parser *parser)
 {
-  if (request->keep_alive == -1)
-    if (request->version_major == 1)
-      return (request->version_minor != 0);
-    else if (request->version_major == 0)
+  if (parser->keep_alive == -1)
+    if (parser->version_major == 1)
+      return (parser->version_minor != 0);
+    else if (parser->version_major == 0)
       return FALSE;
     else
       return TRUE;
   else
-    return request->keep_alive;
+    return parser->keep_alive;
 }
-#endif
