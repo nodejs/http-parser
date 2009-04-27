@@ -633,6 +633,8 @@ main (void)
 {
   int i, j, k;
 
+  printf("sizeof(http_parser) = %d\n", sizeof(http_parser));
+
   int request_count; 
   for (request_count = 0; requests[request_count].name; request_count++);
 

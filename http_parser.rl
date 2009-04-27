@@ -44,13 +44,11 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 #define MIN(a,b) (a < b ? a : b)
 
 #define REMAINING (pe - p)
-#define CALLBACK(FOR)                               \
-  if (parser->FOR##_mark && parser->on_##FOR) {     \
-    parser->on_##FOR( parser                      \
-                    , parser->FOR##_mark                \
-                    , p - parser->FOR##_mark            \
-                    );                                  \
- }
+#define CALLBACK(FOR)                                                       \
+  if (parser->FOR##_mark && parser->on_##FOR) {                             \
+    callback_return_value =                                                 \
+      parser->on_##FOR(parser, parser->FOR##_mark, p - parser->FOR##_mark); \
+  }
 #define RESET_PARSER(parser) \
     parser->chunk_size = 0; \
     parser->eating = 0; \
@@ -70,10 +68,10 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
     parser->content_length = 0; \
     parser->body_read = 0; 
 
-#define END_REQUEST                        \
+#define END_REQUEST                                \
     if (parser->on_message_complete) {             \
-      parser->on_message_complete(parser);       \
-    } \
+      parser->on_message_complete(parser);         \
+    }                                              \
     RESET_PARSER(parser);
 
 
@@ -87,33 +85,39 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   action mark_request_path   { parser->path_mark           = p; }
   action mark_request_uri    { parser->uri_mark            = p; }
 
-  action write_field { 
+  action header_field {
     CALLBACK(header_field);
+    if (callback_return_value != 0) fbreak;
     parser->header_field_mark = NULL;
   }
 
-  action write_value {
+  action header_value {
     CALLBACK(header_value);
+    if (callback_return_value != 0) fbreak;
     parser->header_value_mark = NULL;
   }
 
   action request_uri { 
     CALLBACK(uri);
+    if (callback_return_value != 0) fbreak;
     parser->uri_mark = NULL;
   }
 
   action fragment { 
     CALLBACK(fragment);
+    if (callback_return_value != 0) fbreak;
     parser->fragment_mark = NULL;
   }
 
   action query_string { 
     CALLBACK(query_string);
+    if (callback_return_value != 0) fbreak;
     parser->query_string_mark = NULL;
   }
 
   action request_path {
     CALLBACK(path);
+    if (callback_return_value != 0) fbreak;
     parser->path_mark = NULL;
   }
 
@@ -132,10 +136,6 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 
   action set_keep_alive { parser->keep_alive = TRUE; }
   action set_not_keep_alive { parser->keep_alive = FALSE; }
-
-  action trailer {
-    /* not implemenetd yet. (do requests even have trailing headers?) */
-  }
 
   action version_major {
     parser->version_major *= 10;
@@ -248,10 +248,10 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   Fragment = ( uchar | reserved )* >mark_fragment %fragment;
 
   field_name = ( token -- ":" )+;
-  Field_Name = field_name >mark_header_field %write_field;
+  Field_Name = field_name >mark_header_field %header_field;
 
   field_value = ((any - " ") any*)?;
-  Field_Value = field_value >mark_header_value %write_value;
+  Field_Value = field_value >mark_header_value %header_value;
 
   hsep = ":" " "*;
   header = (field_name hsep field_value) :> CRLF;
@@ -341,6 +341,7 @@ http_parser_init (http_parser *parser, enum http_parser_type type)
 size_t
 http_parser_execute (http_parser *parser, const char *buffer, size_t len)
 {
+  int callback_return_value = 0;
   const char *p, *pe;
   int cs = parser->cs;
 
