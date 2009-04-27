@@ -14,6 +14,14 @@ tags: http_parser.rl http_parser.h test.c
 	ctags $^
 
 clean:
-	rm -f *.o http_parser.c test
+	rm -f *.o http_parser.c test http_parser.tar
 
-.PHONY: clean
+package: http_parser.c
+	@mkdir -p /tmp/http_parser && \
+	cp README.md Makefile http_parser.c http_parser.rl \
+		http_parser.h test.c /tmp/http_parser && \
+	cd /tmp && \
+	tar -cf http_parser.tar http_parser/
+	@echo /tmp/http_parser.tar
+
+.PHONY: clean package
