@@ -67,3 +67,9 @@ need to inspect the body. Decoding gzip is non-neglagable amount of
 processing (and requires making allocations). HTTP proxies using this
 parser, for example, would not want such a feature.
 
+Releases
+--------
+
+  * [0.1](http://s3.amazonaws.com/four.livejournal/20090427/http_parser-0.1.tar.gz)
+
+The source repo is at [github](http://github.com/ry/http-parser).
