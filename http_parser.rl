@@ -49,6 +49,7 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
     callback_return_value =                                                 \
       parser->on_##FOR(parser, parser->FOR##_mark, p - parser->FOR##_mark); \
   }
+
 #define RESET_PARSER(parser) \
     parser->chunk_size = 0; \
     parser->eating = 0; \
@@ -69,11 +70,34 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
     parser->body_read = 0; 
 
 #define END_REQUEST                                \
+do {                                               \
     if (parser->on_message_complete) {             \
-      parser->on_message_complete(parser);         \
+      callback_return_value =                      \
+        parser->on_message_complete(parser);       \
     }                                              \
-    RESET_PARSER(parser);
+    RESET_PARSER(parser);                          \
+} while (0)
 
+#define SKIP_BODY(nskip)                                             \
+do {                                                                 \
+  tmp = (nskip);                                                     \
+  if (parser->on_body && tmp > 0) {                                  \
+    callback_return_value = parser->on_body(parser, p, tmp);         \
+  }                                                                  \
+  if (callback_return_value == 0) {                                  \
+    p += tmp;                                                        \
+    parser->body_read += tmp;                                        \
+    parser->chunk_size -= tmp;                                       \
+    if (0 == parser->chunk_size) {                                   \
+      parser->eating = FALSE;                                        \
+      if (parser->transfer_encoding == HTTP_IDENTITY) {              \
+        END_REQUEST;                                                 \
+      }                                                              \
+    } else {                                                         \
+      parser->eating = TRUE;                                         \
+    }                                                                \
+  }                                                                  \
+} while (0)
 
 %%{
   machine http_parser;
@@ -121,6 +145,18 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
     parser->path_mark = NULL;
   }
 
+  action headers_complete {
+    if(parser->on_headers_complete)
+      callback_return_value = parser->on_headers_complete(parser);
+    if (callback_return_value != 0) fbreak;
+  }
+
+  action begin_message {
+    if(parser->on_message_begin)
+      callback_return_value = parser->on_message_begin(parser);
+    if (callback_return_value != 0) fbreak;
+  }
+
   action content_length {
     parser->content_length *= 10;
     parser->content_length += *p - '0';
@@ -147,18 +183,15 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
     parser->version_minor += *p - '0';
   }
 
-  action headers_complete {
-    if(parser->on_headers_complete)
-      parser->on_headers_complete(parser);
-  }
-
   action add_to_chunk_size {
     parser->chunk_size *= 16;
     parser->chunk_size += unhex[(int)*p];
   }
 
   action skip_chunk_data {
-    skip_body(&p, parser, MIN(parser->chunk_size, REMAINING));
+    SKIP_BODY(MIN(parser->chunk_size, REMAINING));
+    if (callback_return_value != 0) fbreak;
+
     fhold; 
     if (parser->chunk_size > REMAINING) {
       fbreak;
@@ -168,8 +201,7 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   }
 
   action end_chunked_body {
-    END_REQUEST
-    //fnext main;
+    END_REQUEST;
     if (parser->type == HTTP_REQUEST) {
       fnext Requests;
     } else {
@@ -184,7 +216,10 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
       /* this is pretty stupid. i'd prefer to combine this with skip_chunk_data */
       parser->chunk_size = parser->content_length;
       p += 1;  
-      skip_body(&p, parser, MIN(REMAINING, parser->content_length));
+
+      SKIP_BODY(MIN(REMAINING, parser->content_length));
+      if (callback_return_value != 0) fbreak;
+
       fhold;
       if(parser->chunk_size > REMAINING) {
         fbreak;
@@ -287,8 +322,8 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   chunk = chunk_begin chunk_body chunk_end;
   ChunkedBody := chunk* last_chunk trailing_headers CRLF @end_chunked_body;
 
-  Request = (Request_Line Headers) @body_logic;
-  Response = (StatusLine Headers) @body_logic;
+  Request = (Request_Line Headers) >begin_message @body_logic;
+  Response = (StatusLine Headers) >begin_message @body_logic;
 
   Requests := Request*;
   Responses := Response*;
@@ -305,24 +340,6 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 }%%
 
 %% write data;
-
-static void
-skip_body(const char **p, http_parser *parser, size_t nskip) {
-  if (parser->on_body && nskip > 0) {
-    parser->on_body(parser, *p, nskip);
-  }
-  parser->body_read += nskip;
-  parser->chunk_size -= nskip;
-  *p += nskip;
-  if (0 == parser->chunk_size) {
-    parser->eating = FALSE;
-    if (parser->transfer_encoding == HTTP_IDENTITY) {
-      END_REQUEST
-    }
-  } else {
-    parser->eating = TRUE;
-  }
-}
 
 void
 http_parser_init (http_parser *parser, enum http_parser_type type) 
@@ -341,6 +358,7 @@ http_parser_init (http_parser *parser, enum http_parser_type type)
 size_t
 http_parser_execute (http_parser *parser, const char *buffer, size_t len)
 {
+  size_t tmp; // REMOVE ME this is extremely hacky
   int callback_return_value = 0;
   const char *p, *pe;
   int cs = parser->cs;
@@ -350,9 +368,9 @@ http_parser_execute (http_parser *parser, const char *buffer, size_t len)
 
   if (0 < parser->chunk_size && parser->eating) {
     /* eat body */
-    size_t eat = MIN(len, parser->chunk_size);
-    skip_body(&p, parser, eat);
-  } 
+    SKIP_BODY(MIN(len, parser->chunk_size));
+    if (callback_return_value != 0) goto out;
+  }
 
   if (parser->header_field_mark)   parser->header_field_mark   = buffer;
   if (parser->header_value_mark)   parser->header_value_mark   = buffer;
@@ -372,8 +390,8 @@ http_parser_execute (http_parser *parser, const char *buffer, size_t len)
   CALLBACK(path);
   CALLBACK(uri);
 
+out:
   assert(p <= pe && "buffer overflow after parsing execute");
-
   return(p - buffer);
 }
 

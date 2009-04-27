@@ -1,4 +1,5 @@
-OPT=-g -O2
+#OPT=-O0 -gdwarf-2 -g3
+OPT=-O3
 
 test: http_parser.o test.c 
 	gcc $(OPT) $^ -o $@ 
