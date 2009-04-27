@@ -7,6 +7,22 @@ applications. It does not make any allocations, it does not buffer data, and
 it can be interrupted at anytime. It only requires about 120 bytes of data
 per message stream (in a web server that is per connection). 
 
+Features:
+
+  * No dependencies 
+  * Parses both requests and responses.
+  * Handles keep-alive streams.
+  * Decodes chunked encoding.
+  * Extracts the following data from a message
+    * header fields and values
+    * content-length
+    * request method
+    * response status code
+    * transfer-encoding
+    * http version
+    * request path, query string, fragment
+    * message body
+
 Usage
 -----
 
