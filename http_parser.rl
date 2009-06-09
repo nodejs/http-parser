@@ -23,8 +23,9 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
  */
 #include "http_parser.h"
-
-#include <assert.h>
+#ifndef NDEBUG
+# include <assert.h>
+#endif
 
 static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
                      ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
@@ -41,37 +42,38 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 #define NULL (void*)(0)
 
 #define REMAINING (pe - p)
-#define CALLBACK(FOR)                                                       \
-  if (parser->FOR##_mark && parser->on_##FOR) {                             \
-    callback_return_value =                                                 \
-      parser->on_##FOR(parser, parser->FOR##_mark, p - parser->FOR##_mark); \
+#define CALLBACK(FOR)                                                \
+  if (parser->FOR##_mark && parser->on_##FOR) {                      \
+    callback_return_value =                                          \
+      parser->on_##FOR(parser, parser->FOR##_mark,                   \
+                       p - parser->FOR##_mark);                      \
   }
 
-#define RESET_PARSER(parser) \
-    parser->chunk_size = 0; \
-    parser->eating = 0; \
-    parser->header_field_mark = NULL; \
-    parser->header_value_mark = NULL; \
-    parser->query_string_mark = NULL; \
-    parser->path_mark = NULL; \
-    parser->uri_mark = NULL; \
-    parser->fragment_mark = NULL; \
-    parser->status_code = 0; \
-    parser->method = 0; \
-    parser->transfer_encoding = HTTP_IDENTITY; \
-    parser->version_major = 0; \
-    parser->version_minor = 0; \
-    parser->keep_alive = -1; \
-    parser->content_length = 0; \
+#define RESET_PARSER(parser)                                         \
+    parser->chunk_size = 0;                                          \
+    parser->eating = 0;                                              \
+    parser->header_field_mark = NULL;                                \
+    parser->header_value_mark = NULL;                                \
+    parser->query_string_mark = NULL;                                \
+    parser->path_mark = NULL;                                        \
+    parser->uri_mark = NULL;                                         \
+    parser->fragment_mark = NULL;                                    \
+    parser->status_code = 0;                                         \
+    parser->method = 0;                                              \
+    parser->transfer_encoding = HTTP_IDENTITY;                       \
+    parser->version_major = 0;                                       \
+    parser->version_minor = 0;                                       \
+    parser->keep_alive = -1;                                         \
+    parser->content_length = 0;                                      \
     parser->body_read = 0; 
 
-#define END_REQUEST                                \
-do {                                               \
-    if (parser->on_message_complete) {             \
-      callback_return_value =                      \
-        parser->on_message_complete(parser);       \
-    }                                              \
-    RESET_PARSER(parser);                          \
+#define END_REQUEST                                                  \
+do {                                                                 \
+    if (parser->on_message_complete) {                               \
+      callback_return_value =                                        \
+        parser->on_message_complete(parser);                         \
+    }                                                                \
+    RESET_PARSER(parser);                                            \
 } while (0)
 
 #define SKIP_BODY(nskip)                                             \
@@ -224,7 +226,6 @@ do {                                                                 \
       }
     }
   }
-
 
   CRLF = "\r\n";
 
