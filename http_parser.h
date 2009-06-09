@@ -1,8 +1,7 @@
-/* Copyright (c) 2008 Ryan Dahl (ry@tinyclouds.org)
- * All rights reserved.
+/* Copyright (c) 2008, 2009 Ryan Dahl (ry@tinyclouds.org)
+ * Based on Zed Shaw's Mongrel, copyright (c) Zed A. Shaw
  *
- * This parser is based on code from Zed Shaw's Mongrel.
- * Copyright (c) 2005 Zed A. Shaw
+ * All rights reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the

@@ -1,7 +1,5 @@
 /* Copyright (c) 2008, 2009 Ryan Dahl (ry@tinyclouds.org)
- *
- * Based on Zed Shaw's Mongrel.
- * Copyright (c) 2005 Zed A. Shaw
+ * Based on Zed Shaw's Mongrel, copyright (c) Zed A. Shaw
  *
  * All rights reserved.
  * 
