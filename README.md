@@ -57,6 +57,12 @@ buffering the data is not necessary. If you need to save certain data for
 later usage, you can do that from the callbacks. (You can also `read()` into
 a heap allocated buffer to avoid copying memory around if this fits your
 application.)
+
+Scalar valued message information such as `status_code`, `method`, and the
+HTTP version are stored in the parser structure. This data is only
+temporarlly stored in `http_parser` and gets reset on each new message. If
+this information is needed later, copy it out of the structure during the
+`headers_complete` callback.
   
 The parser decodes the transfer-encoding for both requests and responses
 transparently. That is, a chunked encoding is decoded before being sent to
