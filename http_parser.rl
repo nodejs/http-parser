@@ -24,9 +24,7 @@
  */
 #include "http_parser.h"
 #include <limits.h>
-#ifndef NDEBUG
-# include <assert.h>
-#endif
+#include <assert.h>
 
 static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
                      ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
