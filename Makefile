@@ -1,5 +1,5 @@
-#OPT=-O0 -gdwarf-2 -g3
-OPT=-O3
+#OPT=-O0 -g -Wall -Wextra -Werror
+OPT=-O2
 
 test: http_parser.o test.c 
 	gcc $(OPT) http_parser.o test.c -o $@ 
