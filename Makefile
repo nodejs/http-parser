@@ -18,7 +18,7 @@ clean:
 
 package: http_parser.c
 	@rm -rf /tmp/http_parser && mkdir /tmp/http_parser && \
-	cp README.md Makefile http_parser.c http_parser.rl \
+	cp LICENSE README.md Makefile http_parser.c http_parser.rl \
 		http_parser.h test.c /tmp/http_parser && \
 	cd /tmp && \
 	tar -cf http_parser.tar http_parser/
