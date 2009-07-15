@@ -378,8 +378,8 @@ do {                                                                 \
   Request_Line = ( Method " " Request_URI ("#" Fragment)? " " HTTP_Version CRLF ) ;
 
   StatusCode = (digit digit digit) $status_code;
-  ReasonPhrase =  ascii+ -- ("\r" | "\n");
-  StatusLine = HTTP_Version  " " StatusCode " " ReasonPhrase CRLF;
+  ReasonPhrase =  ascii* -- ("\r" | "\n");
+  StatusLine = HTTP_Version  " " StatusCode (" " ReasonPhrase)? CRLF;
 
 # chunked message
   trailing_headers = header*;
