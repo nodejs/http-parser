@@ -362,7 +362,34 @@ const struct message responses[] =
   ,.num_headers= 0
   ,.headers= {}
   ,.body= ""
-}
+  }
+
+, {.name="200 trailing space on chunked body"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 200 OK\r\n"
+         "Content-Type: text/plain\r\n"
+         "Transfer-Encoding: chunked\r\n"
+         "\r\n"
+         "25  \r\n"
+         "This is the data in the first chunk\r\n"
+         "\r\n"
+         "1C\r\n"
+         "and this is the second one\r\n"
+         "\r\n"
+         "0  \r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.status_code= 200
+  ,.num_headers= 2
+  ,.headers=
+    { {"Content-Type", "text/plain" }
+    , {"Transfer-Encoding", "chunked" }
+    }
+  ,.body =
+         "This is the data in the first chunk\r\n"
+         "and this is the second one\r\n"
+
+  }
 
 , {.name= NULL } /* sentinel */
 };
@@ -653,7 +680,7 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
 
       http_parser_execute(&parser, buf3, buf3_len);
 
-      assert(! http_parser_has_error(&parser));
+      assert(!http_parser_has_error(&parser));
 
       assert(3 == num_messages);
 
