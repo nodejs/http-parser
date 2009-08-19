@@ -28,6 +28,9 @@
 extern "C" {
 #endif 
 
+#ifdef _MSC_VER
+	#include <stddef.h>
+#endif
 #include <sys/types.h> 
 
 typedef struct http_parser http_parser;
