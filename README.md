@@ -43,14 +43,28 @@ When data is received on the socket execute the parser and check for errors.
     char buf[len];
     ssize_t recved;
 
-    recved = read(fd, buf, len);
-    if (recved != 0) // handle error
+    recved = recv(fd, buf, len, 0);
 
+    if (recved < 0) {
+      /* Handle error. */
+    }
+
+    /* Start up / continue the parser.
+     * Note we pass the recved==0 to http_parser_execute to signal
+     * that EOF has been recieved.
+     */
     http_parser_execute(parser, buf, recved);
 
     if (http_parser_has_error(parser)) {
-      // handle error. usually just close the connection
+      /* Handle error. Usually just close the connection. */
     }
+
+HTTP needs to know where the end of the stream is. For example, sometimes
+servers send responses without Content-Length and expect the client to
+consume input (for the body) until EOF. To tell http_parser about EOF, give
+`0` as the third parameter to `http_parser_execute()`. Callbacks and errors
+can still be encountered during an EOF, so one must still be prepared
+to receive them.
 
 Scalar valued message information such as `status_code`, `method`, and the
 HTTP version are stored in the parser structure. This data is only

@@ -559,8 +559,11 @@ parse_messages (int message_count, const struct message *input_messages[])
   parser_init(HTTP_REQUEST);
 
   traversed = http_parser_execute(&parser, total, length);
-
   assert(!http_parser_has_error(&parser));
+
+  traversed = http_parser_execute(&parser, NULL, 0);
+  assert(!http_parser_has_error(&parser));
+
   assert(num_messages == message_count);
 
   for (i = 0; i < message_count; i++) {
@@ -577,6 +580,10 @@ test_message (const struct message *message)
 
   traversed = http_parser_execute(&parser, message->raw, strlen(message->raw));
   assert(!http_parser_has_error(&parser));
+
+  traversed = http_parser_execute(&parser, NULL, 0);
+  assert(!http_parser_has_error(&parser));
+
   assert(num_messages == 1);
 
   message_eq(0, message);
@@ -589,6 +596,7 @@ test_error (const char *buf)
   parser_init(HTTP_REQUEST);
 
   traversed = http_parser_execute(&parser, buf, strlen(buf));
+  traversed = http_parser_execute(&parser, NULL, 0);
 
   assert(http_parser_has_error(&parser));
 }
@@ -611,8 +619,11 @@ test_multiple3 (const struct message *r1, const struct message *r2, const struct
   parser_init(HTTP_REQUEST);
 
   traversed = http_parser_execute(&parser, total, strlen(total));
+  assert(!http_parser_has_error(&parser) );
 
-  assert(! http_parser_has_error(&parser) );
+  traversed = http_parser_execute(&parser, NULL, 0);
+  assert(!http_parser_has_error(&parser) );
+
   assert(num_messages == 3);
   message_eq(0, r1);
   message_eq(1, r2);
@@ -671,15 +682,15 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
       */
 
       http_parser_execute(&parser, buf1, buf1_len);
-
       assert(!http_parser_has_error(&parser));
 
       http_parser_execute(&parser, buf2, buf2_len);
-
       assert(!http_parser_has_error(&parser));
 
       http_parser_execute(&parser, buf3, buf3_len);
+      assert(!http_parser_has_error(&parser));
 
+      http_parser_execute(&parser, NULL, 0);
       assert(!http_parser_has_error(&parser));
 
       assert(3 == num_messages);
