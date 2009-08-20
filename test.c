@@ -344,6 +344,45 @@ const struct message responses[] =
           "</BODY></HTML>\r\n"
   }
 
+, {.name= "no content-length response"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 200 OK\r\n"
+         "Date: Tue, 04 Aug 2009 07:59:32 GMT\r\n"
+         "Server: Apache\r\n"
+         "X-Powered-By: Servlet/2.5 JSP/2.1\r\n"
+         "Content-Type: text/xml; charset=utf-8\r\n"
+         "Connection: close\r\n"
+         "\r\n"
+         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+         "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\">\n"
+         "  <SOAP-ENV:Body>\n"
+         "    <SOAP-ENV:Fault>\n"
+         "       <faultcode>SOAP-ENV:Client</faultcode>\n"
+         "       <faultstring>Client Error</faultstring>\n"
+         "    </SOAP-ENV:Fault>\n"
+         "  </SOAP-ENV:Body>\n"
+         "</SOAP-ENV:Envelope>"
+  ,.should_keep_alive= FALSE
+  ,.status_code= 200
+  ,.num_headers= 5
+  ,.headers=
+    { { "Date", "Tue, 04 Aug 2009 07:59:32 GMT" }
+    , { "Server", "Apache" }
+    , { "X-Powered-By", "Servlet/2.5 JSP/2.1" }
+    , { "Content-Type", "text/xml; charset=utf-8" }
+    , { "Connection", "close" }
+    }
+  ,.body= "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+          "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\">\n"
+          "  <SOAP-ENV:Body>\n"
+          "    <SOAP-ENV:Fault>\n"
+          "       <faultcode>SOAP-ENV:Client</faultcode>\n"
+          "       <faultstring>Client Error</faultstring>\n"
+          "    </SOAP-ENV:Fault>\n"
+          "  </SOAP-ENV:Body>\n"
+          "</SOAP-ENV:Envelope>"
+  }
+
 , {.name= "404 no headers no body"
   ,.type= HTTP_RESPONSE
   ,.raw= "HTTP/1.1 404 Not Found\r\n\r\n"

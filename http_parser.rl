@@ -27,9 +27,10 @@
 #include <assert.h>
 
 /* parser->flags */
-#define EATING  0x01
-#define ERROR   0x02
-#define CHUNKED 0x04
+#define EATING      0x01
+#define ERROR       0x02
+#define CHUNKED     0x04
+#define EAT_FOREVER 0x10
 
 static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
                      ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
@@ -79,7 +80,7 @@ do {                                                                 \
   parser->method = 0;                                                \
   parser->version = HTTP_VERSION_OTHER;                              \
   parser->keep_alive = -1;                                           \
-  parser->content_length = 0;                                        \
+  parser->content_length = -1;                                       \
   parser->body_read = 0
 
 #define END_REQUEST                                                  \
@@ -226,6 +227,7 @@ do {                                                                 \
   }
 
   action content_length {
+    if (parser->content_length == -1) parser->content_length = 0;
     if (parser->content_length > INT_MAX) {
       parser->flags |= ERROR;
       return 0;
@@ -281,11 +283,25 @@ do {                                                                 \
     if (parser->flags & CHUNKED) {
       fnext ChunkedBody;
     } else {
-      /* this is pretty stupid. i'd prefer to combine this with skip_chunk_data */
-      parser->chunk_size = parser->content_length;
+      /* this is pretty stupid. i'd prefer to combine this with
+       * skip_chunk_data */
+      if (parser->content_length < 0) {
+        /* If we didn't get a content length; if not keep-alive
+         * just read body until EOF */
+        if (!http_parser_should_keep_alive(parser)) {
+          parser->flags |= EAT_FOREVER;
+          parser->chunk_size = REMAINING;
+        } else {
+          /* Otherwise, if keep-alive, then assume the message
+           * has no body. */
+          parser->chunk_size = parser->content_length = 0;
+        }
+      } else {
+        parser->chunk_size = parser->content_length;
+      }
       p += 1;
 
-      SKIP_BODY(MIN(REMAINING, parser->content_length));
+      SKIP_BODY(MIN(REMAINING, parser->chunk_size));
 
       if (callback_return_value != 0) {
         parser->flags |= ERROR;
@@ -444,11 +460,27 @@ http_parser_execute (http_parser *parser, const char *buffer, size_t len)
 {
   size_t tmp; // REMOVE ME this is extremely hacky
   int callback_return_value = 0;
-  const char *p, *pe;
+  const char *p, *pe, *eof;
   int cs = parser->cs;
 
   p = buffer;
-  pe = buffer+len;
+  pe = buffer+len; 
+  eof = len ? NULL : pe; 
+
+  if (parser->flags & EAT_FOREVER) {
+    if (len == 0) {
+      if (parser->on_message_complete) {
+        callback_return_value = parser->on_message_complete(parser);
+        if (callback_return_value != 0) parser->flags |= ERROR;
+      }
+    } else {
+      if (parser->on_body) {
+        callback_return_value = parser->on_body(parser, p, len);
+        if (callback_return_value != 0) parser->flags |= ERROR;
+      }
+    }
+    return len; 
+  }
 
   if (0 < parser->chunk_size && (parser->flags & EATING)) {
     /* eat body */

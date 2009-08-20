@@ -96,7 +96,7 @@ struct http_parser {
   unsigned short method;      /* requests only */
   short version;
   short keep_alive;
-  size_t content_length;
+  ssize_t content_length;
 
   /** PUBLIC **/
   void *data; /* A pointer to get hook to the "connection" or "socket" object */
