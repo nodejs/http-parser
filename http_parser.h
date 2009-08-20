@@ -2,7 +2,7 @@
  * Based on Zed Shaw's Mongrel, copyright (c) Zed A. Shaw
  *
  * All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,34 +10,34 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
  * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
  * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #ifndef http_parser_h
 #define http_parser_h
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 #ifdef _MSC_VER
-	#include <stddef.h>
+#  include <stddef.h>
 #endif
-#include <sys/types.h> 
+#include <sys/types.h>
 
 typedef struct http_parser http_parser;
 
 /* Callbacks should return non-zero to indicate an error. The parse will
- * then halt execution. 
- * 
+ * then halt execution.
+ *
  * http_data_cb does not return data chunks. It will be call arbitrarally
  * many times for each string. E.G. you might get 10 callbacks for "on_path"
  * each providing just a few characters more data.
@@ -94,18 +94,18 @@ struct http_parser {
 
   size_t body_read;
 
-  const char *header_field_mark; 
-  size_t      header_field_size; 
-  const char *header_value_mark; 
-  size_t      header_value_size; 
-  const char *query_string_mark; 
-  size_t      query_string_size; 
-  const char *path_mark; 
-  size_t      path_size; 
-  const char *uri_mark; 
-  size_t      uri_size; 
-  const char *fragment_mark; 
-  size_t      fragment_size; 
+  const char *header_field_mark;
+  size_t      header_field_size;
+  const char *header_value_mark;
+  size_t      header_value_size;
+  const char *query_string_mark;
+  size_t      query_string_size;
+  const char *path_mark;
+  size_t      path_size;
+  const char *uri_mark;
+  size_t      uri_size;
+  const char *fragment_mark;
+  size_t      fragment_size;
 
   /** READ-ONLY **/
   unsigned short status_code; /* responses only */
@@ -137,7 +137,7 @@ struct http_parser {
 };
 
 /* Initializes an http_parser structure.  The second argument specifies if
- * it will be parsing requests or responses. 
+ * it will be parsing requests or responses.
  */
 void http_parser_init (http_parser *parser, enum http_parser_type);
 
@@ -149,5 +149,5 @@ int http_parser_should_keep_alive (http_parser *parser);
 
 #ifdef __cplusplus
 }
-#endif 
+#endif
 #endif

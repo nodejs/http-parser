@@ -5,11 +5,11 @@ This is a parser for HTTP messages written in C. It parses both requests
 and responses. The parser is designed to be used in performance HTTP
 applications. It does not make any allocations, it does not buffer data, and
 it can be interrupted at anytime. It only requires about 128 bytes of data
-per message stream (in a web server that is per connection). 
+per message stream (in a web server that is per connection).
 
 Features:
 
-  * No dependencies 
+  * No dependencies
   * Parses both requests and responses.
   * Handles keep-alive streams.
   * Decodes chunked encoding.
@@ -57,7 +57,7 @@ HTTP version are stored in the parser structure. This data is only
 temporarlly stored in `http_parser` and gets reset on each new message. If
 this information is needed later, copy it out of the structure during the
 `headers_complete` callback.
-  
+
 The parser decodes the transfer-encoding for both requests and responses
 transparently. That is, a chunked encoding is decoded before being sent to
 the on_body callback.
