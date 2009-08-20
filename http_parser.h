@@ -78,24 +78,7 @@ struct http_parser {
   enum http_parser_type type;
 
   size_t chunk_size;
-
-  /**
-    XXX
-    do this so no other code has to change, but make the field only 1 byte wide
-    instead of 2 (on x86/x86_64).
-
-    doing this not only shrinks the sizeof this struct by a byte but it ALSO
-    makes wrapping this in FFI way easier.
-   */
-  union {
-    struct {
-      unsigned eating:1;
-      unsigned error:1;
-    };
-    struct {
-      unsigned char _flags;
-    };
-  };
+  char flags;
 
   size_t body_read;
 

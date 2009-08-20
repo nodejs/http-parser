@@ -26,6 +26,10 @@
 #include <limits.h>
 #include <assert.h>
 
+/* parser->flags */
+#define EATING  0x01
+#define ERROR   0x02
+
 static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
                      ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
                      ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
@@ -50,7 +54,7 @@ do {                                                                 \
   if (parser->FOR##_mark) {                                          \
     parser->FOR##_size += p - parser->FOR##_mark;                    \
     if (parser->FOR##_size > MAX_FIELD_SIZE) {                       \
-      parser->error = 1;                                             \
+      parser->flags |= ERROR;                                        \
       return 0;                                                      \
     }                                                                \
     if (parser->on_##FOR) {                                          \
@@ -63,7 +67,7 @@ do {                                                                 \
 
 #define RESET_PARSER(parser)                                         \
   parser->chunk_size = 0;                                            \
-  parser->eating = 0;                                                \
+  parser->flags = 0;                                                 \
   parser->header_field_mark = NULL;                                  \
   parser->header_value_mark = NULL;                                  \
   parser->query_string_mark = NULL;                                  \
@@ -98,12 +102,12 @@ do {                                                                 \
     parser->body_read += tmp;                                        \
     parser->chunk_size -= tmp;                                       \
     if (0 == parser->chunk_size) {                                   \
-      parser->eating = 0;                                            \
+      parser->flags &= ~EATING;                                      \
       if (parser->transfer_encoding == HTTP_IDENTITY) {              \
         END_REQUEST;                                                 \
       }                                                              \
     } else {                                                         \
-      parser->eating = 1;                                            \
+      parser->flags |= EATING;                                       \
     }                                                                \
   }                                                                  \
 } while (0)
@@ -144,7 +148,7 @@ do {                                                                 \
   action header_field {
     CALLBACK(header_field);
     if (callback_return_value != 0) {
-      parser->error = 1;
+      parser->flags |= ERROR;
       return 0;
     }
     parser->header_field_mark = NULL;
@@ -154,7 +158,7 @@ do {                                                                 \
   action header_value {
     CALLBACK(header_value);
     if (callback_return_value != 0) {
-      parser->error = 1;
+      parser->flags |= ERROR;
       return 0;
     }
     parser->header_value_mark = NULL;
@@ -164,7 +168,7 @@ do {                                                                 \
   action request_uri {
     CALLBACK(uri);
     if (callback_return_value != 0) {
-      parser->error = 1;
+      parser->flags |= ERROR;
       return 0;
     }
     parser->uri_mark = NULL;
@@ -174,7 +178,7 @@ do {                                                                 \
   action fragment {
     CALLBACK(fragment);
     if (callback_return_value != 0) {
-      parser->error = 1;
+      parser->flags |= ERROR;
       return 0;
     }
     parser->fragment_mark = NULL;
@@ -184,7 +188,7 @@ do {                                                                 \
   action query_string {
     CALLBACK(query_string);
     if (callback_return_value != 0) {
-      parser->error = 1;
+      parser->flags |= ERROR;
       return 0;
     }
     parser->query_string_mark = NULL;
@@ -194,7 +198,7 @@ do {                                                                 \
   action request_path {
     CALLBACK(path);
     if (callback_return_value != 0) {
-      parser->error = 1;
+      parser->flags |= ERROR;
       return 0;
     }
     parser->path_mark = NULL;
@@ -205,7 +209,7 @@ do {                                                                 \
     if(parser->on_headers_complete) {
       callback_return_value = parser->on_headers_complete(parser);
       if (callback_return_value != 0) {
-        parser->error = 1;
+        parser->flags |= ERROR;
         return 0;
       }
     }
@@ -215,7 +219,7 @@ do {                                                                 \
     if(parser->on_message_begin) {
       callback_return_value = parser->on_message_begin(parser);
       if (callback_return_value != 0) {
-        parser->error = 1;
+        parser->flags |= ERROR;
         return 0;
       }
     }
@@ -223,7 +227,7 @@ do {                                                                 \
 
   action content_length {
     if (parser->content_length > INT_MAX) {
-      parser->error = 1;
+      parser->flags |= ERROR;
       return 0;
     }
     parser->content_length *= 10;
@@ -253,7 +257,7 @@ do {                                                                 \
   action skip_chunk_data {
     SKIP_BODY(MIN(parser->chunk_size, REMAINING));
     if (callback_return_value != 0) {
-      parser->error = 1;
+      parser->flags |= ERROR;
       return 0;
     }
 
@@ -285,7 +289,7 @@ do {                                                                 \
       SKIP_BODY(MIN(REMAINING, parser->content_length));
 
       if (callback_return_value != 0) {
-        parser->error = 1;
+        parser->flags |= ERROR;
         return 0;
       }
 
@@ -420,7 +424,6 @@ http_parser_init (http_parser *parser, enum http_parser_type type)
   %% write init;
   parser->cs = cs;
   parser->type = type;
-  parser->error = 0;
 
   parser->on_message_begin = NULL;
   parser->on_path = NULL;
@@ -448,11 +451,11 @@ http_parser_execute (http_parser *parser, const char *buffer, size_t len)
   p = buffer;
   pe = buffer+len;
 
-  if (0 < parser->chunk_size && parser->eating) {
+  if (0 < parser->chunk_size && (parser->flags & EATING)) {
     /* eat body */
     SKIP_BODY(MIN(len, parser->chunk_size));
     if (callback_return_value != 0) {
-      parser->error = 1;
+      parser->flags |= ERROR;
       return 0;
     }
   }
@@ -482,6 +485,6 @@ http_parser_execute (http_parser *parser, const char *buffer, size_t len)
 int
 http_parser_has_error (http_parser *parser)
 {
-  if (parser->error) return 1;
+  if (parser->flags & ERROR) return 1;
   return parser->cs == http_parser_error;
 }
