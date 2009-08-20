@@ -67,6 +67,11 @@ typedef int (*http_cb) (http_parser*);
 
 enum http_parser_type { HTTP_REQUEST, HTTP_RESPONSE };
 
+#define HTTP_VERSION_OTHER 0x00
+#define HTTP_VERSION_11    0x01
+#define HTTP_VERSION_10    0x02
+#define HTTP_VERSION_09    0x04
+
 struct http_parser {
   /** PRIVATE **/
   int cs;
@@ -111,8 +116,7 @@ struct http_parser {
   unsigned short status_code; /* responses only */
   unsigned short method;      /* requests only */
   short transfer_encoding;
-  unsigned short version_major;
-  unsigned short version_minor;
+  short version;
   short keep_alive;
   size_t content_length;
 
@@ -148,10 +152,7 @@ int http_parser_has_error (http_parser *parser);
 static inline int
 http_parser_should_keep_alive (http_parser *parser)
 {
-  if (parser->keep_alive == -1) {
-    if (parser->version_major == 1) return (parser->version_minor != 0);
-    return 0;
-  }
+  if (parser->keep_alive == -1) return (parser->version == HTTP_VERSION_11);
   return parser->keep_alive;
 }
 

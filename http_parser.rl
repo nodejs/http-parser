@@ -73,8 +73,7 @@ do {                                                                 \
   parser->status_code = 0;                                           \
   parser->method = 0;                                                \
   parser->transfer_encoding = HTTP_IDENTITY;                         \
-  parser->version_major = 0;                                         \
-  parser->version_minor = 0;                                         \
+  parser->version = HTTP_VERSION_OTHER;                              \
   parser->keep_alive = -1;                                           \
   parser->content_length = 0;                                        \
   parser->body_read = 0
@@ -242,15 +241,9 @@ do {                                                                 \
   action set_keep_alive { parser->keep_alive = 1; }
   action set_not_keep_alive { parser->keep_alive = 0; }
 
-  action version_major {
-    parser->version_major *= 10;
-    parser->version_major += *p - '0';
-  }
-
-  action version_minor {
-    parser->version_minor *= 10;
-    parser->version_minor += *p - '0';
-  }
+  action version_11 { parser->version = HTTP_VERSION_11; }
+  action version_10 { parser->version = HTTP_VERSION_10; }
+  action version_09 { parser->version = HTTP_VERSION_09; }
 
   action add_to_chunk_size {
     parser->chunk_size *= 16;
@@ -344,7 +337,11 @@ do {                                                                 \
            | "UNLOCK"    %{ parser->method = HTTP_UNLOCK;    }
            ); # Not allowing extension methods
 
-  HTTP_Version = "HTTP/" digit $version_major "." digit $version_minor;
+  HTTP_Version = "HTTP/" ( "1.1" %version_11
+                         | "1.0" %version_10
+                         | "0.9" %version_09
+                         | (digit "." digit)
+                         );
 
   scheme = ( alpha | digit | "+" | "-" | "." )* ;
   absolute_uri = (scheme ":" (uchar | reserved )*);
