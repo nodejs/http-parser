@@ -488,17 +488,3 @@ http_parser_has_error (http_parser *parser)
   if (parser->error) return 1;
   return parser->cs == http_parser_error;
 }
-
-int
-http_parser_should_keep_alive (http_parser *parser)
-{
-  if (parser->keep_alive == -1)
-    if (parser->version_major == 1)
-      return (parser->version_minor != 0);
-    else if (parser->version_major == 0)
-      return 0;
-    else
-      return 1;
-  else
-    return parser->keep_alive;
-}

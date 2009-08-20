@@ -145,7 +145,16 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len);
 
 int http_parser_has_error (http_parser *parser);
 
-int http_parser_should_keep_alive (http_parser *parser);
+static inline int
+http_parser_should_keep_alive (http_parser *parser)
+{
+  if (parser->keep_alive == -1) {
+    if (parser->version_major == 1) return (parser->version_minor != 0);
+    return 0;
+  }
+  return parser->keep_alive;
+}
+
 
 #ifdef __cplusplus
 }
