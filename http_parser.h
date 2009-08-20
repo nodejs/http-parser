@@ -61,10 +61,6 @@ typedef int (*http_cb) (http_parser*);
 #define HTTP_TRACE      0x1000
 #define HTTP_UNLOCK     0x2000
 
-/* Transfer Encodings */
-#define HTTP_IDENTITY   0x01
-#define HTTP_CHUNKED    0x02
-
 enum http_parser_type { HTTP_REQUEST, HTTP_RESPONSE };
 
 #define HTTP_VERSION_OTHER 0x00
@@ -98,7 +94,6 @@ struct http_parser {
   /** READ-ONLY **/
   unsigned short status_code; /* responses only */
   unsigned short method;      /* requests only */
-  short transfer_encoding;
   short version;
   short keep_alive;
   size_t content_length;

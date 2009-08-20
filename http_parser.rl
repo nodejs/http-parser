@@ -29,6 +29,7 @@
 /* parser->flags */
 #define EATING  0x01
 #define ERROR   0x02
+#define CHUNKED 0x04
 
 static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
                      ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
@@ -76,7 +77,6 @@ do {                                                                 \
   parser->fragment_mark = NULL;                                      \
   parser->status_code = 0;                                           \
   parser->method = 0;                                                \
-  parser->transfer_encoding = HTTP_IDENTITY;                         \
   parser->version = HTTP_VERSION_OTHER;                              \
   parser->keep_alive = -1;                                           \
   parser->content_length = 0;                                        \
@@ -103,7 +103,7 @@ do {                                                                 \
     parser->chunk_size -= tmp;                                       \
     if (0 == parser->chunk_size) {                                   \
       parser->flags &= ~EATING;                                      \
-      if (parser->transfer_encoding == HTTP_IDENTITY) {              \
+      if (!(parser->flags & CHUNKED)) {                              \
         END_REQUEST;                                                 \
       }                                                              \
     } else {                                                         \
@@ -239,8 +239,7 @@ do {                                                                 \
     parser->status_code += *p - '0';
   }
 
-  action use_identity_encoding { parser->transfer_encoding = HTTP_IDENTITY; }
-  action use_chunked_encoding  { parser->transfer_encoding = HTTP_CHUNKED;  }
+  action use_chunked_encoding { parser->flags |= CHUNKED;  }
 
   action set_keep_alive { parser->keep_alive = 1; }
   action set_not_keep_alive { parser->keep_alive = 0; }
@@ -279,7 +278,7 @@ do {                                                                 \
   }
 
   action body_logic {
-    if (parser->transfer_encoding == HTTP_CHUNKED) {
+    if (parser->flags & CHUNKED) {
       fnext ChunkedBody;
     } else {
       /* this is pretty stupid. i'd prefer to combine this with skip_chunk_data */
@@ -372,7 +371,7 @@ do {                                                                 \
                | "close"i %set_not_keep_alive
                )
              )
-           | ("Transfer-Encoding"i %use_chunked_encoding hsep "identity" %use_identity_encoding)
+           | ("Transfer-Encoding" hsep "chunked"i %use_chunked_encoding)
            | (Field_Name hsep Field_Value)
            ) :> CRLF;
 
