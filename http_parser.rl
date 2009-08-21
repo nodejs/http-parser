@@ -64,6 +64,10 @@ do {                                                                 \
         parser->FOR##_mark,                                          \
         p - parser->FOR##_mark);                                     \
     }                                                                \
+    if (callback_return_value != 0) {                                \
+      parser->flags |= ERROR;                                        \
+      return 0;                                                      \
+    }                                                                \
   }                                                                  \
 } while(0)
 
@@ -148,60 +152,36 @@ do {                                                                 \
 
   action header_field {
     CALLBACK(header_field);
-    if (callback_return_value != 0) {
-      parser->flags |= ERROR;
-      return 0;
-    }
     parser->header_field_mark = NULL;
     parser->header_field_size = 0;
   }
 
   action header_value {
     CALLBACK(header_value);
-    if (callback_return_value != 0) {
-      parser->flags |= ERROR;
-      return 0;
-    }
     parser->header_value_mark = NULL;
     parser->header_value_size = 0;
   }
 
   action request_uri {
     CALLBACK(uri);
-    if (callback_return_value != 0) {
-      parser->flags |= ERROR;
-      return 0;
-    }
     parser->uri_mark = NULL;
     parser->uri_size = 0;
   }
 
   action fragment {
     CALLBACK(fragment);
-    if (callback_return_value != 0) {
-      parser->flags |= ERROR;
-      return 0;
-    }
     parser->fragment_mark = NULL;
     parser->fragment_size = 0;
   }
 
   action query_string {
     CALLBACK(query_string);
-    if (callback_return_value != 0) {
-      parser->flags |= ERROR;
-      return 0;
-    }
     parser->query_string_mark = NULL;
     parser->query_string_size = 0;
   }
 
   action request_path {
     CALLBACK(path);
-    if (callback_return_value != 0) {
-      parser->flags |= ERROR;
-      return 0;
-    }
     parser->path_mark = NULL;
     parser->path_size = 0;
   }
@@ -464,8 +444,8 @@ http_parser_execute (http_parser *parser, const char *buffer, size_t len)
   int cs = parser->cs;
 
   p = buffer;
-  pe = buffer+len; 
-  eof = len ? NULL : pe; 
+  pe = buffer+len;
+  eof = len ? NULL : pe;
 
   if (parser->flags & EAT_FOREVER) {
     if (len == 0) {
@@ -479,7 +459,7 @@ http_parser_execute (http_parser *parser, const char *buffer, size_t len)
         if (callback_return_value != 0) parser->flags |= ERROR;
       }
     }
-    return len; 
+    return len;
   }
 
   if (0 < parser->chunk_size && (parser->flags & EATING)) {
