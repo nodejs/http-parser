@@ -57,7 +57,7 @@ do {                                                                 \
     parser->FOR##_size += p - parser->FOR##_mark;                    \
     if (parser->FOR##_size > MAX_FIELD_SIZE) {                       \
       parser->flags |= ERROR;                                        \
-      return 0;                                                      \
+      return;                                                        \
     }                                                                \
     if (parser->on_##FOR) {                                          \
       callback_return_value = parser->on_##FOR(parser,               \
@@ -66,7 +66,7 @@ do {                                                                 \
     }                                                                \
     if (callback_return_value != 0) {                                \
       parser->flags |= ERROR;                                        \
-      return 0;                                                      \
+      return;                                                        \
     }                                                                \
   }                                                                  \
 } while(0)
@@ -191,7 +191,7 @@ do {                                                                 \
       callback_return_value = parser->on_headers_complete(parser);
       if (callback_return_value != 0) {
         parser->flags |= ERROR;
-        return 0;
+        return;
       }
     }
   }
@@ -201,7 +201,7 @@ do {                                                                 \
       callback_return_value = parser->on_message_begin(parser);
       if (callback_return_value != 0) {
         parser->flags |= ERROR;
-        return 0;
+        return;
       }
     }
   }
@@ -210,7 +210,7 @@ do {                                                                 \
     if (parser->content_length == -1) parser->content_length = 0;
     if (parser->content_length > INT_MAX) {
       parser->flags |= ERROR;
-      return 0;
+      return;
     }
     parser->content_length *= 10;
     parser->content_length += *p - '0';
@@ -239,7 +239,7 @@ do {                                                                 \
     SKIP_BODY(MIN(parser->chunk_size, REMAINING));
     if (callback_return_value != 0) {
       parser->flags |= ERROR;
-      return 0;
+      return;
     }
 
     fhold;
@@ -285,7 +285,7 @@ do {                                                                 \
 
       if (callback_return_value != 0) {
         parser->flags |= ERROR;
-        return 0;
+        return;
       }
 
       fhold;
@@ -435,7 +435,7 @@ http_parser_init (http_parser *parser, enum http_parser_type type)
 }
 
 /** exec **/
-size_t
+void
 http_parser_execute (http_parser *parser, const char *buffer, size_t len)
 {
   size_t tmp; // REMOVE ME this is extremely hacky
@@ -459,7 +459,7 @@ http_parser_execute (http_parser *parser, const char *buffer, size_t len)
         if (callback_return_value != 0) parser->flags |= ERROR;
       }
     }
-    return len;
+    return;
   }
 
   if (0 < parser->chunk_size && (parser->flags & EATING)) {
@@ -467,7 +467,7 @@ http_parser_execute (http_parser *parser, const char *buffer, size_t len)
     SKIP_BODY(MIN(len, parser->chunk_size));
     if (callback_return_value != 0) {
       parser->flags |= ERROR;
-      return 0;
+      return;
     }
   }
 
@@ -490,7 +490,6 @@ http_parser_execute (http_parser *parser, const char *buffer, size_t len)
   CALLBACK(uri);
 
   assert(p <= pe && "buffer overflow after parsing execute");
-  return(p - buffer);
 }
 
 int

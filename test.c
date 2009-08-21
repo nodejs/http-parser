@@ -594,13 +594,12 @@ parse_messages (int message_count, const struct message *input_messages[])
   }
 
   // Parse the stream
-  size_t traversed = 0;
   parser_init(HTTP_REQUEST);
 
-  traversed = http_parser_execute(&parser, total, length);
+  http_parser_execute(&parser, total, length);
   assert(!http_parser_has_error(&parser));
 
-  traversed = http_parser_execute(&parser, NULL, 0);
+  http_parser_execute(&parser, NULL, 0);
   assert(!http_parser_has_error(&parser));
 
   assert(num_messages == message_count);
@@ -614,13 +613,12 @@ parse_messages (int message_count, const struct message *input_messages[])
 void
 test_message (const struct message *message)
 {
-  size_t traversed = 0;
   parser_init(message->type);
 
-  traversed = http_parser_execute(&parser, message->raw, strlen(message->raw));
+  http_parser_execute(&parser, message->raw, strlen(message->raw));
   assert(!http_parser_has_error(&parser));
 
-  traversed = http_parser_execute(&parser, NULL, 0);
+  http_parser_execute(&parser, NULL, 0);
   assert(!http_parser_has_error(&parser));
 
   assert(num_messages == 1);
@@ -631,11 +629,10 @@ test_message (const struct message *message)
 void
 test_error (const char *buf)
 {
-  size_t traversed = 0;
   parser_init(HTTP_REQUEST);
 
-  traversed = http_parser_execute(&parser, buf, strlen(buf));
-  traversed = http_parser_execute(&parser, NULL, 0);
+  http_parser_execute(&parser, buf, strlen(buf));
+  http_parser_execute(&parser, NULL, 0);
 
   assert(http_parser_has_error(&parser));
 }
@@ -654,13 +651,12 @@ test_multiple3 (const struct message *r1, const struct message *r2, const struct
   strcat(total, r2->raw);
   strcat(total, r3->raw);
 
-  size_t traversed = 0;
   parser_init(HTTP_REQUEST);
 
-  traversed = http_parser_execute(&parser, total, strlen(total));
+  http_parser_execute(&parser, total, strlen(total));
   assert(!http_parser_has_error(&parser) );
 
-  traversed = http_parser_execute(&parser, NULL, 0);
+  http_parser_execute(&parser, NULL, 0);
   assert(!http_parser_has_error(&parser) );
 
   assert(num_messages == 3);

@@ -123,7 +123,7 @@ struct http_parser {
  */
 void http_parser_init (http_parser *parser, enum http_parser_type);
 
-size_t http_parser_execute (http_parser *parser, const char *data, size_t len);
+void http_parser_execute (http_parser *parser, const char *data, size_t len);
 
 int http_parser_has_error (http_parser *parser);
 
