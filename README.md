@@ -143,3 +143,8 @@ Releases
   * [0.1](http://s3.amazonaws.com/four.livejournal/20090427/http_parser-0.1.tar.gz)
 
 The source repo is at [github](http://github.com/ry/http-parser).
+
+Bindings
+--------
+
+  * [Ruby](http://github.com/yakischloba/http-parser-ffi)
