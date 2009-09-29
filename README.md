@@ -148,3 +148,5 @@ Bindings
 --------
 
   * [Ruby](http://github.com/yakischloba/http-parser-ffi)
+
+  * [Lua](http://github.com/phoenixsol/lua-http-parser)
