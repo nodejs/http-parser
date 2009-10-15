@@ -367,7 +367,7 @@ do {                                                                 \
                | "close"i %set_not_keep_alive
                )
              )
-           | ("Transfer-Encoding" hsep "chunked"i %use_chunked_encoding)
+           | ("Transfer-Encoding"i hsep "chunked"i %use_chunked_encoding)
            | (Field_Name hsep Field_Value)
            ) :> CRLF;
 
