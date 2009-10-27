@@ -46,27 +46,31 @@ typedef int (*http_data_cb) (http_parser*, const char *at, size_t length);
 typedef int (*http_cb) (http_parser*);
 
 /* Request Methods */
-#define HTTP_COPY       0x0001
-#define HTTP_DELETE     0x0002
-#define HTTP_GET        0x0004
-#define HTTP_HEAD       0x0008
-#define HTTP_LOCK       0x0010
-#define HTTP_MKCOL      0x0020
-#define HTTP_MOVE       0x0040
-#define HTTP_OPTIONS    0x0080
-#define HTTP_POST       0x0100
-#define HTTP_PROPFIND   0x0200
-#define HTTP_PROPPATCH  0x0400
-#define HTTP_PUT        0x0800
-#define HTTP_TRACE      0x1000
-#define HTTP_UNLOCK     0x2000
+enum http_method
+  { HTTP_COPY      = 0x0001
+  , HTTP_DELETE    = 0x0002
+  , HTTP_GET       = 0x0004
+  , HTTP_HEAD      = 0x0008
+  , HTTP_LOCK      = 0x0010
+  , HTTP_MKCOL     = 0x0020
+  , HTTP_MOVE      = 0x0040
+  , HTTP_OPTIONS   = 0x0080
+  , HTTP_POST      = 0x0100
+  , HTTP_PROPFIND  = 0x0200
+  , HTTP_PROPPATCH = 0x0400
+  , HTTP_PUT       = 0x0800
+  , HTTP_TRACE     = 0x1000
+  , HTTP_UNLOCK    = 0x2000
+  };
 
 enum http_parser_type { HTTP_REQUEST, HTTP_RESPONSE };
 
-#define HTTP_VERSION_OTHER 0x00
-#define HTTP_VERSION_11    0x01
-#define HTTP_VERSION_10    0x02
-#define HTTP_VERSION_09    0x04
+enum http_version
+  { HTTP_VERSION_OTHER  = 0x00
+  , HTTP_VERSION_11     = 0x01
+  , HTTP_VERSION_10     = 0x02
+  , HTTP_VERSION_09     = 0x04
+  };
 
 struct http_parser {
   /** PRIVATE **/
@@ -93,8 +97,8 @@ struct http_parser {
 
   /** READ-ONLY **/
   unsigned short status_code; /* responses only */
-  unsigned short method;      /* requests only */
-  short version;
+  enum http_method method;    /* requests only */
+  enum http_version version;
   short keep_alive;
   ssize_t content_length;
 
