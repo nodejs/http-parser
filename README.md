@@ -107,7 +107,7 @@ Reading headers may be a tricky task if you read/parse headers partially.
 Basically, you need to remember whether last header callback was field or value
 and apply following logic:
 
-    /* on_header_field and on_header_value shortened to on_h_*
+    (on_header_field and on_header_value shortened to on_h_*)
      ------------------------ ------------ --------------------------------------------
     | State (prev. callback) | Callback   | Description/action                         |
      ------------------------ ------------ --------------------------------------------
@@ -127,7 +127,6 @@ and apply following logic:
     | value                  | on_h_value | Value continues. Reallocate value buffer   |
     |                        |            | and append callback data to it             |
      ------------------------ ------------ --------------------------------------------
-    */
 
 See examples of reading in headers:
 
