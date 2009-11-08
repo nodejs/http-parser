@@ -337,6 +337,27 @@ const struct message requests[] =
   ,.body= ""
   }
 
+#define APACHEBENCH_GET 13
+, {.name = "apachebench get"
+  ,.type= HTTP_REQUEST
+  ,.raw= "GET /test HTTP/1.0\r\n"
+         "Host: 0.0.0.0:5000\r\n"
+         "User-Agent: ApacheBench/2.3\r\n"
+         "Accept: */*\r\n\r\n"
+  ,.should_keep_alive= FALSE
+  ,.method= HTTP_GET
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/test"
+  ,.request_uri= "/test"
+  ,.num_headers= 3
+  ,.headers= { { "Host", "0.0.0.0:5000" }
+             , { "User-Agent", "ApacheBench/2.3" }
+             , { "Accept", "*/*" }
+             }
+  ,.body= ""
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
