@@ -134,15 +134,6 @@ See examples of reading in headers:
 * [from http-parser tests](http://github.com/ry/http-parser/blob/37a0ff8928fb0d83cec0d0d8909c5a4abcd221af/test.c#L403) in C
 * [from Node library](http://github.com/ry/node/blob/842eaf446d2fdcb33b296c67c911c32a0dabc747/src/http.js#L284) in Javascript
 
-Releases
---------
-
-  * [0.2](http://s3.amazonaws.com/four.livejournal/20090807/http_parser-0.2.tar.gz)
-
-  * [0.1](http://s3.amazonaws.com/four.livejournal/20090427/http_parser-0.1.tar.gz)
-
-The source repo is at [github](http://github.com/ry/http-parser).
-
 Bindings
 --------
 
