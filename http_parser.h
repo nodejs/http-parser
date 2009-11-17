@@ -1,63 +1,3 @@
-/*
-Mongrel Web Server (Mongrel) is copyrighted free software by Zed A. Shaw
-<zedshaw at zedshaw dot com> and contributors.
-
-This source file is based on Mongrel's parser. Changes by Ryan Dahl
-<ry@tinyclouds.org> in 2008 and 2009.
-
-You can redistribute it and/or modify it under either the terms of the GPL2
-or the conditions below:
-
-1. You may make and give away verbatim copies of the source form of the
-   software without restriction, provided that you duplicate all of the
-   original copyright notices and associated disclaimers.
-
-2. You may modify your copy of the software in any way, provided that
-   you do at least ONE of the following:
-
-     a) place your modifications in the Public Domain or otherwise make them
-     Freely Available, such as by posting said modifications to Usenet or an
-     equivalent medium, or by allowing the author to include your
-     modifications in the software.
-
-     b) use the modified software only within your corporation or
-        organization.
-
-     c) rename any non-standard executables so the names do not conflict with
-     standard executables, which must also be provided.
-
-     d) make other distribution arrangements with the author.
-
-3. You may distribute the software in object code or executable
-   form, provided that you do at least ONE of the following:
-
-     a) distribute the executables and library files of the software,
-     together with instructions (in the manual page or equivalent) on where
-     to get the original distribution.
-
-     b) accompany the distribution with the machine-readable source of the
-     software.
-
-     c) give non-standard executables non-standard names, with
-        instructions on where to get the original software distribution.
-
-     d) make other distribution arrangements with the author.
-
-4. You may modify and include the part of the software into any other
-   software (possibly commercial).  But some files in the distribution
-   are not written by the author, so that they are not under this terms.
-
-5. The scripts and library files supplied as input to or produced as
-   output from the software do not automatically fall under the
-   copyright of the software, but belong to whomever generated them,
-   and may be sold commercially, and may be aggregated with this
-   software.
-
-6. THIS SOFTWARE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR
-   IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
-   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-   PURPOSE.
-*/
 #ifndef http_parser_h
 #define http_parser_h
 #ifdef __cplusplus
@@ -83,34 +23,20 @@ typedef int (*http_cb) (http_parser*);
 
 /* Request Methods */
 enum http_method
-  { HTTP_COPY      = 0x0001
-  , HTTP_DELETE    = 0x0002
+  { HTTP_DELETE    = 0x0002
   , HTTP_GET       = 0x0004
   , HTTP_HEAD      = 0x0008
-  , HTTP_LOCK      = 0x0010
-  , HTTP_MKCOL     = 0x0020
-  , HTTP_MOVE      = 0x0040
-  , HTTP_OPTIONS   = 0x0080
   , HTTP_POST      = 0x0100
-  , HTTP_PROPFIND  = 0x0200
-  , HTTP_PROPPATCH = 0x0400
   , HTTP_PUT       = 0x0800
-  , HTTP_TRACE     = 0x1000
-  , HTTP_UNLOCK    = 0x2000
   };
 
 enum http_parser_type { HTTP_REQUEST, HTTP_RESPONSE };
 
-enum http_version
-  { HTTP_VERSION_OTHER  = 0x00
-  , HTTP_VERSION_11     = 0x01
-  , HTTP_VERSION_10     = 0x02
-  , HTTP_VERSION_09     = 0x04
-  };
-
 struct http_parser {
   /** PRIVATE **/
-  int cs;
+  int state;
+  int header_state;
+  size_t header_index;
   enum http_parser_type type;
 
   size_t chunk_size;
@@ -134,7 +60,10 @@ struct http_parser {
   /** READ-ONLY **/
   unsigned short status_code; /* responses only */
   enum http_method method;    /* requests only */
-  enum http_version version;
+
+  int http_major;
+  int http_minor;
+
   short keep_alive;
   ssize_t content_length;
 
@@ -163,14 +92,16 @@ struct http_parser {
  */
 void http_parser_init (http_parser *parser, enum http_parser_type);
 
-void http_parser_execute (http_parser *parser, const char *data, size_t len);
+size_t http_parser_execute (http_parser *parser, const char *data, size_t len);
 
+/*
 int http_parser_has_error (http_parser *parser);
+*/
 
 static inline int
 http_parser_should_keep_alive (http_parser *parser)
 {
-  if (parser->keep_alive == -1) return (parser->version == HTTP_VERSION_11);
+  if (parser->keep_alive == -1) return (parser->http_major == 1 && parser->http_minor == 1);
   return parser->keep_alive;
 }
 
