@@ -608,28 +608,63 @@ parser_init (enum http_parser_type type)
   parser.on_message_complete  = message_complete_cb;
 }
 
+static inline void
+check_str_eq (const struct message *m,
+              const char *prop,
+              const char *expected,
+              const char *found) {
+  if (0 != strcmp(expected, found)) {
+    printf("\n*** Error: %s in '%s' ***\n\n", prop, m->name);
+    printf("expected '%s'\n", expected);
+    printf("   found '%s'\n", found);
+    exit(1);
+  }
+}
+
+static inline void
+check_num_eq (const struct message *m,
+              const char *prop,
+              int expected,
+              int found) {
+  if (expected != found) {
+    printf("\n*** Error: %s in '%s' ***\n\n", prop, m->name);
+    printf("expected %d\n", expected);
+    printf("   found %d\n", found);
+    exit(1);
+  }
+}
+
+#define MESSAGE_CHECK_STR_EQ(expected, found, prop) \
+  check_str_eq(expected, #prop, expected->prop, found->prop)
+
+#define MESSAGE_CHECK_NUM_EQ(expected, found, prop) \
+  check_num_eq(expected, #prop, expected->prop, found->prop)
+
+
 void
 message_eq (int index, const struct message *expected)
 {
   int i;
   struct message *m = &messages[index];
 
-  assert(m->method == expected->method);
-  assert(m->status_code == expected->status_code);
+  MESSAGE_CHECK_NUM_EQ(expected, m, method);
+  MESSAGE_CHECK_NUM_EQ(expected, m, status_code);
 
   assert(m->message_begin_cb_called);
   assert(m->headers_complete_cb_called);
   assert(m->message_complete_cb_called);
 
-  assert(0 == strcmp(m->body, expected->body));
-  assert(0 == strcmp(m->fragment, expected->fragment));
-  assert(0 == strcmp(m->query_string, expected->query_string));
-  assert(0 == strcmp(m->request_path, expected->request_path));
-  assert(0 == strcmp(m->request_uri, expected->request_uri));
-  assert(m->num_headers == expected->num_headers);
+  MESSAGE_CHECK_STR_EQ(expected, m, request_path);
+  MESSAGE_CHECK_STR_EQ(expected, m, query_string);
+  MESSAGE_CHECK_STR_EQ(expected, m, fragment);
+  MESSAGE_CHECK_STR_EQ(expected, m, request_uri);
+  MESSAGE_CHECK_STR_EQ(expected, m, body);
+
+  MESSAGE_CHECK_NUM_EQ(expected, m, num_headers);
+
   for (i = 0; i < m->num_headers; i++) {
-    assert(0 == strcmp(m->headers[i][0], expected->headers[i][0]));
-    assert(0 == strcmp(m->headers[i][1], expected->headers[i][1]));
+    check_str_eq(expected, "header field", expected->headers[i][0], m->headers[i][0]);
+    check_str_eq(expected, "header value", expected->headers[i][1], m->headers[i][1]);
   }
 }
 
