@@ -19,6 +19,11 @@ do {                                                                 \
   if (0 != FOR##_callback(parser, p)) return (p - data);             \
 } while (0)
 
+#define CALLBACK2(FOR)                                               \
+do {                                                                 \
+  if (0 != FOR##_callback(parser)) return (p - data);                \
+} while (0)
+
 
 #if 0
 do {                                                                 \
@@ -39,64 +44,43 @@ do {                                                                 \
 } while(0)
 #endif 
 
-static inline int uri_callback (http_parser *parser, const char *p)
-{
-  assert(parser->uri_mark);
-  const char *mark = parser->uri_mark;
-  parser->uri_size += p - mark;
-  if (parser->uri_size > MAX_FIELD_SIZE) return -1;
-  if (parser->on_uri == NULL) return 0;
-  return parser->on_uri(parser, mark, p - mark);
+#define DEFINE_CALLBACK(FOR) \
+static inline int FOR##_callback (http_parser *parser, const char *p) \
+{ \
+  if (!parser->FOR##_mark) return 0; \
+  assert(parser->FOR##_mark); \
+  const char *mark = parser->FOR##_mark; \
+  parser->FOR##_size += p - mark; \
+  if (parser->FOR##_size > MAX_FIELD_SIZE) return -1; \
+  int r = 0; \
+  if (parser->on_##FOR) r = parser->on_##FOR(parser, mark, p - mark); \
+  parser->FOR##_mark = NULL; \
+  return r; \
 }
 
-static inline int path_callback (http_parser *parser, const char *p)
+DEFINE_CALLBACK(uri)
+DEFINE_CALLBACK(path)
+DEFINE_CALLBACK(query_string)
+DEFINE_CALLBACK(fragment)
+DEFINE_CALLBACK(header_field)
+DEFINE_CALLBACK(header_value)
+
+static inline int headers_complete_callback (http_parser *parser)
 {
-  assert(parser->path_mark);
-  const char *mark = parser->path_mark;
-  parser->path_size += p - mark;
-  if (parser->path_size > MAX_FIELD_SIZE) return -1;
-  if (parser->on_path == NULL) return 0;
-  return parser->on_path(parser, mark, p - mark);
+  if (parser->on_headers_complete == NULL) return 0;
+  return parser->on_headers_complete(parser);
 }
 
-static inline int query_string_callback (http_parser *parser, const char *p)
+static inline int message_begin_callback (http_parser *parser)
 {
-  assert(parser->query_string_mark);
-  const char *mark = parser->query_string_mark;
-  parser->query_string_size += p - mark;
-  if (parser->query_string_size > MAX_FIELD_SIZE) return -1;
-  if (parser->on_query_string == NULL) return 0;
-  return parser->on_query_string(parser, mark, p - mark);
+  if (parser->on_message_begin == NULL) return 0;
+  return parser->on_message_begin(parser);
 }
 
-static inline int fragment_callback (http_parser *parser, const char *p)
+static inline int message_complete_callback (http_parser *parser)
 {
-  assert(parser->fragment_mark);
-  const char *mark = parser->fragment_mark;
-  parser->fragment_size += p - mark;
-  if (parser->fragment_size > MAX_FIELD_SIZE) return -1;
-  if (parser->on_fragment == NULL) return 0;
-  return parser->on_fragment(parser, mark, p - mark);
-}
-
-static inline int header_field_callback (http_parser *parser, const char *p)
-{
-  assert(parser->header_field_mark);
-  const char *mark = parser->header_field_mark;
-  parser->header_field_size += p - mark;
-  if (parser->header_field_size > MAX_FIELD_SIZE) return -1;
-  if (parser->on_header_field == NULL) return 0;
-  return parser->on_header_field(parser, mark, p - mark);
-}
-
-static inline int header_value_callback (http_parser *parser, const char *p)
-{
-  assert(parser->header_value_mark);
-  const char *mark = parser->header_value_mark;
-  parser->header_value_size += p - mark;
-  if (parser->header_value_size > MAX_FIELD_SIZE) return -1;
-  if (parser->on_header_value == NULL) return 0;
-  return parser->on_header_value(parser, mark, p - mark);
+  if (parser->on_message_complete == NULL) return 0;
+  return parser->on_message_complete(parser);
 }
 
 #define CONNECTION "connection"
@@ -119,7 +103,7 @@ static const uint32_t  usual[] = {
     0xffffdbfe, /* 1111 1111 1111 1111  1101 1011 1111 1110 */
 
                 /* ?>=< ;:98 7654 3210  /.-, +*)( '&%$ #"!  */
-    0x7fff37d6, /* 0111 1111 1111 1111  1111 1111 1111 0110 */
+    0x7ffffff6, /* 0111 1111 1111 1111  1111 1111 1111 0110 */
 
                 /* _^]\ [ZYX WVUT SRQP  ONML KJIH GFED CBA@ */
     0xffffffff, /* 1111 1111 1111 1111  1111 1111 1111 1111 */
@@ -163,7 +147,9 @@ enum state
   , s_port
 
   , s_path
+  , s_query_string_start
   , s_query_string
+  , s_fragment_start
   , s_fragment
 
   , s_http_start
@@ -188,6 +174,10 @@ enum state
 
   , s_headers_almost_done
   , s_headers_done
+
+  , s_body_chunked
+  , s_body_identity
+  , s_body_identity_eof
   };
 
 enum header_states 
@@ -202,8 +192,18 @@ enum header_states
   , h_content_length
   , h_transfer_encoding
   , h_encoding_C
+  , h_encoding_CH
+  , h_encoding_CHU
+  , h_encoding_CHUN
+  , h_encoding_CHUNK
+  , h_encoding_CHUNKE
+  , h_encoding_CHUNKED
   , h_connection_K
   , h_connection_C
+  };
+
+enum flags
+  { F_CHUNKED = 0x0001
   };
 
 #define ERROR (p - data);
@@ -220,6 +220,11 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
   enum header_states header_state = parser->header_state;
   size_t header_index = parser->header_index;
 
+  if (len == 0 && state == s_body_identity_eof) {
+    CALLBACK2(message_complete);
+    return 0;
+  }
+
   if (parser->header_field_mark)   parser->header_field_mark   = data;
   if (parser->header_value_mark)   parser->header_value_mark   = data;
   if (parser->fragment_mark)       parser->fragment_mark       = data;
@@ -232,6 +237,11 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
     switch (state) {
       case s_start:
       {
+        parser->flags = 0;
+        parser->content_length = -1;
+
+        CALLBACK2(message_begin);
+
         switch (ch) {
           /* GET */
           case 'G':
@@ -480,13 +490,45 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
             break;
           case '?':
             CALLBACK(path);
-            MARK(query_string);
-            state = s_query_string;
+            state = s_query_string_start;
             break;
           case '#':
             CALLBACK(path);
-            MARK(fragment);
-            state = s_fragment;
+            state = s_fragment_start;
+            break;
+          default:
+            return ERROR;
+        }
+        break;
+      }
+
+      case s_query_string_start:
+      {
+        if (usual[ch >> 5] & (1 << (ch & 0x1f))) {
+          MARK(query_string);
+          state = s_query_string;
+          break;
+        }
+
+        switch (ch) {
+          case '?':
+            break; // XXX ignore extra '?' ... is this right? 
+          case ' ':
+            CALLBACK(uri);
+            state = s_http_start;
+            break;
+          case CR:
+            CALLBACK(uri);
+            parser->http_minor = 9;
+            state = s_req_line_almost_done;
+            break;
+          case LF:
+            CALLBACK(uri);
+            parser->http_minor = 9;
+            state = s_header_field_start;
+            break;
+          case '#':
+            state = s_fragment_start;
             break;
           default:
             return ERROR;
@@ -518,8 +560,42 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
             break;
           case '#':
             CALLBACK(query_string);
+            state = s_fragment_start;
+            break;
+          default:
+            return ERROR;
+        }
+        break;
+      }
+
+      case s_fragment_start:
+      {
+        if (usual[ch >> 5] & (1 << (ch & 0x1f))) {
+          MARK(fragment);
+          state = s_fragment;
+          break;
+        }
+
+        switch (ch) {
+          case ' ':
+            CALLBACK(uri);
+            state = s_http_start;
+            break;
+          case CR:
+            CALLBACK(uri);
+            parser->http_minor = 9;
+            state = s_req_line_almost_done;
+            break;
+          case LF:
+            CALLBACK(uri);
+            parser->http_minor = 9;
+            state = s_header_field_start;
+            break;
+          case '?':
             MARK(fragment);
             state = s_fragment;
+            break;
+          case '#':
             break;
           default:
             return ERROR;
@@ -760,6 +836,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
               assert(0 && "Unknown header_state");
               break;
           }
+          break;
         }
 
         if (ch == ':') {
@@ -787,47 +864,128 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
       {
         if (ch == ' ') break;
 
-        MARK(header_value);
-
         if (ch == CR) {
           header_state = h_general;
           state = s_header_almost_done;
+          break;
         }
 
         if (ch == LF) {
-          header_state = h_general;
-          state = s_headers_done;
+          state = s_header_field_start;
+          break;
         }
+
+        MARK(header_value);
 
         c = lowcase[(int)ch];
 
-        if (!c) return ERROR;
+        if (!c) {
+          state = s_header_value;
+          header_state = h_general;
+        } else {
+          switch (header_state) {
+            case h_transfer_encoding:
+              /* looking for 'Transfer-Encoding: chunked' */
+              if ('c' == c) {
+                header_state = h_encoding_C;
+              } else {
+                header_state = h_general;
+              }
+              break;
+
+            case h_content_length:
+              if (ch < '0' || ch > '9') return ERROR;
+              parser->content_length = ch - '0';
+              break;
+
+            case h_connection:
+              /* looking for 'Connection: keep-alive' */
+              if (c == 'k') {
+                header_state = h_connection_K;
+              /* looking for 'Connection: close' */
+              } else if (c == 'c') {
+                header_state = h_connection_C;
+              } else {
+                header_state = h_general;
+              }
+              break;
+
+            default:
+              state = s_header_value;
+              header_state = h_general;
+              break;
+          }
+          break;
+        }
+        break;
+      }
+
+      case s_header_value:
+      {
+        c = lowcase[(int)ch];
+
+        if (!c) {
+          if (ch == CR) {
+            CALLBACK(header_value);
+            state = s_header_almost_done;
+            break;
+          }
+
+          if (ch == LF) {
+            CALLBACK(header_value);
+            state = s_header_field_start;
+            break;
+          }
+          break;
+        }
 
         switch (header_state) {
+          case h_connection:
           case h_transfer_encoding:
-            /* looking for 'Transfer-Encoding: chunked' */
-            if ('c' == c) {
-              header_state = h_encoding_C;
-            } else {
-              header_state = h_general;
-            }
+            assert(0 && "Shouldn't get here.");
+            break;
+
+          case h_general:
             break;
 
           case h_content_length:
             if (ch < '0' || ch > '9') return ERROR;
-            parser->content_length = ch - '0';
+            parser->content_length *= 10;
+            parser->content_length += ch - '0';
             break;
 
-          case h_connection:
-            /* looking for 'Connection: keep-alive' */
-            if (c == 'k') {
-              header_state = h_connection_K;
-            /* looking for 'Connection: close' */
-            } else if (c == 'c') {
-              header_state = h_connection_C;
-            } else {
-              header_state = h_general;
+          /* Transfer-Encoding: chunked */
+
+          case h_encoding_C:
+            header_state = (c == 'h' ? h_encoding_CH : h_general);
+            break;
+          case h_encoding_CH:
+            header_state = (c == 'u' ? h_encoding_CHU : h_general);
+            break;
+          case h_encoding_CHU:
+            header_state = (c == 'n' ? h_encoding_CHUN : h_general);
+            break;
+          case h_encoding_CHUN:
+            header_state = (c == 'k' ? h_encoding_CHUNK : h_general);
+            break;
+          case h_encoding_CHUNK:
+            header_state = (c == 'e' ? h_encoding_CHUNKE : h_general);
+            break;
+          case h_encoding_CHUNKE:
+            if (c == 'd') {
+              parser->flags |= F_CHUNKED;
+              header_state = h_encoding_CHUNKED;
             }
+            break;
+          case h_encoding_CHUNKED:
+            if (ch != ' ') return ERROR;
+            break;
+
+          /* looking for 'Connection: keep-alive' */
+          /* looking for 'Connection: close' */
+          case h_connection_K: 
+          case h_connection_C: 
+            header_state = h_general;
             break;
 
           default:
@@ -838,14 +996,37 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
         break;
       }
 
-      case s_header_value:
-      {
-        break;
-      }
-
       case s_header_almost_done:
         if (ch != LF) return ERROR;
         state = s_header_field_start;
+        break;
+
+      case s_headers_almost_done:
+        if (ch != LF) return ERROR;
+        CALLBACK2(headers_complete);
+        
+        if (parser->flags & F_CHUNKED) {
+          state = s_body_chunked;
+        } else {
+          if (parser->content_length == 0) {
+            CALLBACK2(message_complete);
+            state = s_start;
+          } else if (parser->content_length < 0) {
+            state = s_body_identity_eof;
+          } else {
+            state = s_body_identity;
+          }
+        }
+        break;
+
+      /* read until EOF */
+      case s_body_identity_eof:
+        break;
+
+      case s_body_identity:
+        break;
+
+      case s_body_chunked:
         break;
 
       default:

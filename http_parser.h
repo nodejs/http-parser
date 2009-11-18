@@ -64,7 +64,6 @@ struct http_parser {
   int http_major;
   int http_minor;
 
-  short keep_alive;
   ssize_t content_length;
 
   /** PUBLIC **/
@@ -94,9 +93,8 @@ void http_parser_init (http_parser *parser, enum http_parser_type);
 
 size_t http_parser_execute (http_parser *parser, const char *data, size_t len);
 
-/*
+#if 0
 int http_parser_has_error (http_parser *parser);
-*/
 
 static inline int
 http_parser_should_keep_alive (http_parser *parser)
@@ -104,6 +102,7 @@ http_parser_should_keep_alive (http_parser *parser)
   if (parser->keep_alive == -1) return (parser->http_major == 1 && parser->http_minor == 1);
   return parser->keep_alive;
 }
+#endif
 
 
 #ifdef __cplusplus
