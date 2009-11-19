@@ -990,7 +990,6 @@ main (void)
            , &requests[GET_ONE_HEADER_NO_BODY]
            , &requests[GET_NO_HEADERS_NO_BODY]
            );
-#if 0
 
   printf("request scan 2/3      ");
   test_scan( &requests[GET_FUNKY_CONTENT_LENGTH]
@@ -1007,6 +1006,7 @@ main (void)
   puts("requests okay");
 
 
+#if 0
   //// RESPONSES
 
   for (i = 0; i < response_count; i++) {
