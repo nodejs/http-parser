@@ -166,52 +166,55 @@ static const uint32_t  usual[] = {
 };
 
 enum state 
-  { s_start_req = 1
-  , s_start_res
+  { s_start_res = 1
+  , s_res_H
+  , s_res_HT
+  , s_res_HTT
+  , s_res_HTTP
+  , s_res_first_http_major
+  , s_res_http_major
+  , s_res_first_http_minor
+  , s_res_http_minor
+  , s_res_first_status_code
+  , s_res_status_code
+  , s_res_status
+  , s_res_line_almost_done
 
-  , s_method_G
-  , s_method_GE
-
-  , s_method_P
-  , s_method_PU
-  , s_method_PO
-  , s_method_POS
-
-  , s_method_H
-  , s_method_HE
-  , s_method_HEA
-
-  , s_method_D
-  , s_method_DE
-  , s_method_DEL
-  , s_method_DELE
-  , s_method_DELET
-
-  , s_spaces_before_url
-
-  , s_schema
-  , s_schema_slash
-  , s_schema_slash_slash
-  , s_host
-  , s_port
-
-  , s_path
-  , s_query_string_start
-  , s_query_string
-  , s_fragment_start
-  , s_fragment
-
-  , s_http_start
-  , s_http_H
-  , s_http_HT
-  , s_http_HTT
-  , s_http_HTTP
-
-  , s_first_major_digit
-  , s_major_digit
-  , s_first_minor_digit
-  , s_minor_digit
-
+  , s_start_req
+  , s_req_method_G
+  , s_req_method_GE
+  , s_req_method_P
+  , s_req_method_PU
+  , s_req_method_PO
+  , s_req_method_POS
+  , s_req_method_H
+  , s_req_method_HE
+  , s_req_method_HEA
+  , s_req_method_D
+  , s_req_method_DE
+  , s_req_method_DEL
+  , s_req_method_DELE
+  , s_req_method_DELET
+  , s_req_spaces_before_url
+  , s_req_schema
+  , s_req_schema_slash
+  , s_req_schema_slash_slash
+  , s_req_host
+  , s_req_port
+  , s_req_path
+  , s_req_query_string_start
+  , s_req_query_string
+  , s_req_fragment_start
+  , s_req_fragment
+  , s_req_http_start
+  , s_req_http_H
+  , s_req_http_HT
+  , s_req_http_HTT
+  , s_req_http_HTTP
+  , s_req_first_major_digit
+  , s_req_major_digit
+  , s_req_first_minor_digit
+  , s_req_minor_digit
   , s_req_line_almost_done
 
   , s_header_field_start
@@ -298,6 +301,153 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
   for (p=data, pe=data+len; p != pe; p++) {
     ch = *p;
     switch (state) {
+
+      case s_start_res:
+      {
+        parser->flags = 0;
+        parser->content_length = -1;
+
+        CALLBACK2(message_begin);
+
+        switch (ch) {
+          case 'H':
+            state = s_res_H; 
+            break;
+
+          case CR:
+          case LF:
+            break;
+
+          default:
+            return ERROR;
+        }
+        break;
+      }
+
+      case s_res_H:
+        if (ch != 'T') return ERROR;
+        state = s_res_HT;
+        break;
+
+      case s_res_HT:
+        if (ch != 'T') return ERROR;
+        state = s_res_HTT;
+        break;
+
+      case s_res_HTT: 
+        if (ch != 'P') return ERROR;
+        state = s_res_HTTP;
+        break;
+
+      case s_res_HTTP:
+        if (ch != '/') return ERROR;
+        state = s_res_first_http_major;
+        break;
+
+      case s_res_first_http_major:
+        if (ch < '1' || ch > '9') return ERROR;
+        parser->http_major = ch - '0';
+        state = s_res_http_major;
+        break;
+
+      /* major HTTP version or dot */
+      case s_res_http_major:
+      {
+        if (ch == '.') {
+          state = s_res_first_http_minor;
+          break;
+        }
+
+        if (ch < '0' || ch > '9') return ERROR;
+
+        parser->http_major *= 10;
+        parser->http_major += ch - '0';
+
+        if (parser->http_major > 999) return ERROR;
+        break;
+      }
+       
+      /* first digit of minor HTTP version */
+      case s_res_first_http_minor:
+        if (ch < '0' || ch > '9') return ERROR;
+        parser->http_minor = ch - '0';
+        state = s_res_http_minor;
+        break;
+
+      /* minor HTTP version or end of request line */
+      case s_res_http_minor:
+      {
+        if (ch == ' ') {
+          state = s_res_first_status_code;
+          break;
+        }
+
+        if (ch < '0' || ch > '9') return ERROR;
+
+        parser->http_minor *= 10;
+        parser->http_minor += ch - '0';
+
+        if (parser->http_minor > 999) return ERROR;
+        break;
+      }
+
+      case s_res_first_status_code:
+      {
+        if (ch < '0' || ch > '9') {
+          if (ch == ' ') {
+            break;
+          }
+          return ERROR;
+        }
+        parser->status_code = ch - '0';
+        state = s_res_status_code;
+        break;
+      }
+
+      case s_res_status_code:
+      {
+        if (ch < '0' || ch > '9') {
+          switch (ch) {
+            case ' ':
+              state = s_res_status;
+              break;
+            case CR:
+              state = s_res_line_almost_done;
+              break;
+            case LF:
+              state = s_header_field_start;
+              break;
+            default:
+              return ERROR;
+          }
+          break;
+        }
+
+        parser->status_code *= 10;
+        parser->status_code += ch - '0';
+        if (parser->status_code > 999) return ERROR;
+        break;
+      }
+
+      case s_res_status:
+        /* the human readable status. e.g. "NOT FOUND"
+         * we are not humans so just ignore this */
+        if (ch == CR) {
+          state = s_res_line_almost_done;
+          break;
+        }
+
+        if (ch == LF) {
+          state = s_header_field_start;
+          break;
+        }
+        break;
+
+      case s_res_line_almost_done:
+        if (ch != LF) return ERROR;
+        state = s_header_field_start;
+        break;
+
       case s_start_req:
       {
         parser->flags = 0;
@@ -308,22 +458,22 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         switch (ch) {
           /* GET */
           case 'G':
-            state = s_method_G;
+            state = s_req_method_G;
             break;
 
           /* POST, PUT */
           case 'P':
-            state = s_method_P;
+            state = s_req_method_P;
             break;
 
           /* HEAD */
           case 'H':
-            state = s_method_H;
+            state = s_req_method_H;
             break;
 
           /* DELETE */
           case 'D':
-            state = s_method_D;
+            state = s_req_method_D;
             break;
 
           case CR:
@@ -335,48 +485,48 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         }
         break;
       }
-       
+
       /* GET */
 
-      case s_method_G:
+      case s_req_method_G:
         if (ch != 'E') return ERROR;
-        state = s_method_GE;
+        state = s_req_method_GE;
         break;
 
-      case s_method_GE:
+      case s_req_method_GE:
         if (ch != 'T') return ERROR;
         parser->method = HTTP_GET;
-        state = s_spaces_before_url;
+        state = s_req_spaces_before_url;
         break;
 
       /* HEAD */
 
-      case s_method_H:
+      case s_req_method_H:
         if (ch != 'E') return ERROR;
-        state = s_method_HE;
+        state = s_req_method_HE;
         break;
 
-      case s_method_HE:
+      case s_req_method_HE:
         if (ch != 'A') return ERROR;
-        state = s_method_HEA;
+        state = s_req_method_HEA;
         break;
 
-      case s_method_HEA:
+      case s_req_method_HEA:
         if (ch != 'D') return ERROR;
         parser->method = HTTP_HEAD;
-        state = s_spaces_before_url;
+        state = s_req_spaces_before_url;
         break;
 
       /* POST, PUT */
 
-      case s_method_P:
+      case s_req_method_P:
         switch (ch) {
           case 'O':
-            state = s_method_PO;
+            state = s_req_method_PO;
             break;
 
           case 'U':
-            state = s_method_PU;
+            state = s_req_method_PU;
             break;
 
           default:
@@ -386,62 +536,62 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
       /* PUT */
 
-      case s_method_PU:
+      case s_req_method_PU:
         if (ch != 'T') return ERROR;
         parser->method = HTTP_PUT;
-        state = s_spaces_before_url;
+        state = s_req_spaces_before_url;
         break;
 
       /* POST */
 
-      case s_method_PO:
+      case s_req_method_PO:
         if (ch != 'S') return ERROR;
-        state = s_method_POS;
+        state = s_req_method_POS;
         break;
 
-      case s_method_POS:
+      case s_req_method_POS:
         if (ch != 'T') return ERROR;
         parser->method = HTTP_POST;
-        state = s_spaces_before_url;
+        state = s_req_spaces_before_url;
         break;
 
       /* DELETE */
 
-      case s_method_D:
+      case s_req_method_D:
         if (ch != 'E') return ERROR;
-        state = s_method_DE;
+        state = s_req_method_DE;
         break;
 
-      case s_method_DE:
+      case s_req_method_DE:
         if (ch != 'L') return ERROR;
-        state = s_method_DEL;
+        state = s_req_method_DEL;
         break;
 
-      case s_method_DEL:
+      case s_req_method_DEL:
         if (ch != 'E') return ERROR;
-        state = s_method_DELE;
+        state = s_req_method_DELE;
         break;
 
-      case s_method_DELE:
+      case s_req_method_DELE:
         if (ch != 'T') return ERROR;
-        state = s_method_DELET;
+        state = s_req_method_DELET;
         break;
 
-      case s_method_DELET:
+      case s_req_method_DELET:
         if (ch != 'E') return ERROR;
         parser->method = HTTP_DELETE;
-        state = s_spaces_before_url;
+        state = s_req_spaces_before_url;
         break;
 
 
-      case s_spaces_before_url:
+      case s_req_spaces_before_url:
       {
         if (ch == ' ') break;
 
         if (ch == '/') {
           MARK(url);
           MARK(path);
-          state = s_path;
+          state = s_req_path;
           break;
         }
 
@@ -449,49 +599,49 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
         if (c >= 'a' && c <= 'z') {
           MARK(url);
-          state = s_schema;
+          state = s_req_schema;
           break;
         }
 
         return ERROR;
       }
 
-      case s_schema:
+      case s_req_schema:
       {
         c = LOWER(ch);
 
         if (c >= 'a' && c <= 'z') break;
 
         if (ch == ':') {
-          state = s_schema_slash;
+          state = s_req_schema_slash;
           break;
         }
 
         return ERROR;
       }
 
-      case s_schema_slash:
+      case s_req_schema_slash:
         if (ch != '/') return ERROR;
-        state = s_schema_slash_slash;
+        state = s_req_schema_slash_slash;
         break;
 
-      case s_schema_slash_slash:
+      case s_req_schema_slash_slash:
         if (ch != '/') return ERROR;
-        state = s_host;
+        state = s_req_host;
         break;
 
-      case s_host:
+      case s_req_host:
       {
         c = LOWER(ch);
         if (c >= 'a' && c <= 'z') break;
         if ((ch >= '0' && ch <= '9') || ch == '.' || ch == '-') break;
         switch (ch) {
           case ':':
-            state = s_port;
+            state = s_req_port;
             break;
           case '/':
             MARK(path);
-            state = s_path;
+            state = s_req_path;
             break;
           case ' ':
             /* The request line looks like:
@@ -499,7 +649,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
              * That is, there is no path.
              */
             CALLBACK(url);
-            state = s_http_start;
+            state = s_req_http_start;
             break;
           default:
             return ERROR;
@@ -507,13 +657,13 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         break;
       }
 
-      case s_port:
+      case s_req_port:
       {
         if (ch >= '0' && ch <= '9') break;
         switch (ch) {
           case '/':
             MARK(path);
-            state = s_path;
+            state = s_req_path;
             break;
           case ' ':
             /* The request line looks like:
@@ -521,7 +671,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
              * That is, there is no path.
              */
             CALLBACK(url);
-            state = s_http_start;
+            state = s_req_http_start;
             break;
           default:
             return ERROR;
@@ -529,7 +679,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         break;
       }
 
-      case s_path:
+      case s_req_path:
       {
         if (usual[ch >> 5] & (1 << (ch & 0x1f))) break;
 
@@ -537,7 +687,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           case ' ':
             CALLBACK(url);
             CALLBACK(path);
-            state = s_http_start;
+            state = s_req_http_start;
             break;
           case CR:
             CALLBACK(url);
@@ -553,11 +703,11 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             break;
           case '?':
             CALLBACK(path);
-            state = s_query_string_start;
+            state = s_req_query_string_start;
             break;
           case '#':
             CALLBACK(path);
-            state = s_fragment_start;
+            state = s_req_fragment_start;
             break;
           default:
             return ERROR;
@@ -565,11 +715,11 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         break;
       }
 
-      case s_query_string_start:
+      case s_req_query_string_start:
       {
         if (usual[ch >> 5] & (1 << (ch & 0x1f))) {
           MARK(query_string);
-          state = s_query_string;
+          state = s_req_query_string;
           break;
         }
 
@@ -578,7 +728,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             break; // XXX ignore extra '?' ... is this right? 
           case ' ':
             CALLBACK(url);
-            state = s_http_start;
+            state = s_req_http_start;
             break;
           case CR:
             CALLBACK(url);
@@ -591,7 +741,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             state = s_header_field_start;
             break;
           case '#':
-            state = s_fragment_start;
+            state = s_req_fragment_start;
             break;
           default:
             return ERROR;
@@ -599,7 +749,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         break;
       }
 
-      case s_query_string:
+      case s_req_query_string:
       {
         if (usual[ch >> 5] & (1 << (ch & 0x1f))) break;
 
@@ -607,7 +757,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           case ' ':
             CALLBACK(url);
             CALLBACK(query_string);
-            state = s_http_start;
+            state = s_req_http_start;
             break;
           case CR:
             CALLBACK(url);
@@ -623,7 +773,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             break;
           case '#':
             CALLBACK(query_string);
-            state = s_fragment_start;
+            state = s_req_fragment_start;
             break;
           default:
             return ERROR;
@@ -631,18 +781,18 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         break;
       }
 
-      case s_fragment_start:
+      case s_req_fragment_start:
       {
         if (usual[ch >> 5] & (1 << (ch & 0x1f))) {
           MARK(fragment);
-          state = s_fragment;
+          state = s_req_fragment;
           break;
         }
 
         switch (ch) {
           case ' ':
             CALLBACK(url);
-            state = s_http_start;
+            state = s_req_http_start;
             break;
           case CR:
             CALLBACK(url);
@@ -656,7 +806,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             break;
           case '?':
             MARK(fragment);
-            state = s_fragment;
+            state = s_req_fragment;
             break;
           case '#':
             break;
@@ -666,7 +816,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         break;
       }
 
-      case s_fragment:
+      case s_req_fragment:
       {
         if (usual[ch >> 5] & (1 << (ch & 0x1f))) break;
 
@@ -674,7 +824,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           case ' ':
             CALLBACK(url);
             CALLBACK(fragment);
-            state = s_http_start;
+            state = s_req_http_start;
             break;
           case CR:
             CALLBACK(url);
@@ -697,10 +847,10 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         break;
       }
 
-      case s_http_start:
+      case s_req_http_start:
         switch (ch) {
           case 'H':
-            state = s_http_H;
+            state = s_req_http_H;
             break;
           case ' ':
             break;
@@ -709,38 +859,38 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         }
         break;
 
-      case s_http_H:
+      case s_req_http_H:
         if (ch != 'T') return ERROR;
-        state = s_http_HT;
+        state = s_req_http_HT;
         break;
 
-      case s_http_HT:
+      case s_req_http_HT:
         if (ch != 'T') return ERROR;
-        state = s_http_HTT;
+        state = s_req_http_HTT;
         break;
 
-      case s_http_HTT:
+      case s_req_http_HTT:
         if (ch != 'P') return ERROR;
-        state = s_http_HTTP;
+        state = s_req_http_HTTP;
         break;
 
-      case s_http_HTTP:
+      case s_req_http_HTTP:
         if (ch != '/') return ERROR;
-        state = s_first_major_digit;
+        state = s_req_first_major_digit;
         break;
 
       /* first digit of major HTTP version */
-      case s_first_major_digit:
+      case s_req_first_major_digit:
         if (ch < '1' || ch > '9') return ERROR;
         parser->http_major = ch - '0';
-        state = s_major_digit;
+        state = s_req_major_digit;
         break;
 
       /* major HTTP version or dot */
-      case s_major_digit:
+      case s_req_major_digit:
       {
         if (ch == '.') {
-          state = s_first_minor_digit;
+          state = s_req_first_minor_digit;
           break;
         }
 
@@ -754,14 +904,14 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
       }
 
       /* first digit of minor HTTP version */
-      case s_first_minor_digit:
+      case s_req_first_minor_digit:
         if (ch < '0' || ch > '9') return ERROR;
         parser->http_minor = ch - '0';
-        state = s_minor_digit;
+        state = s_req_minor_digit;
         break;
 
       /* minor HTTP version or end of request line */
-      case s_minor_digit:
+      case s_req_minor_digit:
       {
         if (ch == CR) {
           state = s_req_line_almost_done;

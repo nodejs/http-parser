@@ -659,8 +659,11 @@ message_eq (int index, const struct message *expected)
   int i;
   struct message *m = &messages[index];
 
-  MESSAGE_CHECK_NUM_EQ(expected, m, method);
-  MESSAGE_CHECK_NUM_EQ(expected, m, status_code);
+  if (expected->type == REQUEST) {
+    MESSAGE_CHECK_NUM_EQ(expected, m, method);
+  } else {
+    MESSAGE_CHECK_NUM_EQ(expected, m, status_code);
+  }
 
   assert(m->message_begin_cb_called);
   assert(m->headers_complete_cb_called);
