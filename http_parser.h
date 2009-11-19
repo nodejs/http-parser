@@ -52,8 +52,8 @@ struct http_parser {
   size_t      query_string_size;
   const char *path_mark;
   size_t      path_size;
-  const char *uri_mark;
-  size_t      uri_size;
+  const char *url_mark;
+  size_t      url_size;
   const char *fragment_mark;
   size_t      fragment_size;
 
@@ -76,7 +76,7 @@ struct http_parser {
   /* requests only */
   http_data_cb on_path;
   http_data_cb on_query_string;
-  http_data_cb on_uri;
+  http_data_cb on_url;
   http_data_cb on_fragment;
 
   http_data_cb on_header_field;

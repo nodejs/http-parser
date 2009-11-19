@@ -68,7 +68,7 @@ static inline int FOR##_callback (http_parser *parser, const char *p) \
   return r; \
 }
 
-DEFINE_CALLBACK(uri)
+DEFINE_CALLBACK(url)
 DEFINE_CALLBACK(path)
 DEFINE_CALLBACK(query_string)
 DEFINE_CALLBACK(fragment)
@@ -163,7 +163,7 @@ enum state
   , s_method_DELE
   , s_method_DELET
 
-  , s_spaces_before_uri
+  , s_spaces_before_url
 
   , s_schema
   , s_schema_slash
@@ -268,7 +268,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
   if (parser->fragment_mark)       parser->fragment_mark       = data;
   if (parser->query_string_mark)   parser->query_string_mark   = data;
   if (parser->path_mark)           parser->path_mark           = data;
-  if (parser->uri_mark)            parser->uri_mark            = data;
+  if (parser->url_mark)            parser->url_mark            = data;
 
   for (p=data, pe=data+len; p != pe; p++) {
     ch = *p;
@@ -321,7 +321,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
       case s_method_GE:
         if (ch != 'T') return ERROR;
         parser->method = HTTP_GET;
-        state = s_spaces_before_uri;
+        state = s_spaces_before_url;
         break;
 
       /* HEAD */
@@ -339,7 +339,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
       case s_method_HEA:
         if (ch != 'D') return ERROR;
         parser->method = HTTP_HEAD;
-        state = s_spaces_before_uri;
+        state = s_spaces_before_url;
         break;
 
       /* POST, PUT */
@@ -364,7 +364,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
       case s_method_PU:
         if (ch != 'T') return ERROR;
         parser->method = HTTP_PUT;
-        state = s_spaces_before_uri;
+        state = s_spaces_before_url;
         break;
 
       /* POST */
@@ -377,7 +377,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
       case s_method_POS:
         if (ch != 'T') return ERROR;
         parser->method = HTTP_POST;
-        state = s_spaces_before_uri;
+        state = s_spaces_before_url;
         break;
 
       /* DELETE */
@@ -405,16 +405,16 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
       case s_method_DELET:
         if (ch != 'E') return ERROR;
         parser->method = HTTP_DELETE;
-        state = s_spaces_before_uri;
+        state = s_spaces_before_url;
         break;
 
 
-      case s_spaces_before_uri:
+      case s_spaces_before_url:
       {
         if (ch == ' ') break;
 
         if (ch == '/') {
-          MARK(uri);
+          MARK(url);
           MARK(path);
           state = s_path;
           break;
@@ -423,7 +423,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
         c = LOWER(ch);
 
         if (c >= 'a' && c <= 'z') {
-          MARK(uri);
+          MARK(url);
           state = s_schema;
           break;
         }
@@ -473,7 +473,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
              *   "GET http://foo.bar.com HTTP/1.1"
              * That is, there is no path.
              */
-            CALLBACK(uri);
+            CALLBACK(url);
             state = s_http_start;
             break;
           default:
@@ -495,7 +495,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
              *   "GET http://foo.bar.com:1234 HTTP/1.1"
              * That is, there is no path.
              */
-            CALLBACK(uri);
+            CALLBACK(url);
             state = s_http_start;
             break;
           default:
@@ -510,18 +510,18 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
 
         switch (ch) {
           case ' ':
-            CALLBACK(uri);
+            CALLBACK(url);
             CALLBACK(path);
             state = s_http_start;
             break;
           case CR:
-            CALLBACK(uri);
+            CALLBACK(url);
             CALLBACK(path);
             parser->http_minor = 9;
             state = s_req_line_almost_done;
             break;
           case LF:
-            CALLBACK(uri);
+            CALLBACK(url);
             CALLBACK(path);
             parser->http_minor = 9;
             state = s_header_field_start;
@@ -552,16 +552,16 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
           case '?':
             break; // XXX ignore extra '?' ... is this right? 
           case ' ':
-            CALLBACK(uri);
+            CALLBACK(url);
             state = s_http_start;
             break;
           case CR:
-            CALLBACK(uri);
+            CALLBACK(url);
             parser->http_minor = 9;
             state = s_req_line_almost_done;
             break;
           case LF:
-            CALLBACK(uri);
+            CALLBACK(url);
             parser->http_minor = 9;
             state = s_header_field_start;
             break;
@@ -580,18 +580,18 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
 
         switch (ch) {
           case ' ':
-            CALLBACK(uri);
+            CALLBACK(url);
             CALLBACK(query_string);
             state = s_http_start;
             break;
           case CR:
-            CALLBACK(uri);
+            CALLBACK(url);
             CALLBACK(query_string);
             parser->http_minor = 9;
             state = s_req_line_almost_done;
             break;
           case LF:
-            CALLBACK(uri);
+            CALLBACK(url);
             CALLBACK(query_string);
             parser->http_minor = 9;
             state = s_header_field_start;
@@ -616,16 +616,16 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
 
         switch (ch) {
           case ' ':
-            CALLBACK(uri);
+            CALLBACK(url);
             state = s_http_start;
             break;
           case CR:
-            CALLBACK(uri);
+            CALLBACK(url);
             parser->http_minor = 9;
             state = s_req_line_almost_done;
             break;
           case LF:
-            CALLBACK(uri);
+            CALLBACK(url);
             parser->http_minor = 9;
             state = s_header_field_start;
             break;
@@ -647,18 +647,18 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
 
         switch (ch) {
           case ' ':
-            CALLBACK(uri);
+            CALLBACK(url);
             CALLBACK(fragment);
             state = s_http_start;
             break;
           case CR:
-            CALLBACK(uri);
+            CALLBACK(url);
             CALLBACK(fragment);
             parser->http_minor = 9;
             state = s_req_line_almost_done;
             break;
           case LF:
-            CALLBACK(uri);
+            CALLBACK(url);
             CALLBACK(fragment);
             parser->http_minor = 9;
             state = s_header_field_start;
@@ -1201,7 +1201,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
   CALLBACK_NOCLEAR(fragment);
   CALLBACK_NOCLEAR(query_string);
   CALLBACK_NOCLEAR(path);
-  CALLBACK_NOCLEAR(uri);
+  CALLBACK_NOCLEAR(url);
 
   parser->state = state;
   parser->header_state = header_state;
@@ -1222,7 +1222,7 @@ http_parser_init (http_parser *parser, enum http_parser_type type)
   parser->on_message_begin = NULL;
   parser->on_path = NULL;
   parser->on_query_string = NULL;
-  parser->on_uri = NULL;
+  parser->on_url = NULL;
   parser->on_fragment = NULL;
   parser->on_header_field = NULL;
   parser->on_header_value = NULL;

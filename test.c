@@ -41,7 +41,7 @@ struct message {
   enum http_method method;
   int status_code;
   char request_path[MAX_ELEMENT_SIZE];
-  char request_uri[MAX_ELEMENT_SIZE];
+  char request_url[MAX_ELEMENT_SIZE];
   char fragment[MAX_ELEMENT_SIZE];
   char query_string[MAX_ELEMENT_SIZE];
   char body[MAX_ELEMENT_SIZE];
@@ -73,7 +73,7 @@ const struct message requests[] =
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/test"
-  ,.request_uri= "/test"
+  ,.request_url= "/test"
   ,.num_headers= 3
   ,.headers=
     { { "User-Agent", "curl/7.18.0 (i486-pc-linux-gnu) libcurl/7.18.0 OpenSSL/0.9.8g zlib/1.2.3.3 libidn/1.1" }
@@ -101,7 +101,7 @@ const struct message requests[] =
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/favicon.ico"
-  ,.request_uri= "/favicon.ico"
+  ,.request_url= "/favicon.ico"
   ,.num_headers= 8
   ,.headers=
     { { "Host", "0.0.0.0=5000" }
@@ -127,7 +127,7 @@ const struct message requests[] =
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/dumbfuck"
-  ,.request_uri= "/dumbfuck"
+  ,.request_url= "/dumbfuck"
   ,.num_headers= 1
   ,.headers=
     { { "aaaaaaaaaaaaa",  "++++++++++" }
@@ -136,7 +136,7 @@ const struct message requests[] =
   }
 
 #define FRAGMENT_IN_URI 3
-, {.name= "fragment in uri"
+, {.name= "fragment in url"
   ,.type= HTTP_REQUEST
   ,.raw= "GET /forums/1/topics/2375?page=1#posts-17408 HTTP/1.1\r\n"
          "\r\n"
@@ -145,8 +145,8 @@ const struct message requests[] =
   ,.query_string= "page=1"
   ,.fragment= "posts-17408"
   ,.request_path= "/forums/1/topics/2375"
-  /* XXX request uri does include fragment? */
-  ,.request_uri= "/forums/1/topics/2375?page=1#posts-17408"
+  /* XXX request url does include fragment? */
+  ,.request_url= "/forums/1/topics/2375?page=1#posts-17408"
   ,.num_headers= 0
   ,.body= ""
   }
@@ -161,7 +161,7 @@ const struct message requests[] =
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/get_no_headers_no_body/world"
-  ,.request_uri= "/get_no_headers_no_body/world"
+  ,.request_url= "/get_no_headers_no_body/world"
   ,.num_headers= 0
   ,.body= ""
   }
@@ -177,7 +177,7 @@ const struct message requests[] =
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/get_one_header_no_body"
-  ,.request_uri= "/get_one_header_no_body"
+  ,.request_url= "/get_one_header_no_body"
   ,.num_headers= 1
   ,.headers=
     { { "Accept" , "*/*" }
@@ -197,7 +197,7 @@ const struct message requests[] =
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/get_funky_content_length_body_hello"
-  ,.request_uri= "/get_funky_content_length_body_hello"
+  ,.request_url= "/get_funky_content_length_body_hello"
   ,.num_headers= 1
   ,.headers=
     { { "conTENT-Length" , "5" }
@@ -219,7 +219,7 @@ const struct message requests[] =
   ,.query_string= "q=search"
   ,.fragment= "hey"
   ,.request_path= "/post_identity_body_world"
-  ,.request_uri= "/post_identity_body_world?q=search#hey"
+  ,.request_url= "/post_identity_body_world?q=search#hey"
   ,.num_headers= 3
   ,.headers=
     { { "Accept", "*/*" }
@@ -243,7 +243,7 @@ const struct message requests[] =
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/post_chunked_all_your_base"
-  ,.request_uri= "/post_chunked_all_your_base"
+  ,.request_url= "/post_chunked_all_your_base"
   ,.num_headers= 1
   ,.headers=
     { { "Transfer-Encoding" , "chunked" }
@@ -266,7 +266,7 @@ const struct message requests[] =
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/two_chunks_mult_zero_end"
-  ,.request_uri= "/two_chunks_mult_zero_end"
+  ,.request_url= "/two_chunks_mult_zero_end"
   ,.num_headers= 1
   ,.headers=
     { { "Transfer-Encoding", "chunked" }
@@ -291,7 +291,7 @@ const struct message requests[] =
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/chunked_w_trailing_headers"
-  ,.request_uri= "/chunked_w_trailing_headers"
+  ,.request_url= "/chunked_w_trailing_headers"
   ,.num_headers= 3
   ,.headers=
     { { "Transfer-Encoding",  "chunked" }
@@ -316,7 +316,7 @@ const struct message requests[] =
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/chunked_w_bullshit_after_length"
-  ,.request_uri= "/chunked_w_bullshit_after_length"
+  ,.request_url= "/chunked_w_bullshit_after_length"
   ,.num_headers= 1
   ,.headers=
     { { "Transfer-Encoding", "chunked" }
@@ -333,7 +333,7 @@ const struct message requests[] =
   ,.query_string= "foo=\"bar\""
   ,.fragment= ""
   ,.request_path= "/with_\"stupid\"_quotes"
-  ,.request_uri= "/with_\"stupid\"_quotes?foo=\"bar\""
+  ,.request_url= "/with_\"stupid\"_quotes?foo=\"bar\""
   ,.num_headers= 0
   ,.headers= { }
   ,.body= ""
@@ -351,7 +351,7 @@ const struct message requests[] =
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/test"
-  ,.request_uri= "/test"
+  ,.request_url= "/test"
   ,.num_headers= 3
   ,.headers= { { "Host", "0.0.0.0:5000" }
              , { "User-Agent", "ApacheBench/2.3" }
@@ -500,10 +500,10 @@ request_path_cb (http_parser *parser, const char *p, size_t len)
 }
 
 int
-request_uri_cb (http_parser *parser, const char *p, size_t len)
+request_url_cb (http_parser *parser, const char *p, size_t len)
 {
   assert(parser);
-  strncat(messages[num_messages].request_uri, p, len);
+  strncat(messages[num_messages].request_url, p, len);
   return 0;
 }
 
@@ -602,7 +602,7 @@ parser_init (enum http_parser_type type)
   parser.on_header_field      = header_field_cb;
   parser.on_header_value      = header_value_cb;
   parser.on_path              = request_path_cb;
-  parser.on_uri               = request_uri_cb;
+  parser.on_url               = request_url_cb;
   parser.on_fragment          = fragment_cb;
   parser.on_query_string      = query_string_cb;
   parser.on_body              = body_cb;
@@ -661,7 +661,7 @@ message_eq (int index, const struct message *expected)
   MESSAGE_CHECK_STR_EQ(expected, m, request_path);
   MESSAGE_CHECK_STR_EQ(expected, m, query_string);
   MESSAGE_CHECK_STR_EQ(expected, m, fragment);
-  MESSAGE_CHECK_STR_EQ(expected, m, request_uri);
+  MESSAGE_CHECK_STR_EQ(expected, m, request_url);
   MESSAGE_CHECK_STR_EQ(expected, m, body);
 
   MESSAGE_CHECK_NUM_EQ(expected, m, num_headers);
@@ -901,13 +901,23 @@ error:
 int
 main (void)
 {
+  int i, j, k;
+  int request_count;
+  int response_count;
+
   printf("sizeof(http_parser) = %d\n", sizeof(http_parser));
 
-  int request_count;
   for (request_count = 0; requests[request_count].name; request_count++);
-
-  int response_count;
   for (response_count = 0; responses[response_count].name; response_count++);
+
+
+  //// RESPONSES
+
+  for (i = 0; i < response_count; i++) {
+    test_message(&responses[i]);
+  }
+
+  puts("responses okay");
 
 
   /// REQUESTS
@@ -969,12 +979,10 @@ main (void)
 
 
   /* check to make sure our predefined requests are okay */
-  int i;
   for (i = 0; requests[i].name; i++) {
     test_message(&requests[i]);
   }
 
-  int j, k;
 
 
   for (i = 0; i < request_count; i++) {
@@ -1005,18 +1013,5 @@ main (void)
 
   puts("requests okay");
 
-
-#if 0
-  //// RESPONSES
-
-  for (i = 0; i < response_count; i++) {
-    test_message(&responses[i]);
-  }
-
-
-
-  puts("responses okay");
-
-#endif
   return 0;
 }
