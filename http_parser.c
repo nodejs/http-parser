@@ -22,6 +22,12 @@ do {                                                                 \
 #define CALLBACK(FOR)                                                \
 do {                                                                 \
   if (0 != FOR##_callback(parser, p)) return (p - data);             \
+  parser->FOR##_mark = NULL;                                         \
+} while (0)
+
+#define CALLBACK_NOCLEAR(FOR)                                        \
+do {                                                                 \
+  if (0 != FOR##_callback(parser, p)) return (p - data);             \
 } while (0)
 
 #define CALLBACK2(FOR)                                               \
@@ -59,7 +65,6 @@ static inline int FOR##_callback (http_parser *parser, const char *p) \
   if (parser->FOR##_size > MAX_FIELD_SIZE) return -1; \
   int r = 0; \
   if (parser->on_##FOR) r = parser->on_##FOR(parser, mark, p - mark); \
-  parser->FOR##_mark = NULL; \
   return r; \
 }
 
@@ -1191,12 +1196,12 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
     }
   }
 
-  CALLBACK(header_field);
-  CALLBACK(header_value);
-  CALLBACK(fragment);
-  CALLBACK(query_string);
-  CALLBACK(path);
-  CALLBACK(uri);
+  CALLBACK_NOCLEAR(header_field);
+  CALLBACK_NOCLEAR(header_value);
+  CALLBACK_NOCLEAR(fragment);
+  CALLBACK_NOCLEAR(query_string);
+  CALLBACK_NOCLEAR(path);
+  CALLBACK_NOCLEAR(uri);
 
   parser->state = state;
   parser->header_state = header_state;
