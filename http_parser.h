@@ -50,14 +50,11 @@ enum http_method
   , HTTP_PUT       = 0x0800
   };
 
-enum http_parser_type { HTTP_REQUEST, HTTP_RESPONSE };
-
 struct http_parser {
   /** PRIVATE **/
   int state;
   int header_state;
   size_t header_index;
-  enum http_parser_type type;
 
   size_t chunk_size;
   char flags;
@@ -106,24 +103,9 @@ struct http_parser {
   http_cb      on_message_complete;
 };
 
-/* Initializes an http_parser structure.  The second argument specifies if
- * it will be parsing requests or responses.
- */
-void http_parser_init (http_parser *parser, enum http_parser_type);
-
-size_t http_parser_execute (http_parser *parser, const char *data, size_t len);
-
-#if 0
-int http_parser_has_error (http_parser *parser);
-
-static inline int
-http_parser_should_keep_alive (http_parser *parser)
-{
-  if (parser->keep_alive == -1) return (parser->http_major == 1 && parser->http_minor == 1);
-  return parser->keep_alive;
-}
-#endif
-
+void http_parser_init(http_parser *parser);
+size_t http_parse_requests(http_parser *parser, const char *data, size_t len);
+size_t http_parse_responses(http_parser *parser, const char *data, size_t len);
 
 #ifdef __cplusplus
 }

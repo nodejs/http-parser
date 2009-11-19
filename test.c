@@ -33,11 +33,13 @@
 #define MAX_HEADERS 10
 #define MAX_ELEMENT_SIZE 500
 
+enum message_type { REQUEST, RESPONSE };
+
 static http_parser parser;
 struct message {
   const char *name; // for debugging purposes
   const char *raw;
-  enum http_parser_type type;
+  enum message_type type;
   enum http_method method;
   int status_code;
   char request_path[MAX_ELEMENT_SIZE];
@@ -55,6 +57,12 @@ struct message {
   int message_complete_cb_called;
 };
 
+#define parse(t, buf, len) \
+  (t == REQUEST ? http_parse_requests(&parser, buf, len) \
+                     : http_parse_responses(&parser, buf, len))
+
+
+
 static struct message messages[5];
 static int num_messages;
 
@@ -62,7 +70,7 @@ static int num_messages;
 const struct message requests[] =
 #define CURL_GET 0
 { {.name= "curl get"
-  ,.type= HTTP_REQUEST
+  ,.type= REQUEST
   ,.raw= "GET /test HTTP/1.1\r\n"
          "User-Agent: curl/7.18.0 (i486-pc-linux-gnu) libcurl/7.18.0 OpenSSL/0.9.8g zlib/1.2.3.3 libidn/1.1\r\n"
          "Host: 0.0.0.0=5000\r\n"
@@ -85,7 +93,7 @@ const struct message requests[] =
 
 #define FIREFOX_GET 1
 , {.name= "firefox get"
-  ,.type= HTTP_REQUEST
+  ,.type= REQUEST
   ,.raw= "GET /favicon.ico HTTP/1.1\r\n"
          "Host: 0.0.0.0=5000\r\n"
          "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9) Gecko/2008061015 Firefox/3.0\r\n"
@@ -118,7 +126,7 @@ const struct message requests[] =
 
 #define DUMBFUCK 2
 , {.name= "dumbfuck"
-  ,.type= HTTP_REQUEST
+  ,.type= REQUEST
   ,.raw= "GET /dumbfuck HTTP/1.1\r\n"
          "aaaaaaaaaaaaa:++++++++++\r\n"
          "\r\n"
@@ -137,7 +145,7 @@ const struct message requests[] =
 
 #define FRAGMENT_IN_URI 3
 , {.name= "fragment in url"
-  ,.type= HTTP_REQUEST
+  ,.type= REQUEST
   ,.raw= "GET /forums/1/topics/2375?page=1#posts-17408 HTTP/1.1\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
@@ -153,7 +161,7 @@ const struct message requests[] =
 
 #define GET_NO_HEADERS_NO_BODY 4
 , {.name= "get no headers no body"
-  ,.type= HTTP_REQUEST
+  ,.type= REQUEST
   ,.raw= "GET /get_no_headers_no_body/world HTTP/1.1\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
@@ -168,7 +176,7 @@ const struct message requests[] =
 
 #define GET_ONE_HEADER_NO_BODY 5
 , {.name= "get one header no body"
-  ,.type= HTTP_REQUEST
+  ,.type= REQUEST
   ,.raw= "GET /get_one_header_no_body HTTP/1.1\r\n"
          "Accept: */*\r\n"
          "\r\n"
@@ -187,7 +195,7 @@ const struct message requests[] =
 
 #define GET_FUNKY_CONTENT_LENGTH 6
 , {.name= "get funky content length body hello"
-  ,.type= HTTP_REQUEST
+  ,.type= REQUEST
   ,.raw= "GET /get_funky_content_length_body_hello HTTP/1.0\r\n"
          "conTENT-Length: 5\r\n"
          "\r\n"
@@ -207,7 +215,7 @@ const struct message requests[] =
 
 #define POST_IDENTITY_BODY_WORLD 7
 , {.name= "post identity body world"
-  ,.type= HTTP_REQUEST
+  ,.type= REQUEST
   ,.raw= "POST /post_identity_body_world?q=search#hey HTTP/1.1\r\n"
          "Accept: */*\r\n"
          "Transfer-Encoding: identity\r\n"
@@ -231,7 +239,7 @@ const struct message requests[] =
 
 #define POST_CHUNKED_ALL_YOUR_BASE 8
 , {.name= "post - chunked body: all your base are belong to us"
-  ,.type= HTTP_REQUEST
+  ,.type= REQUEST
   ,.raw= "POST /post_chunked_all_your_base HTTP/1.1\r\n"
          "Transfer-Encoding: chunked\r\n"
          "\r\n"
@@ -253,7 +261,7 @@ const struct message requests[] =
 
 #define TWO_CHUNKS_MULT_ZERO_END 9
 , {.name= "two chunks ; triple zero ending"
-  ,.type= HTTP_REQUEST
+  ,.type= REQUEST
   ,.raw= "POST /two_chunks_mult_zero_end HTTP/1.1\r\n"
          "Transfer-Encoding: chunked\r\n"
          "\r\n"
@@ -276,7 +284,7 @@ const struct message requests[] =
 
 #define CHUNKED_W_TRAILING_HEADERS 10
 , {.name= "chunked with trailing headers. blech."
-  ,.type= HTTP_REQUEST
+  ,.type= REQUEST
   ,.raw= "POST /chunked_w_trailing_headers HTTP/1.1\r\n"
          "Transfer-Encoding: chunked\r\n"
          "\r\n"
@@ -303,7 +311,7 @@ const struct message requests[] =
 
 #define CHUNKED_W_BULLSHIT_AFTER_LENGTH 11
 , {.name= "with bullshit after the length"
-  ,.type= HTTP_REQUEST
+  ,.type= REQUEST
   ,.raw= "POST /chunked_w_bullshit_after_length HTTP/1.1\r\n"
          "Transfer-Encoding: chunked\r\n"
          "\r\n"
@@ -326,7 +334,7 @@ const struct message requests[] =
 
 #define WITH_QUOTES 12
 , {.name= "with quotes"
-  ,.type= HTTP_REQUEST
+  ,.type= REQUEST
   ,.raw= "GET /with_\"stupid\"_quotes?foo=\"bar\" HTTP/1.1\r\n\r\n"
   ,.should_keep_alive= TRUE
   ,.method= HTTP_GET
@@ -341,7 +349,7 @@ const struct message requests[] =
 
 #define APACHEBENCH_GET 13
 , {.name = "apachebench get"
-  ,.type= HTTP_REQUEST
+  ,.type= REQUEST
   ,.raw= "GET /test HTTP/1.0\r\n"
          "Host: 0.0.0.0:5000\r\n"
          "User-Agent: ApacheBench/2.3\r\n"
@@ -366,7 +374,7 @@ const struct message requests[] =
 /* * R E S P O N S E S * */
 const struct message responses[] =
 { {.name= "google 301"
-  ,.type= HTTP_RESPONSE
+  ,.type= RESPONSE
   ,.raw= "HTTP/1.1 301 Moved Permanently\r\n"
          "Location: http://www.google.com/\r\n"
          "Content-Type: text/html; charset=UTF-8\r\n"
@@ -403,7 +411,7 @@ const struct message responses[] =
   }
 
 , {.name= "no content-length response"
-  ,.type= HTTP_RESPONSE
+  ,.type= RESPONSE
   ,.raw= "HTTP/1.1 200 OK\r\n"
          "Date: Tue, 04 Aug 2009 07:59:32 GMT\r\n"
          "Server: Apache\r\n"
@@ -442,7 +450,7 @@ const struct message responses[] =
   }
 
 , {.name= "404 no headers no body"
-  ,.type= HTTP_RESPONSE
+  ,.type= RESPONSE
   ,.raw= "HTTP/1.1 404 Not Found\r\n\r\n"
   ,.should_keep_alive= TRUE
   ,.status_code= 404
@@ -452,7 +460,7 @@ const struct message responses[] =
   }
 
 , {.name= "301 no response phrase"
-  ,.type= HTTP_RESPONSE
+  ,.type= RESPONSE
   ,.raw= "HTTP/1.1 301\r\n\r\n"
   ,.should_keep_alive = TRUE
   ,.status_code= 301
@@ -462,7 +470,7 @@ const struct message responses[] =
   }
 
 , {.name="200 trailing space on chunked body"
-  ,.type= HTTP_RESPONSE
+  ,.type= RESPONSE
   ,.raw= "HTTP/1.1 200 OK\r\n"
          "Content-Type: text/plain\r\n"
          "Transfer-Encoding: chunked\r\n"
@@ -590,11 +598,11 @@ headers_complete_cb (http_parser *parser)
 }
 
 void
-parser_init (enum http_parser_type type)
+parser_init ()
 {
   num_messages = 0;
 
-  http_parser_init(&parser, type);
+  http_parser_init(&parser);
 
   memset(&messages, 0, sizeof messages);
 
@@ -722,17 +730,17 @@ print_error (const char *raw, size_t error_location)
 void
 test_message (const struct message *message)
 {
-  parser_init(message->type);
+  parser_init();
 
   size_t read;
 
-  read = http_parser_execute(&parser, message->raw, strlen(message->raw));
+  read = parse(message->type, message->raw, strlen(message->raw));
   if (read != strlen(message->raw)) {
     print_error(message->raw, read);
     exit(1);
   }
 
-  read = http_parser_execute(&parser, NULL, 0);
+  read = parse(message->type, NULL, 0);
   if (read != 0) {
     print_error(message->raw, read);
     exit(1);
@@ -749,13 +757,13 @@ test_message (const struct message *message)
 int
 test_error (const char *buf)
 {
-  parser_init(HTTP_REQUEST);
+  parser_init();
 
   size_t parsed;
 
-  parsed = http_parser_execute(&parser, buf, strlen(buf));
+  parsed = parse(REQUEST, buf, strlen(buf));
   if (parsed != strlen(buf)) return 1;
-  parsed = http_parser_execute(&parser, NULL, 0);
+  parsed = parse(REQUEST, NULL, 0);
   if (parsed != 0) return 1;
 
   fprintf(stderr, "\n*** Error expected but none found ***\n\n%s", buf);
@@ -778,17 +786,17 @@ test_multiple3 (const struct message *r1, const struct message *r2, const struct
   strcat(total, r2->raw);
   strcat(total, r3->raw);
 
-  parser_init(HTTP_REQUEST);
+  parser_init();
 
   size_t read;
 
-  read = http_parser_execute(&parser, total, strlen(total));
+  read = parse(r1->type, total, strlen(total));
   if (read != strlen(total)) {
     print_error(total, read);
     exit(1);
   }
 
-  read = http_parser_execute(&parser, NULL, 0);
+  read = parse(REQUEST, NULL, 0);
   if (read != 0) {
     print_error(total, read);
     exit(1);
@@ -835,7 +843,7 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
       }
       ops += 1;
 
-      parser_init(HTTP_REQUEST);
+      parser_init();
 
       buf1_len = i;
       strncpy(buf1, total, buf1_len);
@@ -849,25 +857,25 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
       strncpy(buf3, total+j, buf3_len);
       buf3[buf3_len] = 0;
 
-      read = http_parser_execute(&parser, buf1, buf1_len);
+      read = parse(r1->type, buf1, buf1_len);
       if (read != buf1_len) {
         print_error(buf1, read);
         goto error;
       }
 
-      read = http_parser_execute(&parser, buf2, buf2_len);
+      read = parse(r1->type, buf2, buf2_len);
       if (read != buf2_len) {
         print_error(buf2, read);
         goto error;
       }
 
-      read = http_parser_execute(&parser, buf3, buf3_len);
+      read = parse(r1->type, buf3, buf3_len);
       if (read != buf3_len) {
         print_error(buf3, read);
         goto error;
       }
 
-      http_parser_execute(&parser, NULL, 0);
+      parse(r1->type, NULL, 0);
 
       assert(3 == num_messages);
 

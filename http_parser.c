@@ -1,4 +1,7 @@
 /* Copyright 2008, 2009 Ryan Dahl <ry@tinyclouds.org>
+ *
+ * Some parts of this source file were taken from NGINX
+ * (src/http/ngx_http_parser.c) copyright (C) 2002-2009 Igor Sysoev. 
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -163,7 +166,8 @@ static const uint32_t  usual[] = {
 };
 
 enum state 
-  { s_start = 0
+  { s_start_req = 1
+  , s_start_res
 
   , s_method_G
   , s_method_GE
@@ -267,7 +271,8 @@ enum flags
 #define LF '\n'
 #define LOWER(c) (unsigned char)(c | 0x20)
 
-size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
+static inline
+size_t parse (http_parser *parser, const char *data, size_t len, int start_state)
 {
   char c, ch; 
   const char *p, *pe;
@@ -293,7 +298,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
   for (p=data, pe=data+len; p != pe; p++) {
     ch = *p;
     switch (state) {
-      case s_start:
+      case s_start_req:
       {
         parser->flags = 0;
         parser->content_length = -1;
@@ -1089,7 +1094,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
         if (parser->flags & F_TRAILING) {
           /* End of a chunked request */
           CALLBACK2(message_complete);
-          state = s_start;
+          state = start_state;
           break;
         }
 
@@ -1102,13 +1107,13 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
         } else {
           if (parser->content_length == 0) {
             CALLBACK2(message_complete);
-            state = s_start;
+            state = start_state;
           } else if (parser->content_length > 0) {
             state = s_body_identity;
           } else {
             if (parser->method & (HTTP_GET | HTTP_HEAD)) {
               CALLBACK2(message_complete);
-              state = s_start;
+              state = start_state;
             } else {
               state = s_body_identity_eof;
             }
@@ -1124,7 +1129,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
           parser->body_read += to_read;
           if (parser->body_read == parser->content_length) {
             CALLBACK2(message_complete);
-            state = s_start;
+            state = start_state;
           }
         }
         break;
@@ -1230,15 +1235,25 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
   return len;
 }
 
-void
-http_parser_init (http_parser *parser, enum http_parser_type type)
-{
-  if (type == HTTP_REQUEST) {
-    parser->state = s_start;
-  } else {
-    assert(0 && "responses not supported yet");
-  }
 
+size_t http_parse_requests (http_parser *parser, const char *data, size_t len)
+{
+  if (!parser->state) parser->state = s_start_req;
+  return parse(parser, data, len, s_start_req);
+}
+
+
+size_t http_parse_responses (http_parser *parser, const char *data, size_t len)
+{
+  if (!parser->state) parser->state = s_start_res;
+  return parse(parser, data, len, s_start_res);
+}
+
+
+void
+http_parser_init (http_parser *parser)
+{
+  parser->state = 0;
   parser->on_message_begin = NULL;
   parser->on_path = NULL;
   parser->on_query_string = NULL;
