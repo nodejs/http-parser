@@ -219,7 +219,7 @@ const struct message requests[] =
   ,.query_string= "q=search"
   ,.fragment= "hey"
   ,.request_path= "/post_identity_body_world"
-  ,.request_uri= "/post_identity_body_world?q=search"
+  ,.request_uri= "/post_identity_body_world?q=search#hey"
   ,.num_headers= 3
   ,.headers=
     { { "Accept", "*/*" }
@@ -292,9 +292,11 @@ const struct message requests[] =
   ,.fragment= ""
   ,.request_path= "/chunked_w_trailing_headers"
   ,.request_uri= "/chunked_w_trailing_headers"
-  ,.num_headers= 1
+  ,.num_headers= 3
   ,.headers=
     { { "Transfer-Encoding",  "chunked" }
+    , { "Vary", "*" }
+    , { "Content-Type", "text/plain" }
     }
   ,.body= "hello world"
   }
@@ -717,13 +719,7 @@ print_error (const struct message *message, size_t error_location)
         char_len = 2;
         printf("\\n\n");
 
-        if (this_line) {
-          for (j = 0; j < error_location_line; j++) {
-            putchar(' ');
-          }
-          printf("^\n\nerror location: %d\n", error_location);
-          return;
-        }
+        if (this_line) goto print;
 
         error_location_line = 0;
         continue;
@@ -735,6 +731,14 @@ print_error (const struct message *message, size_t error_location)
     }
     if (!this_line) error_location_line += char_len;
   }
+
+  printf("[eof]\n");
+
+ print:
+  for (j = 0; j < error_location_line; j++) {
+    putchar(' ');
+  }
+  printf("^\n\nerror location: %d\n", error_location);
 }
 
 
@@ -757,7 +761,10 @@ test_message (const struct message *message)
     exit(1);
   }
 
-  assert(num_messages == 1);
+  if (num_messages != 1) {
+    printf("\n*** num_messages != 1 after testing '%s' ***\n\n", message->name);
+    exit(1);
+  }
 
   message_eq(0, message);
 }

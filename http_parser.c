@@ -6,7 +6,12 @@
 # define NULL ((void*)0)
 #endif
 
+#ifndef MIN
+# define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
+
 #define MAX_FIELD_SIZE (80*1024)
+
 
 #define MARK(FOR)                                                    \
 do {                                                                 \
@@ -98,6 +103,17 @@ static const unsigned char lowcase[] =
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
+static int unhex[] =
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  , 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,-1,-1,-1,-1,-1,-1
+  ,-1,10,11,12,13,14,15,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,10,11,12,13,14,15,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  };
+
 
 static const uint32_t  usual[] = {
     0xffffdbfe, /* 1111 1111 1111 1111  1101 1011 1111 1110 */
@@ -175,7 +191,14 @@ enum state
   , s_headers_almost_done
   , s_headers_done
 
-  , s_body_chunked
+  , s_chunked_len_start
+  , s_chunked_len
+  , s_chunked_len_almost_done
+  , s_chunked_data
+  , s_chunked_data_almost_done
+  , s_chunked_data_done
+  , s_chunked_almost_done
+
   , s_body_identity
   , s_body_identity_eof
   };
@@ -204,6 +227,7 @@ enum header_states
 
 enum flags
   { F_CHUNKED = 0x0001
+  , F_TRAILING= 0x0002
   };
 
 #define ERROR (p - data);
@@ -218,10 +242,12 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
 
   enum state state = parser->state;
   enum header_states header_state = parser->header_state;
-  size_t header_index = parser->header_index;
+  size_t to_read, header_index = parser->header_index;
 
-  if (len == 0 && state == s_body_identity_eof) {
-    CALLBACK2(message_complete);
+  if (len == 0) {
+    if (state == s_body_identity_eof) {
+      CALLBACK2(message_complete);
+    }
     return 0;
   }
 
@@ -805,9 +831,13 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
               if (header_index > sizeof(CONNECTION)-1
                   || c != CONNECTION[header_index]) {
                 header_state = h_general;
-              } else if (header_index == sizeof(CONNECTION)-1) {
+              } else if (header_index == sizeof(CONNECTION)-2) {
                 header_state = h_connection;
               }
+              break;
+
+            case h_connection:
+              if (ch != ' ') header_state = h_general;
               break;
 
             /* content-length */
@@ -816,9 +846,13 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
               if (header_index > sizeof(CONTENT_LENGTH)-1
                   || c != CONTENT_LENGTH[header_index]) {
                 header_state = h_general;
-              } else if (header_index == sizeof(CONTENT_LENGTH)-1) {
+              } else if (header_index == sizeof(CONTENT_LENGTH)-2) {
                 header_state = h_content_length;
               }
+              break;
+
+            case h_content_length:
+              if (ch != ' ') header_state = h_general;
               break;
 
             /* transfer-encoding */
@@ -827,9 +861,13 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
               if (header_index > sizeof(TRANSFER_ENCODING)-1
                   || c != TRANSFER_ENCODING[header_index]) {
                 header_state = h_general;
-              } else if (header_index == sizeof(TRANSFER_ENCODING)-1) {
+              } else if (header_index == sizeof(TRANSFER_ENCODING)-2) {
                 header_state = h_transfer_encoding;
               }
+              break;
+
+            case h_transfer_encoding:
+              if (ch != ' ') header_state = h_general;
               break;
 
             default:
@@ -877,10 +915,11 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
 
         MARK(header_value);
 
+        state = s_header_value;
+
         c = lowcase[(int)ch];
 
         if (!c) {
-          state = s_header_value;
           header_state = h_general;
         } else {
           switch (header_state) {
@@ -911,11 +950,9 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
               break;
 
             default:
-              state = s_header_value;
               header_state = h_general;
               break;
           }
-          break;
         }
         break;
       }
@@ -1003,10 +1040,20 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
 
       case s_headers_almost_done:
         if (ch != LF) return ERROR;
+
+        if (parser->flags & F_TRAILING) {
+          /* End of a chunked request */
+          CALLBACK2(message_complete);
+          state = s_start;
+          break;
+        }
+
         CALLBACK2(headers_complete);
+
+        parser->body_read = 0;
         
         if (parser->flags & F_CHUNKED) {
-          state = s_body_chunked;
+          state = s_chunked_len_start;
         } else {
           if (parser->content_length == 0) {
             CALLBACK2(message_complete);
@@ -1024,10 +1071,76 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
         break;
 
       case s_body_identity:
+        to_read = MIN(pe - p, (ssize_t)(parser->content_length - parser->body_read));
+        if (to_read > 0) {
+          if (parser->on_body) parser->on_body(parser, p, to_read);
+          p += to_read - 1;
+          parser->body_read += to_read;
+          if (parser->body_read == parser->content_length) {
+            CALLBACK2(message_complete);
+            state = s_start;
+          }
+        }
         break;
 
-      case s_body_chunked:
+      case s_chunked_len_start:
+        c = unhex[(int)ch];
+        if (c == -1) return ERROR;
+        parser->chunk_size = c;
+        state = s_chunked_len;
         break;
+
+      case s_chunked_len:
+        if (ch == CR) {
+          state = s_chunked_len_almost_done;
+          break;
+        }
+
+        c = unhex[(int)ch];
+
+        if (c == -1) return ERROR;
+
+        parser->chunk_size *= 16;
+        parser->chunk_size += c;
+        break;
+
+      case s_chunked_len_almost_done:
+        if (ch != LF) return ERROR;
+        if (parser->chunk_size == 0) {
+          parser->flags |= F_TRAILING;
+          state = s_header_field_start;
+        } else {
+          state = s_chunked_data;
+        }
+        break;
+
+      case s_chunked_data:
+        to_read = MIN(pe - p, (ssize_t)(parser->chunk_size));
+
+        if (to_read > 0) {
+          if (parser->on_body) parser->on_body(parser, p, to_read);
+          p += to_read - 1;
+        }
+
+        if (to_read == parser->chunk_size) {
+          state = s_chunked_data_almost_done;
+        }
+
+        parser->chunk_size -= to_read;
+        break;
+
+      case s_chunked_data_almost_done:
+        if (ch != CR) return ERROR;
+        state = s_chunked_data_done;
+        break;
+
+      case s_chunked_data_done:
+        if (ch != LF) return ERROR;
+        state = s_chunked_len_start;
+        break;
+
+      case s_chunked_almost_done:
+        if (ch != LF) return ERROR;
 
       default:
         assert(0 && "unhandled state");

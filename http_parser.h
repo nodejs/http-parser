@@ -42,7 +42,7 @@ struct http_parser {
   size_t chunk_size;
   char flags;
 
-  size_t body_read;
+  ssize_t body_read;
 
   const char *header_field_mark;
   size_t      header_field_size;
