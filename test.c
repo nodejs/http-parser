@@ -610,7 +610,7 @@ parser_init (enum http_parser_type type)
   parser.on_message_complete  = message_complete_cb;
 }
 
-static inline void
+static inline int
 check_str_eq (const struct message *m,
               const char *prop,
               const char *expected,
@@ -619,11 +619,12 @@ check_str_eq (const struct message *m,
     printf("\n*** Error: %s in '%s' ***\n\n", prop, m->name);
     printf("expected '%s'\n", expected);
     printf("   found '%s'\n", found);
-    exit(1);
+    return 0;
   }
+  return 1;
 }
 
-static inline void
+static inline int
 check_num_eq (const struct message *m,
               const char *prop,
               int expected,
@@ -632,18 +633,19 @@ check_num_eq (const struct message *m,
     printf("\n*** Error: %s in '%s' ***\n\n", prop, m->name);
     printf("expected %d\n", expected);
     printf("   found %d\n", found);
-    exit(1);
+    return 0;
   }
+  return 1;
 }
 
 #define MESSAGE_CHECK_STR_EQ(expected, found, prop) \
-  check_str_eq(expected, #prop, expected->prop, found->prop)
+  if (!check_str_eq(expected, #prop, expected->prop, found->prop)) return 0
 
 #define MESSAGE_CHECK_NUM_EQ(expected, found, prop) \
-  check_num_eq(expected, #prop, expected->prop, found->prop)
+  if (!check_num_eq(expected, #prop, expected->prop, found->prop)) return 0
 
 
-void
+int
 message_eq (int index, const struct message *expected)
 {
   int i;
@@ -664,60 +666,35 @@ message_eq (int index, const struct message *expected)
 
   MESSAGE_CHECK_NUM_EQ(expected, m, num_headers);
 
+  int r;
   for (i = 0; i < m->num_headers; i++) {
-    check_str_eq(expected, "header field", expected->headers[i][0], m->headers[i][0]);
-    check_str_eq(expected, "header value", expected->headers[i][1], m->headers[i][1]);
-  }
-}
-
-void
-parse_messages (int message_count, const struct message *input_messages[])
-{
-  // Concat the input messages
-  size_t length = 0;
-  int i;
-  for (i = 0; i < message_count; i++) {
-    length += strlen(input_messages[i]->raw);
-  }
-  char total[length + 1];
-  total[0] = '\0';
-
-  for (i = 0; i < message_count; i++) {
-    strcat(total, input_messages[i]->raw);
+    r = check_str_eq(expected, "header field", expected->headers[i][0], m->headers[i][0]);
+    if (!r) return 0;
+    r = check_str_eq(expected, "header value", expected->headers[i][1], m->headers[i][1]);
+    if (!r) return 0;
   }
 
-  // Parse the stream
-  parser_init(HTTP_REQUEST);
-
-  http_parser_execute(&parser, total, length);
-
-  http_parser_execute(&parser, NULL, 0);
-
-  assert(num_messages == message_count);
-
-  for (i = 0; i < message_count; i++) {
-    message_eq(i, input_messages[i]);
-  }
+  return 1;
 }
 
 static void
-print_error (const struct message *message, size_t error_location)
+print_error (const char *raw, size_t error_location)
 {
-  printf("\n*** parse error on '%s' ***\n\n", message->name);
+  fprintf(stderr, "\n*** parse error ***\n\n");
   
   int this_line = 0, char_len = 0;
-  size_t i, j, len = strlen(message->raw), error_location_line = 0;
+  size_t i, j, len = strlen(raw), error_location_line = 0;
   for (i = 0; i < len; i++) {
     if (i == error_location) this_line = 1;
-    switch (message->raw[i]) {
+    switch (raw[i]) {
       case '\r':
         char_len = 2;
-        printf("\\r");
+        fprintf(stderr, "\\r");
         break;
 
       case '\n':
         char_len = 2;
-        printf("\\n\n");
+        fprintf(stderr, "\\n\n");
 
         if (this_line) goto print;
 
@@ -726,19 +703,19 @@ print_error (const struct message *message, size_t error_location)
 
       default:
         char_len = 1;
-        putchar(message->raw[i]);
+        fputc(raw[i], stderr);
         break;
     }
     if (!this_line) error_location_line += char_len;
   }
 
-  printf("[eof]\n");
+  fprintf(stderr, "[eof]\n");
 
  print:
   for (j = 0; j < error_location_line; j++) {
-    putchar(' ');
+    fputc(' ', stderr);
   }
-  printf("^\n\nerror location: %d\n", error_location);
+  fprintf(stderr, "^\n\nerror location: %d\n", error_location);
 }
 
 
@@ -751,13 +728,13 @@ test_message (const struct message *message)
 
   read = http_parser_execute(&parser, message->raw, strlen(message->raw));
   if (read != strlen(message->raw)) {
-    print_error(message, read);
+    print_error(message->raw, read);
     exit(1);
   }
 
   read = http_parser_execute(&parser, NULL, 0);
   if (read != 0) {
-    print_error(message, read);
+    print_error(message->raw, read);
     exit(1);
   }
 
@@ -766,7 +743,7 @@ test_message (const struct message *message)
     exit(1);
   }
 
-  message_eq(0, message);
+  if(!message_eq(0, message)) exit(1);
 }
 
 int
@@ -781,7 +758,7 @@ test_error (const char *buf)
   parsed = http_parser_execute(&parser, NULL, 0);
   if (parsed != 0) return 1;
 
-  printf("\n*** Error expected but none found ***\n\n%s", buf);
+  fprintf(stderr, "\n*** Error expected but none found ***\n\n%s", buf);
   exit(1);
 
   return 0;
@@ -803,14 +780,24 @@ test_multiple3 (const struct message *r1, const struct message *r2, const struct
 
   parser_init(HTTP_REQUEST);
 
-  http_parser_execute(&parser, total, strlen(total));
+  size_t read;
 
-  http_parser_execute(&parser, NULL, 0);
+  read = http_parser_execute(&parser, total, strlen(total));
+  if (read != strlen(total)) {
+    print_error(total, read);
+    exit(1);
+  }
+
+  read = http_parser_execute(&parser, NULL, 0);
+  if (read != 0) {
+    print_error(total, read);
+    exit(1);
+  }
 
   assert(num_messages == 3);
-  message_eq(0, r1);
-  message_eq(1, r2);
-  message_eq(2, r3);
+  if (!message_eq(0, r1)) exit(1);
+  if (!message_eq(1, r2)) exit(1);
+  if (!message_eq(2, r3)) exit(1);
 }
 
 /* SCAN through every possible breaking to make sure the
@@ -829,10 +816,14 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
   strcat(total, r2->raw);
   strcat(total, r3->raw);
 
+  size_t read;
+
   int total_len = strlen(total);
 
   int total_ops = (total_len - 1) * (total_len - 2) / 2;
   int ops = 0 ;
+
+  size_t buf1_len, buf2_len, buf3_len;
 
   int i,j;
   for (j = 2; j < total_len; j ++ ) {
@@ -846,40 +837,65 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
 
       parser_init(HTTP_REQUEST);
 
-      int buf1_len = i;
+      buf1_len = i;
       strncpy(buf1, total, buf1_len);
       buf1[buf1_len] = 0;
 
-      int buf2_len = j - i;
+      buf2_len = j - i;
       strncpy(buf2, total+i, buf2_len);
       buf2[buf2_len] = 0;
 
-      int buf3_len = total_len - j;
+      buf3_len = total_len - j;
       strncpy(buf3, total+j, buf3_len);
       buf3[buf3_len] = 0;
 
-      /*
-      printf("buf1: %s - %d\n", buf1, buf1_len);
-      printf("buf2: %s - %d \n", buf2, buf2_len );
-      printf("buf3: %s - %d\n\n", buf3, buf3_len);
-      */
+      read = http_parser_execute(&parser, buf1, buf1_len);
+      if (read != buf1_len) {
+        print_error(buf1, read);
+        goto error;
+      }
 
-      http_parser_execute(&parser, buf1, buf1_len);
+      read = http_parser_execute(&parser, buf2, buf2_len);
+      if (read != buf2_len) {
+        print_error(buf2, read);
+        goto error;
+      }
 
-      http_parser_execute(&parser, buf2, buf2_len);
-
-      http_parser_execute(&parser, buf3, buf3_len);
+      read = http_parser_execute(&parser, buf3, buf3_len);
+      if (read != buf3_len) {
+        print_error(buf3, read);
+        goto error;
+      }
 
       http_parser_execute(&parser, NULL, 0);
 
       assert(3 == num_messages);
 
-      message_eq(0, r1);
-      message_eq(1, r2);
-      message_eq(2, r3);
+      if (!message_eq(0, r1)) {
+        fprintf(stderr, "\n\nError matching messages[0] in test_scan.\n");
+        goto error;
+      }
+
+      if (!message_eq(1, r2)) {
+        fprintf(stderr, "\n\nError matching messages[1] in test_scan.\n");
+        goto error;
+      }
+
+      if (!message_eq(2, r3)) {
+        fprintf(stderr, "\n\nError matching messages[2] in test_scan.\n");
+        goto error;
+      }
     }
   }
   puts("\b\b\b\b100%");
+  return;
+
+error:
+  fprintf(stderr, "i=%d  j=%d\n", i, j);
+  fprintf(stderr, "buf1 (%d) %s\n\n", buf1_len, buf1);
+  fprintf(stderr, "buf2 (%d) %s\n\n", buf2_len , buf2);
+  fprintf(stderr, "buf3 (%d) %s\n", buf3_len, buf3);
+  exit(1);
 }
 
 int
@@ -958,14 +974,12 @@ main (void)
     test_message(&requests[i]);
   }
 
-#if 0
   int j, k;
 
 
   for (i = 0; i < request_count; i++) {
     for (j = 0; j < request_count; j++) {
       for (k = 0; k < request_count; k++) {
-        //printf("%d %d %d\n", i, j, k);
         test_multiple3(&requests[i], &requests[j], &requests[k]);
       }
     }
@@ -976,6 +990,7 @@ main (void)
            , &requests[GET_ONE_HEADER_NO_BODY]
            , &requests[GET_NO_HEADERS_NO_BODY]
            );
+#if 0
 
   printf("request scan 2/3      ");
   test_scan( &requests[GET_FUNKY_CONTENT_LENGTH]

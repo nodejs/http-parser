@@ -92,6 +92,10 @@ static inline int message_complete_callback (http_parser *parser)
 #define CONTENT_LENGTH "content-length"
 #define TRANSFER_ENCODING "transfer-encoding"
 
+#define CHUNKED "chunked"
+#define KEEP_ALIVE "keep-alive"
+#define CLOSE "close"
+
 
 static const unsigned char lowcase[] =
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
@@ -191,13 +195,13 @@ enum state
   , s_headers_almost_done
   , s_headers_done
 
-  , s_chunked_len_start
-  , s_chunked_len
-  , s_chunked_len_almost_done
-  , s_chunked_data
-  , s_chunked_data_almost_done
-  , s_chunked_data_done
-  , s_chunked_almost_done
+  , s_chunk_size_start
+  , s_chunk_size
+  , s_chunk_size_almost_done
+  , s_chunk_parameters
+  , s_chunk_data
+  , s_chunk_data_almost_done
+  , s_chunk_data_done
 
   , s_body_identity
   , s_body_identity_eof
@@ -208,26 +212,29 @@ enum header_states
   , h_C
   , h_CO
   , h_CON
+
   , h_matching_connection
   , h_matching_content_length
   , h_matching_transfer_encoding
+
   , h_connection
   , h_content_length
   , h_transfer_encoding
-  , h_encoding_C
-  , h_encoding_CH
-  , h_encoding_CHU
-  , h_encoding_CHUN
-  , h_encoding_CHUNK
-  , h_encoding_CHUNKE
-  , h_encoding_CHUNKED
-  , h_connection_K
-  , h_connection_C
+
+  , h_matching_transfer_encoding_chunked
+  , h_matching_connection_keep_alive
+  , h_matching_connection_close
+
+  , h_transfer_encoding_chunked
+  , h_connection_keep_alive
+  , h_connection_close
   };
 
 enum flags
-  { F_CHUNKED = 0x0001
-  , F_TRAILING= 0x0002
+  { F_CHUNKED               = 0x0001
+  , F_CONNECTION_KEEP_ALIVE = 0x0002
+  , F_CONNECTION_CLOSE      = 0x0004
+  , F_TRAILING              = 0x0010
   };
 
 #define ERROR (p - data);
@@ -836,10 +843,6 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
               }
               break;
 
-            case h_connection:
-              if (ch != ' ') header_state = h_general;
-              break;
-
             /* content-length */
 
             case h_matching_content_length:
@@ -849,10 +852,6 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
               } else if (header_index == sizeof(CONTENT_LENGTH)-2) {
                 header_state = h_content_length;
               }
-              break;
-
-            case h_content_length:
-              if (ch != ' ') header_state = h_general;
               break;
 
             /* transfer-encoding */
@@ -866,6 +865,8 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
               }
               break;
 
+            case h_connection:
+            case h_content_length:
             case h_transfer_encoding:
               if (ch != ' ') header_state = h_general;
               break;
@@ -916,6 +917,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
         MARK(header_value);
 
         state = s_header_value;
+        header_index = 0;
 
         c = lowcase[(int)ch];
 
@@ -926,7 +928,7 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
             case h_transfer_encoding:
               /* looking for 'Transfer-Encoding: chunked' */
               if ('c' == c) {
-                header_state = h_encoding_C;
+                header_state = h_matching_transfer_encoding_chunked;
               } else {
                 header_state = h_general;
               }
@@ -940,10 +942,10 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
             case h_connection:
               /* looking for 'Connection: keep-alive' */
               if (c == 'k') {
-                header_state = h_connection_K;
+                header_state = h_matching_connection_keep_alive;
               /* looking for 'Connection: close' */
               } else if (c == 'c') {
-                header_state = h_connection_C;
+                header_state = h_matching_connection_close;
               } else {
                 header_state = h_general;
               }
@@ -976,13 +978,15 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
           break;
         }
 
+        header_index++;
+
         switch (header_state) {
+          case h_general:
+            break;
+
           case h_connection:
           case h_transfer_encoding:
             assert(0 && "Shouldn't get here.");
-            break;
-
-          case h_general:
             break;
 
           case h_content_length:
@@ -992,37 +996,38 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
             break;
 
           /* Transfer-Encoding: chunked */
-
-          case h_encoding_C:
-            header_state = (c == 'h' ? h_encoding_CH : h_general);
-            break;
-          case h_encoding_CH:
-            header_state = (c == 'u' ? h_encoding_CHU : h_general);
-            break;
-          case h_encoding_CHU:
-            header_state = (c == 'n' ? h_encoding_CHUN : h_general);
-            break;
-          case h_encoding_CHUN:
-            header_state = (c == 'k' ? h_encoding_CHUNK : h_general);
-            break;
-          case h_encoding_CHUNK:
-            header_state = (c == 'e' ? h_encoding_CHUNKE : h_general);
-            break;
-          case h_encoding_CHUNKE:
-            if (c == 'd') {
-              parser->flags |= F_CHUNKED;
-              header_state = h_encoding_CHUNKED;
+          case h_matching_transfer_encoding_chunked:
+            if (header_index > sizeof(CHUNKED)-1 
+                || c != CHUNKED[header_index]) {
+              header_state = h_general;
+            } else if (header_index == sizeof(CHUNKED)-2) {
+              header_state = h_transfer_encoding_chunked;
             }
-            break;
-          case h_encoding_CHUNKED:
-            if (ch != ' ') return ERROR;
             break;
 
           /* looking for 'Connection: keep-alive' */
+          case h_matching_connection_keep_alive:
+            if (header_index > sizeof(KEEP_ALIVE)-1
+                || c != KEEP_ALIVE[header_index]) {
+              header_state = h_general;
+            } else if (header_index == sizeof(KEEP_ALIVE)-2) {
+              header_state = h_connection_keep_alive;
+            }
+            break;
+
           /* looking for 'Connection: close' */
-          case h_connection_K: 
-          case h_connection_C: 
-            header_state = h_general;
+          case h_matching_connection_close:
+            if (header_index > sizeof(CLOSE)-1 || c != CLOSE[header_index]) {
+              header_state = h_general;
+            } else if (header_index == sizeof(CLOSE)-2) {
+              header_state = h_connection_keep_alive;
+            }
+            break;
+
+          case h_transfer_encoding_chunked:
+          case h_connection_keep_alive:
+          case h_connection_close:
+            if (ch != ' ') header_state = h_general;
             break;
 
           default:
@@ -1035,7 +1040,22 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
 
       case s_header_almost_done:
         if (ch != LF) return ERROR;
+
         state = s_header_field_start;
+
+        switch (header_state) {
+          case h_connection_keep_alive:
+            parser->flags |= F_CONNECTION_KEEP_ALIVE;
+            break;
+          case h_connection_close:
+            parser->flags |= F_CONNECTION_CLOSE;
+            break;
+          case h_transfer_encoding_chunked:
+            parser->flags |= F_CHUNKED;
+            break;
+          default:
+            break;
+        }
         break;
 
       case s_headers_almost_done:
@@ -1053,21 +1073,22 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
         parser->body_read = 0;
         
         if (parser->flags & F_CHUNKED) {
-          state = s_chunked_len_start;
+          state = s_chunk_size_start;
         } else {
           if (parser->content_length == 0) {
             CALLBACK2(message_complete);
             state = s_start;
-          } else if (parser->content_length < 0) {
-            state = s_body_identity_eof;
-          } else {
+          } else if (parser->content_length > 0) {
             state = s_body_identity;
+          } else {
+            if (parser->method & (HTTP_GET | HTTP_HEAD)) {
+              CALLBACK2(message_complete);
+              state = s_start;
+            } else {
+              state = s_body_identity_eof;
+            }
           }
         }
-        break;
-
-      /* read until EOF */
-      case s_body_identity_eof:
         break;
 
       case s_body_identity:
@@ -1083,38 +1104,63 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
         }
         break;
 
-      case s_chunked_len_start:
+      /* read until EOF */
+      case s_body_identity_eof:
+        to_read = pe - p;
+        if (to_read > 0) {
+          if (parser->on_body) parser->on_body(parser, p, to_read);
+          p += to_read - 1;
+          parser->body_read += to_read;
+        }
+        break;
+
+      case s_chunk_size_start:
         c = unhex[(int)ch];
         if (c == -1) return ERROR;
         parser->chunk_size = c;
-        state = s_chunked_len;
+        state = s_chunk_size;
         break;
 
-      case s_chunked_len:
+      case s_chunk_size:
         if (ch == CR) {
-          state = s_chunked_len_almost_done;
+          state = s_chunk_size_almost_done;
           break;
         }
 
         c = unhex[(int)ch];
 
-        if (c == -1) return ERROR;
+        if (c == -1) {
+          if (ch == ';' || ch == ' ') {
+            state = s_chunk_parameters;
+            break;
+          }
+          return ERROR;
+        }
 
         parser->chunk_size *= 16;
         parser->chunk_size += c;
         break;
 
-      case s_chunked_len_almost_done:
+      case s_chunk_parameters:
+        /* just ignore this shit */
+        /* TODO check for overflow */
+        if (ch == CR) {
+          state = s_chunk_size_almost_done;
+          break;
+        }
+        break;
+
+      case s_chunk_size_almost_done:
         if (ch != LF) return ERROR;
         if (parser->chunk_size == 0) {
           parser->flags |= F_TRAILING;
           state = s_header_field_start;
         } else {
-          state = s_chunked_data;
+          state = s_chunk_data;
         }
         break;
 
-      case s_chunked_data:
+      case s_chunk_data:
         to_read = MIN(pe - p, (ssize_t)(parser->chunk_size));
 
         if (to_read > 0) {
@@ -1123,24 +1169,21 @@ size_t http_parser_execute (http_parser *parser, const char *data, size_t len)
         }
 
         if (to_read == parser->chunk_size) {
-          state = s_chunked_data_almost_done;
+          state = s_chunk_data_almost_done;
         }
 
         parser->chunk_size -= to_read;
         break;
 
-      case s_chunked_data_almost_done:
+      case s_chunk_data_almost_done:
         if (ch != CR) return ERROR;
-        state = s_chunked_data_done;
+        state = s_chunk_data_done;
         break;
 
-      case s_chunked_data_done:
+      case s_chunk_data_done:
         if (ch != LF) return ERROR;
-        state = s_chunked_len_start;
+        state = s_chunk_size_start;
         break;
-
-      case s_chunked_almost_done:
-        if (ch != LF) return ERROR;
 
       default:
         assert(0 && "unhandled state");
