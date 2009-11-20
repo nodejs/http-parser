@@ -854,7 +854,11 @@ test_multiple3 (const struct message *r1, const struct message *r2, const struct
     exit(1);
   }
 
-  assert(num_messages == 3);
+  if (3 != num_messages) {
+    fprintf(stderr, "\n\n*** Parser didn't see 3 messages only %d *** \n", num_messages);
+    exit(1);
+  }
+
   if (!message_eq(0, r1)) exit(1);
   if (!message_eq(1, r2)) exit(1);
   if (!message_eq(2, r3)) exit(1);
@@ -980,6 +984,16 @@ main (void)
     test_message(&responses[i]);
   }
 
+  for (i = 0; i < response_count; i++) {
+    if (!responses[i].should_keep_alive) continue;
+    for (j = 0; j < response_count; j++) {
+      if (!responses[j].should_keep_alive) continue;
+      for (k = 0; k < response_count; k++) {
+        test_multiple3(&responses[i], &responses[j], &responses[k]);
+      }
+    }
+  }
+
   printf("response scan 1/1      ");
   test_scan( &responses[TRAILING_SPACE_ON_CHUNKED_BODY]
            , &responses[NO_HEADERS_NO_BODY_404]
@@ -1055,7 +1069,9 @@ main (void)
 
 
   for (i = 0; i < request_count; i++) {
+    if (!requests[i].should_keep_alive) continue;
     for (j = 0; j < request_count; j++) {
+      if (!requests[j].should_keep_alive) continue;
       for (k = 0; k < request_count; k++) {
         test_multiple3(&requests[i], &requests[j], &requests[k]);
       }

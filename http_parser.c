@@ -1250,19 +1250,19 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         CALLBACK2(headers_complete);
         
         if (parser->flags & F_CHUNKED) {
-          /* chunked encoding - ignore content-lenght header */
+          /* chunked encoding - ignore Content-Length header */
           state = s_chunk_size_start;
         } else {
           if (parser->content_length == 0) {
-            /* content-length header given, but zero: Content-Length: 0\r\n */
+            /* Content-Length header given but zero: Content-Length: 0\r\n */
             CALLBACK2(message_complete);
             state = start_state;
           } else if (parser->content_length > 0) {
-            /* content-length header given, and positive */
+            /* Content-Length header given and non-zero */
             state = s_body_identity;
           } else {
-            /* No content-length header, not chunked */ 
-            if (parser->http_major > 0) {
+            /* No Content-Length header, not chunked */ 
+            if (parser->http_major > 0 && parser->http_minor > 0) {
               /* HTTP/1.0 or HTTP/1.1 */
               if (parser->flags & F_CONNECTION_CLOSE) {
                 /* Read body until EOF */
@@ -1273,7 +1273,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
                 state = start_state;
               }
             } else {
-              /* HTTP/0.9 or earlier */
+              /* HTTP/1.0 or earlier */
               if (parser->flags & F_CONNECTION_KEEP_ALIVE) {
                 /* Message is done - read the next */
                 CALLBACK2(message_complete);
