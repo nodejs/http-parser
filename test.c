@@ -631,6 +631,7 @@ headers_complete_cb (http_parser *parser)
   messages[num_messages].http_major = parser->http_major;
   messages[num_messages].http_minor = parser->http_minor;
   messages[num_messages].headers_complete_cb_called = TRUE;
+  messages[num_messages].should_keep_alive = http_should_keep_alive(parser);
   return 0;
 }
 
@@ -638,6 +639,14 @@ int
 message_complete_cb (http_parser *parser)
 {
   assert(parser);
+  if (messages[num_messages].should_keep_alive != http_should_keep_alive(parser))
+  {
+    fprintf(stderr, "\n\n *** Error http_should_keep_alive() should have same "
+                    "value in both on_message_complete and on_headers_complete "
+                    "but it doesn't! ***\n\n");
+    assert(0);
+    exit(1);
+  }
   messages[num_messages].message_complete_cb_called = TRUE;
   num_messages++;
   return 0;
@@ -713,6 +722,8 @@ message_eq (int index, const struct message *expected)
   } else {
     MESSAGE_CHECK_NUM_EQ(expected, m, status_code);
   }
+
+  MESSAGE_CHECK_NUM_EQ(expected, m, should_keep_alive);
 
   assert(m->message_begin_cb_called);
   assert(m->headers_complete_cb_called);
