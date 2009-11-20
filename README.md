@@ -32,14 +32,14 @@ using `http_parser_init()` and set the callbacks. That might look something
 like this:
 
     http_parser *parser = malloc(sizeof(http_parser));
-    http_parser_init(parser, HTTP_REQUEST);
+    http_parser_init(parser);
     parser->on_path = my_path_callback;
     parser->on_header_field = my_header_field_callback;
     parser->data = my_socket;
 
 When data is received on the socket execute the parser and check for errors.
 
-    size_t len = 80*1024;
+    size_t len = 80*1024, nparsed;
     char buf[len];
     ssize_t recved;
 
@@ -50,19 +50,19 @@ When data is received on the socket execute the parser and check for errors.
     }
 
     /* Start up / continue the parser.
-     * Note we pass the recved==0 to http_parser_execute to signal
+     * Note we pass the recved==0 to http_parse_requests to signal
      * that EOF has been recieved.
      */
-    http_parser_execute(parser, buf, recved);
+    nparsed = http_parse_requests(parser, buf, recved);
 
-    if (http_parser_has_error(parser)) {
+    if (nparsed != recved) {
       /* Handle error. Usually just close the connection. */
     }
 
 HTTP needs to know where the end of the stream is. For example, sometimes
 servers send responses without Content-Length and expect the client to
 consume input (for the body) until EOF. To tell http_parser about EOF, give
-`0` as the third parameter to `http_parser_execute()`. Callbacks and errors
+`0` as the third parameter to `http_parse_requests()`. Callbacks and errors
 can still be encountered during an EOF, so one must still be prepared
 to receive them.
 
@@ -84,7 +84,7 @@ parser, for example, would not want such a feature.
 Callbacks
 ---------
 
-During the `http_parser_execute()` call, the callbacks set in `http_parser`
+During the `http_parse_requests()` call, the callbacks set in `http_parser`
 will be executed. The parser maintains state and never looks behind, so
 buffering the data is not necessary. If you need to save certain data for
 later usage, you can do that from the callbacks.

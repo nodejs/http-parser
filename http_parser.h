@@ -29,6 +29,15 @@ extern "C" {
 #endif
 #include <sys/types.h>
 
+/* Compile with -DHTTP_PARSER_STRICT=0 to make less checks, but run
+ * faster 
+ */ 
+#ifndef HTTP_PARSER_STRICT
+# define HTTP_PARSER_STRICT 1
+#else
+# define HTTP_PARSER_STRICT 0
+#endif
+
 typedef struct http_parser http_parser;
 
 /* Callbacks should return non-zero to indicate an error. The parse will
@@ -52,14 +61,15 @@ enum http_method
 
 struct http_parser {
   /** PRIVATE **/
-  int state;
-  int header_state;
+  unsigned short state;
+  unsigned short header_state;
   size_t header_index;
 
-  size_t chunk_size;
   char flags;
 
+  size_t chunk_size;
   ssize_t body_read;
+  ssize_t content_length;
 
   const char *header_field_mark;
   size_t      header_field_size;
@@ -77,11 +87,8 @@ struct http_parser {
   /** READ-ONLY **/
   unsigned short status_code; /* responses only */
   enum http_method method;    /* requests only */
-
-  int http_major;
-  int http_minor;
-
-  ssize_t content_length;
+  unsigned short http_major;
+  unsigned short http_minor;
 
   /** PUBLIC **/
   void *data; /* A pointer to get hook to the "connection" or "socket" object */

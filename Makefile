@@ -1,8 +1,14 @@
-OPT=-O0 -g -Wall -Wextra -Werror
-#OPT=-O2
+#OPT=-O0 -g -Wall -Wextra -Werror 
+OPT=-O3 -DHTTP_PARSER_STRICT=0
 
 test: http_parser.o test.c
 	gcc $(OPT) http_parser.o test.c -o $@
+
+test-run: test
+	./test
+
+test-run-timed: test
+	time ./test > /dev/null
 
 http_parser.o: http_parser.c http_parser.h Makefile
 	gcc $(OPT) -c http_parser.c
@@ -21,4 +27,4 @@ package: http_parser.c
 	tar -cf http_parser.tar http_parser/
 	@echo /tmp/http_parser.tar
 
-.PHONY: clean package
+.PHONY: clean package test-run test-run-timed
