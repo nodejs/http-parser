@@ -11,7 +11,7 @@ Features:
 
   * No dependencies
   * Parses both requests and responses.
-  * Handles keep-alive streams.
+  * Handles perstent streams.
   * Decodes chunked encoding.
   * Extracts the following data from a message
     * header fields and values
@@ -35,6 +35,7 @@ like this:
     http_parser_init(parser);
     parser->on_path = my_path_callback;
     parser->on_header_field = my_header_field_callback;
+    /* ... */
     parser->data = my_socket;
 
 When data is received on the socket execute the parser and check for errors.
@@ -133,10 +134,3 @@ See examples of reading in headers:
 * [partial example](http://gist.github.com/155877) in C
 * [from http-parser tests](http://github.com/ry/http-parser/blob/37a0ff8928fb0d83cec0d0d8909c5a4abcd221af/test.c#L403) in C
 * [from Node library](http://github.com/ry/node/blob/842eaf446d2fdcb33b296c67c911c32a0dabc747/src/http.js#L284) in Javascript
-
-Bindings
---------
-
-  * [Ruby](http://github.com/yakischloba/http-parser-ffi)
-
-  * [Lua](http://github.com/phoenixsol/lua-http-parser)
