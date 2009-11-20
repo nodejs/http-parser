@@ -969,8 +969,6 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
       case s_header_field:
       {
-        header_index++;
-
         c = lowcase[(int)ch];
 
         if (c) {
@@ -979,14 +977,17 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
               break;
 
             case h_C:
+              header_index++;
               header_state = (c == 'o' ? h_CO : h_general);
               break;
 
             case h_CO:
+              header_index++;
               header_state = (c == 'n' ? h_CON : h_general);
               break;
 
             case h_CON:
+              header_index++;
               switch (c) {
                 case 'n':
                   header_state = h_matching_connection;
@@ -1003,6 +1004,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             /* connection */
 
             case h_matching_connection:
+              header_index++;
               if (header_index > sizeof(CONNECTION)-1
                   || c != CONNECTION[header_index]) {
                 header_state = h_general;
@@ -1014,6 +1016,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             /* content-length */
 
             case h_matching_content_length:
+              header_index++;
               if (header_index > sizeof(CONTENT_LENGTH)-1
                   || c != CONTENT_LENGTH[header_index]) {
                 header_state = h_general;
@@ -1025,6 +1028,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             /* transfer-encoding */
 
             case h_matching_transfer_encoding:
+              header_index++;
               if (header_index > sizeof(TRANSFER_ENCODING)-1
                   || c != TRANSFER_ENCODING[header_index]) {
                 header_state = h_general;
@@ -1147,8 +1151,6 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           break;
         }
 
-        header_index++;
-
         switch (header_state) {
           case h_general:
             break;
@@ -1166,6 +1168,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
           /* Transfer-Encoding: chunked */
           case h_matching_transfer_encoding_chunked:
+            header_index++;
             if (header_index > sizeof(CHUNKED)-1 
                 || c != CHUNKED[header_index]) {
               header_state = h_general;
@@ -1176,6 +1179,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
           /* looking for 'Connection: keep-alive' */
           case h_matching_connection_keep_alive:
+            header_index++;
             if (header_index > sizeof(KEEP_ALIVE)-1
                 || c != KEEP_ALIVE[header_index]) {
               header_state = h_general;
@@ -1186,6 +1190,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
           /* looking for 'Connection: close' */
           case h_matching_connection_close:
+            header_index++;
             if (header_index > sizeof(CLOSE)-1 || c != CLOSE[header_index]) {
               header_state = h_general;
             } else if (header_index == sizeof(CLOSE)-2) {
