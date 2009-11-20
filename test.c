@@ -58,13 +58,19 @@ struct message {
   int message_begin_cb_called;
   int headers_complete_cb_called;
   int message_complete_cb_called;
+  int message_complete_on_eof;
 };
 
-#define parse(t, buf, len) \
-  (t == REQUEST ? http_parse_requests(&parser, buf, len) \
-                     : http_parse_responses(&parser, buf, len))
+static int currently_parsing_eof;
 
-
+inline size_t parse (enum message_type t, const char *buf, size_t len)
+{
+  size_t nparsed;
+  currently_parsing_eof = (len == 0);
+  nparsed = (t == REQUEST ? http_parse_requests(&parser, buf, len) 
+                          : http_parse_responses(&parser, buf, len));
+  return nparsed;
+}
 
 static struct message messages[5];
 static int num_messages;
@@ -80,6 +86,7 @@ const struct message requests[] =
          "Accept: */*\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE 
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
@@ -110,6 +117,7 @@ const struct message requests[] =
          "Connection: keep-alive\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE 
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
@@ -138,6 +146,7 @@ const struct message requests[] =
          "aaaaaaaaaaaaa:++++++++++\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE 
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
@@ -158,6 +167,7 @@ const struct message requests[] =
   ,.raw= "GET /forums/1/topics/2375?page=1#posts-17408 HTTP/1.1\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE 
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
@@ -176,6 +186,7 @@ const struct message requests[] =
   ,.raw= "GET /get_no_headers_no_body/world HTTP/1.1\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE /* would need Connection: close */
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
@@ -194,6 +205,7 @@ const struct message requests[] =
          "Accept: */*\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE /* would need Connection: close */
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
@@ -216,6 +228,7 @@ const struct message requests[] =
          "\r\n"
          "HELLO"
   ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 0
   ,.method= HTTP_GET
@@ -240,6 +253,7 @@ const struct message requests[] =
          "\r\n"
          "World"
   ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
@@ -266,6 +280,7 @@ const struct message requests[] =
          "0\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
@@ -291,6 +306,7 @@ const struct message requests[] =
          "000\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
@@ -318,6 +334,7 @@ const struct message requests[] =
          "Content-Type: text/plain\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
@@ -345,6 +362,7 @@ const struct message requests[] =
          "0\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
@@ -364,6 +382,7 @@ const struct message requests[] =
   ,.type= REQUEST
   ,.raw= "GET /with_\"stupid\"_quotes?foo=\"bar\" HTTP/1.1\r\n\r\n"
   ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
@@ -377,6 +396,11 @@ const struct message requests[] =
   }
 
 #define APACHEBENCH_GET 13
+/* The server receiving this request SHOULD NOT wait for EOF
+ * to know that content-length == 0.
+ * How to represent this in a unit test? message_complete_on_eof
+ * Compare with NO_CONTENT_LENGTH_RESPONSE.
+ */
 , {.name = "apachebench get"
   ,.type= REQUEST
   ,.raw= "GET /test HTTP/1.0\r\n"
@@ -384,6 +408,7 @@ const struct message requests[] =
          "User-Agent: ApacheBench/2.3\r\n"
          "Accept: */*\r\n\r\n"
   ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 0
   ,.method= HTTP_GET
@@ -423,6 +448,7 @@ const struct message responses[] =
          "<A HREF=\"http://www.google.com/\">here</A>.\r\n"
          "</BODY></HTML>\r\n"
   ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 301
@@ -445,6 +471,11 @@ const struct message responses[] =
   }
 
 #define NO_CONTENT_LENGTH_RESPONSE 1
+/* The client should wait for the server's EOF. That is, when content-length
+ * is not specified, and "Connection: close", the end of body is specified
+ * by the EOF.
+ * Compare with APACHEBENCH_GET
+ */
 , {.name= "no content-length response"
   ,.type= RESPONSE
   ,.raw= "HTTP/1.1 200 OK\r\n"
@@ -464,6 +495,7 @@ const struct message responses[] =
          "  </SOAP-ENV:Body>\n"
          "</SOAP-ENV:Envelope>"
   ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= TRUE
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 200
@@ -491,6 +523,7 @@ const struct message responses[] =
   ,.type= RESPONSE
   ,.raw= "HTTP/1.1 404 Not Found\r\n\r\n"
   ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 404
@@ -504,6 +537,7 @@ const struct message responses[] =
   ,.type= RESPONSE
   ,.raw= "HTTP/1.1 301\r\n\r\n"
   ,.should_keep_alive = TRUE
+  ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 301
@@ -528,6 +562,7 @@ const struct message responses[] =
          "0  \r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 200
@@ -648,6 +683,9 @@ message_complete_cb (http_parser *parser)
     exit(1);
   }
   messages[num_messages].message_complete_cb_called = TRUE;
+
+  messages[num_messages].message_complete_on_eof = currently_parsing_eof;
+  
   num_messages++;
   return 0;
 }
@@ -724,10 +762,12 @@ message_eq (int index, const struct message *expected)
   }
 
   MESSAGE_CHECK_NUM_EQ(expected, m, should_keep_alive);
+  MESSAGE_CHECK_NUM_EQ(expected, m, message_complete_on_eof);
 
   assert(m->message_begin_cb_called);
   assert(m->headers_complete_cb_called);
   assert(m->message_complete_cb_called);
+
 
   MESSAGE_CHECK_STR_EQ(expected, m, request_path);
   MESSAGE_CHECK_STR_EQ(expected, m, query_string);

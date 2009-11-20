@@ -1269,7 +1269,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             /* Content-Length header given and non-zero */
             state = s_body_identity;
           } else {
-            if (http_should_keep_alive(parser)) {
+            if (start_state == s_start_req || http_should_keep_alive(parser)) {
               /* Assume content-length 0 - read the next */
               CALLBACK2(message_complete);
               state = start_state;
