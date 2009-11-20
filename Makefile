@@ -1,5 +1,5 @@
-#OPT=-O0 -g -Wall -Wextra -Werror 
-OPT=-O3 -DHTTP_PARSER_STRICT=0
+OPT=-O0 -g -Wall -Wextra -Werror 
+#OPT=-O3 -DHTTP_PARSER_STRICT=0
 
 test: http_parser.o test.c
 	gcc $(OPT) http_parser.o test.c -o $@

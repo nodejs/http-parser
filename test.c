@@ -373,6 +373,7 @@ const struct message requests[] =
 
 /* * R E S P O N S E S * */
 const struct message responses[] =
+#define GOOGLE_301 0
 { {.name= "google 301"
   ,.type= RESPONSE
   ,.raw= "HTTP/1.1 301 Moved Permanently\r\n"
@@ -410,6 +411,7 @@ const struct message responses[] =
           "</BODY></HTML>\r\n"
   }
 
+#define NO_CONTENT_LENGTH_RESPONSE 1
 , {.name= "no content-length response"
   ,.type= RESPONSE
   ,.raw= "HTTP/1.1 200 OK\r\n"
@@ -449,6 +451,7 @@ const struct message responses[] =
           "</SOAP-ENV:Envelope>"
   }
 
+#define NO_HEADERS_NO_BODY_404 2
 , {.name= "404 no headers no body"
   ,.type= RESPONSE
   ,.raw= "HTTP/1.1 404 Not Found\r\n\r\n"
@@ -459,6 +462,7 @@ const struct message responses[] =
   ,.body= ""
   }
 
+#define NO_REASON_PHRASE 3
 , {.name= "301 no response phrase"
   ,.type= RESPONSE
   ,.raw= "HTTP/1.1 301\r\n\r\n"
@@ -469,6 +473,7 @@ const struct message responses[] =
   ,.body= ""
   }
 
+#define TRAILING_SPACE_ON_CHUNKED_BODY 4
 , {.name="200 trailing space on chunked body"
   ,.type= RESPONSE
   ,.raw= "HTTP/1.1 200 OK\r\n"
@@ -880,7 +885,10 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
 
       parse(r1->type, NULL, 0);
 
-      assert(3 == num_messages);
+      if (3 != num_messages) {
+        fprintf(stderr, "\n\nParser didn't see 3 messages only %d\n", num_messages);
+        goto error;
+      }
 
       if (!message_eq(0, r1)) {
         fprintf(stderr, "\n\nError matching messages[0] in test_scan.\n");
@@ -927,6 +935,12 @@ main (void)
   for (i = 0; i < response_count; i++) {
     test_message(&responses[i]);
   }
+
+  printf("response scan 1/3      ");
+  test_scan( &responses[TRAILING_SPACE_ON_CHUNKED_BODY]
+           , &responses[NO_HEADERS_NO_BODY_404]
+           , &responses[NO_REASON_PHRASE]
+           );
 
   puts("responses okay");
 

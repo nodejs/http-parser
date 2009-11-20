@@ -67,7 +67,6 @@ struct http_parser {
 
   char flags;
 
-  size_t chunk_size;
   ssize_t body_read;
   ssize_t content_length;
 

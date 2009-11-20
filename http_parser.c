@@ -265,10 +265,11 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 {
   char c, ch; 
   const char *p, *pe;
+  ssize_t to_read;
 
   enum state state = parser->state;
   enum header_states header_state = parser->header_state;
-  size_t to_read, header_index = parser->header_index;
+  size_t header_index = parser->header_index;
 
   if (len == 0) {
     if (state == s_body_identity_eof) {
@@ -1188,7 +1189,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             if (header_index > sizeof(CLOSE)-1 || c != CLOSE[header_index]) {
               header_state = h_general;
             } else if (header_index == sizeof(CLOSE)-2) {
-              header_state = h_connection_keep_alive;
+              header_state = h_connection_close;
             }
             break;
 
@@ -1244,19 +1245,38 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         parser->body_read = 0;
         
         if (parser->flags & F_CHUNKED) {
+          /* chunked encoding - ignore content-lenght header */
           state = s_chunk_size_start;
         } else {
           if (parser->content_length == 0) {
+            /* content-length header given, but zero: Content-Length: 0\r\n */
             CALLBACK2(message_complete);
             state = start_state;
           } else if (parser->content_length > 0) {
+            /* content-length header given, and positive */
             state = s_body_identity;
           } else {
-            if (parser->method & (HTTP_GET | HTTP_HEAD)) {
-              CALLBACK2(message_complete);
-              state = start_state;
+            /* No content-length header, not chunked */ 
+            if (parser->http_major > 0) {
+              /* HTTP/1.0 or HTTP/1.1 */
+              if (parser->flags & F_CONNECTION_CLOSE) {
+                /* Read body until EOF */
+                state = s_body_identity_eof;
+              } else {
+                /* Message is done - read the next */
+                CALLBACK2(message_complete);
+                state = start_state;
+              }
             } else {
-              state = s_body_identity_eof;
+              /* HTTP/0.9 or earlier */
+              if (parser->flags & F_CONNECTION_KEEP_ALIVE) {
+                /* Message is done - read the next */
+                CALLBACK2(message_complete);
+                state = start_state;
+              } else {
+                /* Read body until EOF */
+                state = s_body_identity_eof;
+              }
             }
           }
         }
@@ -1287,14 +1307,20 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         break;
 
       case s_chunk_size_start:
+      {
+        assert(parser->flags & F_CHUNKED);
+
         c = unhex[(int)ch];
         if (c == -1) return ERROR;
-        parser->chunk_size = c;
+        parser->content_length = c;
         state = s_chunk_size;
         break;
+      }
 
       case s_chunk_size:
       {
+        assert(parser->flags & F_CHUNKED);
+
         if (ch == CR) {
           state = s_chunk_size_almost_done;
           break;
@@ -1310,23 +1336,28 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           return ERROR;
         }
 
-        parser->chunk_size *= 16;
-        parser->chunk_size += c;
+        parser->content_length *= 16;
+        parser->content_length += c;
         break;
       }
 
       case s_chunk_parameters:
+      {
+        assert(parser->flags & F_CHUNKED);
         /* just ignore this shit. TODO check for overflow */
         if (ch == CR) {
           state = s_chunk_size_almost_done;
           break;
         }
         break;
+      }
 
       case s_chunk_size_almost_done:
       {
+        assert(parser->flags & F_CHUNKED);
         STRICT_CHECK(ch != LF);
-        if (parser->chunk_size == 0) {
+
+        if (parser->content_length == 0) {
           parser->flags |= F_TRAILING;
           state = s_header_field_start;
         } else {
@@ -1337,27 +1368,31 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
       case s_chunk_data:
       {
-        to_read = MIN(pe - p, (ssize_t)(parser->chunk_size));
+        assert(parser->flags & F_CHUNKED);
+
+        to_read = MIN(pe - p, (ssize_t)(parser->content_length));
 
         if (to_read > 0) {
           if (parser->on_body) parser->on_body(parser, p, to_read);
           p += to_read - 1;
         }
 
-        if (to_read == parser->chunk_size) {
+        if (to_read == parser->content_length) {
           state = s_chunk_data_almost_done;
         }
 
-        parser->chunk_size -= to_read;
+        parser->content_length -= to_read;
         break;
       }
 
       case s_chunk_data_almost_done:
+        assert(parser->flags & F_CHUNKED);
         STRICT_CHECK(ch != CR);
         state = s_chunk_data_done;
         break;
 
       case s_chunk_data_done:
+        assert(parser->flags & F_CHUNKED);
         STRICT_CHECK(ch != LF);
         state = s_chunk_size_start;
         break;
