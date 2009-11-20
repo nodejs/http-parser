@@ -26,6 +26,6 @@ tags: http_parser.c http_parser.h test.c
 	ctags $^
 
 clean:
-	rm -f *.o http_parser.c test test_g http_parser.tar
+	rm -f *.o test test_g http_parser.tar
 
 .PHONY: clean package test-run test-run-timed
