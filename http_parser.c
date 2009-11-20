@@ -1245,9 +1245,9 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           break;
         }
 
-        CALLBACK2(headers_complete);
-
         parser->body_read = 0;
+
+        CALLBACK2(headers_complete);
         
         if (parser->flags & F_CHUNKED) {
           /* chunked encoding - ignore content-lenght header */
@@ -1285,6 +1285,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             }
           }
         }
+
         break;
       }
 

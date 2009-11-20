@@ -52,6 +52,9 @@ struct message {
   char headers [MAX_HEADERS][2][MAX_ELEMENT_SIZE];
   int should_keep_alive;
 
+  unsigned short http_major;
+  unsigned short http_minor;
+
   int message_begin_cb_called;
   int headers_complete_cb_called;
   int message_complete_cb_called;
@@ -77,6 +80,8 @@ const struct message requests[] =
          "Accept: */*\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.method= HTTP_GET
   ,.query_string= ""
   ,.fragment= ""
@@ -105,6 +110,8 @@ const struct message requests[] =
          "Connection: keep-alive\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.method= HTTP_GET
   ,.query_string= ""
   ,.fragment= ""
@@ -131,6 +138,8 @@ const struct message requests[] =
          "aaaaaaaaaaaaa:++++++++++\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.method= HTTP_GET
   ,.query_string= ""
   ,.fragment= ""
@@ -149,6 +158,8 @@ const struct message requests[] =
   ,.raw= "GET /forums/1/topics/2375?page=1#posts-17408 HTTP/1.1\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.method= HTTP_GET
   ,.query_string= "page=1"
   ,.fragment= "posts-17408"
@@ -165,6 +176,8 @@ const struct message requests[] =
   ,.raw= "GET /get_no_headers_no_body/world HTTP/1.1\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.method= HTTP_GET
   ,.query_string= ""
   ,.fragment= ""
@@ -181,6 +194,8 @@ const struct message requests[] =
          "Accept: */*\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.method= HTTP_GET
   ,.query_string= ""
   ,.fragment= ""
@@ -201,6 +216,8 @@ const struct message requests[] =
          "\r\n"
          "HELLO"
   ,.should_keep_alive= FALSE
+  ,.http_major= 1
+  ,.http_minor= 0
   ,.method= HTTP_GET
   ,.query_string= ""
   ,.fragment= ""
@@ -223,6 +240,8 @@ const struct message requests[] =
          "\r\n"
          "World"
   ,.should_keep_alive= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.method= HTTP_POST
   ,.query_string= "q=search"
   ,.fragment= "hey"
@@ -247,6 +266,8 @@ const struct message requests[] =
          "0\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.method= HTTP_POST
   ,.query_string= ""
   ,.fragment= ""
@@ -270,6 +291,8 @@ const struct message requests[] =
          "000\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.method= HTTP_POST
   ,.query_string= ""
   ,.fragment= ""
@@ -295,6 +318,8 @@ const struct message requests[] =
          "Content-Type: text/plain\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.method= HTTP_POST
   ,.query_string= ""
   ,.fragment= ""
@@ -320,6 +345,8 @@ const struct message requests[] =
          "0\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.method= HTTP_POST
   ,.query_string= ""
   ,.fragment= ""
@@ -337,6 +364,8 @@ const struct message requests[] =
   ,.type= REQUEST
   ,.raw= "GET /with_\"stupid\"_quotes?foo=\"bar\" HTTP/1.1\r\n\r\n"
   ,.should_keep_alive= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.method= HTTP_GET
   ,.query_string= "foo=\"bar\""
   ,.fragment= ""
@@ -355,6 +384,8 @@ const struct message requests[] =
          "User-Agent: ApacheBench/2.3\r\n"
          "Accept: */*\r\n\r\n"
   ,.should_keep_alive= FALSE
+  ,.http_major= 1
+  ,.http_minor= 0
   ,.method= HTTP_GET
   ,.query_string= ""
   ,.fragment= ""
@@ -392,6 +423,8 @@ const struct message responses[] =
          "<A HREF=\"http://www.google.com/\">here</A>.\r\n"
          "</BODY></HTML>\r\n"
   ,.should_keep_alive= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.status_code= 301
   ,.num_headers= 7
   ,.headers=
@@ -431,6 +464,8 @@ const struct message responses[] =
          "  </SOAP-ENV:Body>\n"
          "</SOAP-ENV:Envelope>"
   ,.should_keep_alive= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.status_code= 200
   ,.num_headers= 5
   ,.headers=
@@ -456,6 +491,8 @@ const struct message responses[] =
   ,.type= RESPONSE
   ,.raw= "HTTP/1.1 404 Not Found\r\n\r\n"
   ,.should_keep_alive= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.status_code= 404
   ,.num_headers= 0
   ,.headers= {}
@@ -467,6 +504,8 @@ const struct message responses[] =
   ,.type= RESPONSE
   ,.raw= "HTTP/1.1 301\r\n\r\n"
   ,.should_keep_alive = TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.status_code= 301
   ,.num_headers= 0
   ,.headers= {}
@@ -489,6 +528,8 @@ const struct message responses[] =
          "0  \r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
   ,.status_code= 200
   ,.num_headers= 2
   ,.headers=
@@ -575,18 +616,6 @@ body_cb (http_parser *parser, const char *p, size_t len)
 }
 
 int
-message_complete_cb (http_parser *parser)
-{
-  messages[num_messages].method = parser->method;
-  messages[num_messages].status_code = parser->status_code;
-
-  messages[num_messages].message_complete_cb_called = TRUE;
-
-  num_messages++;
-  return 0;
-}
-
-int
 message_begin_cb (http_parser *parser)
 {
   assert(parser);
@@ -597,8 +626,20 @@ message_begin_cb (http_parser *parser)
 int
 headers_complete_cb (http_parser *parser)
 {
-  assert(parser);
+  messages[num_messages].method = parser->method;
+  messages[num_messages].status_code = parser->status_code;
+  messages[num_messages].http_major = parser->http_major;
+  messages[num_messages].http_minor = parser->http_minor;
   messages[num_messages].headers_complete_cb_called = TRUE;
+  return 0;
+}
+
+int
+message_complete_cb (http_parser *parser)
+{
+  assert(parser);
+  messages[num_messages].message_complete_cb_called = TRUE;
+  num_messages++;
   return 0;
 }
 
@@ -663,6 +704,9 @@ message_eq (int index, const struct message *expected)
 {
   int i;
   struct message *m = &messages[index];
+
+  MESSAGE_CHECK_NUM_EQ(expected, m, http_major);
+  MESSAGE_CHECK_NUM_EQ(expected, m, http_minor);
 
   if (expected->type == REQUEST) {
     MESSAGE_CHECK_NUM_EQ(expected, m, method);
@@ -936,7 +980,7 @@ main (void)
     test_message(&responses[i]);
   }
 
-  printf("response scan 1/3      ");
+  printf("response scan 1/1      ");
   test_scan( &responses[TRAILING_SPACE_ON_CHUNKED_BODY]
            , &responses[NO_HEADERS_NO_BODY_404]
            , &responses[NO_REASON_PHRASE]
