@@ -112,6 +112,12 @@ struct http_parser {
 void http_parser_init(http_parser *parser);
 size_t http_parse_requests(http_parser *parser, const char *data, size_t len);
 size_t http_parse_responses(http_parser *parser, const char *data, size_t len);
+/* Call this in the on_headers_complete or on_message_complete callback to
+ * determine if this will be the last message on the connection.  
+ * If you are the server, respond with the "Connection: close" header
+ * if you are the client, close the connection.
+ */
+int http_should_keep_alive(http_parser *parser);
 
 #ifdef __cplusplus
 }

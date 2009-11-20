@@ -146,7 +146,9 @@ static const uint32_t  usual[] = {
 };
 
 enum state 
-  { s_start_res = 1 /* important that this is > 0 */
+  { s_dead = 1 /* important that this is > 0 */
+
+  , s_start_res
   , s_res_H
   , s_res_HT
   , s_res_HTT
@@ -288,6 +290,12 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
   for (p=data, pe=data+len; p != pe; p++) {
     ch = *p;
     switch (state) {
+
+      case s_dead:
+        /* this state is used after a 'Connection: close' message
+         * the parser will error out if it reads another message
+         */
+        return 0;
 
       case s_start_res:
       {
@@ -1241,7 +1249,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         if (parser->flags & F_TRAILING) {
           /* End of a chunked request */
           CALLBACK2(message_complete);
-          state = start_state;
+          state = http_should_keep_alive(parser) ? start_state : s_dead;
           break;
         }
 
@@ -1256,32 +1264,18 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           if (parser->content_length == 0) {
             /* Content-Length header given but zero: Content-Length: 0\r\n */
             CALLBACK2(message_complete);
-            state = start_state;
+            state = http_should_keep_alive(parser) ? start_state : s_dead;
           } else if (parser->content_length > 0) {
             /* Content-Length header given and non-zero */
             state = s_body_identity;
           } else {
-            /* No Content-Length header, not chunked */ 
-            if (parser->http_major > 0 && parser->http_minor > 0) {
-              /* HTTP/1.0 or HTTP/1.1 */
-              if (parser->flags & F_CONNECTION_CLOSE) {
-                /* Read body until EOF */
-                state = s_body_identity_eof;
-              } else {
-                /* Message is done - read the next */
-                CALLBACK2(message_complete);
-                state = start_state;
-              }
+            if (http_should_keep_alive(parser)) {
+              /* Assume content-length 0 - read the next */
+              CALLBACK2(message_complete);
+              state = start_state;
             } else {
-              /* HTTP/1.0 or earlier */
-              if (parser->flags & F_CONNECTION_KEEP_ALIVE) {
-                /* Message is done - read the next */
-                CALLBACK2(message_complete);
-                state = start_state;
-              } else {
-                /* Read body until EOF */
-                state = s_body_identity_eof;
-              }
+              /* Read body until EOF */
+              state = s_body_identity_eof;
             }
           }
         }
@@ -1297,7 +1291,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           parser->body_read += to_read;
           if (parser->body_read == parser->content_length) {
             CALLBACK2(message_complete);
-            state = start_state;
+            state = http_should_keep_alive(parser) ? start_state : s_dead;
           }
         }
         break;
@@ -1437,6 +1431,27 @@ http_parse_responses (http_parser *parser, const char *data, size_t len)
 {
   if (!parser->state) parser->state = s_start_res;
   return parse(parser, data, len, s_start_res);
+}
+
+
+int
+http_should_keep_alive (http_parser *parser)
+{
+  if (parser->http_major > 0 && parser->http_minor > 0) {
+    /* HTTP/1.1 */
+    if (parser->flags & F_CONNECTION_CLOSE) {
+      return 0;
+    } else {
+      return 1;
+    }
+  } else {
+    /* HTTP/1.0 or earlier */
+    if (parser->flags & F_CONNECTION_KEEP_ALIVE) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
 }
 
 

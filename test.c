@@ -1085,9 +1085,9 @@ main (void)
            );
 
   printf("request scan 2/3      ");
-  test_scan( &requests[GET_FUNKY_CONTENT_LENGTH]
+  test_scan( &requests[POST_CHUNKED_ALL_YOUR_BASE]
            , &requests[POST_IDENTITY_BODY_WORLD]
-           , &requests[POST_CHUNKED_ALL_YOUR_BASE]
+           , &requests[GET_FUNKY_CONTENT_LENGTH]
            );
 
   printf("request scan 3/3      ");
