@@ -251,13 +251,12 @@ enum flags
   , F_TRAILING              = 0x0010
   };
 
-#define ERROR (p - data)
 #define CR '\r'
 #define LF '\n'
 #define LOWER(c) (unsigned char)(c | 0x20)
 
 #if HTTP_PARSER_STRICT
-# define STRICT_CHECK(cond) if (cond) return ERROR
+# define STRICT_CHECK(cond) if (cond) goto error
 # define NEW_MESSAGE() (http_should_keep_alive(parser) ? start_state : s_dead)
 #else 
 # define STRICT_CHECK(cond) 
@@ -297,7 +296,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         /* this state is used after a 'Connection: close' message
          * the parser will error out if it reads another message
          */
-        return ERROR;
+        goto error;
 
       case s_start_res:
       {
@@ -316,7 +315,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             break;
 
           default:
-            return ERROR;
+            goto error;
         }
         break;
       }
@@ -342,7 +341,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         break;
 
       case s_res_first_http_major:
-        if (ch < '1' || ch > '9') return ERROR;
+        if (ch < '1' || ch > '9') goto error;
         parser->http_major = ch - '0';
         state = s_res_http_major;
         break;
@@ -355,18 +354,18 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           break;
         }
 
-        if (ch < '0' || ch > '9') return ERROR;
+        if (ch < '0' || ch > '9') goto error;
 
         parser->http_major *= 10;
         parser->http_major += ch - '0';
 
-        if (parser->http_major > 999) return ERROR;
+        if (parser->http_major > 999) goto error;
         break;
       }
        
       /* first digit of minor HTTP version */
       case s_res_first_http_minor:
-        if (ch < '0' || ch > '9') return ERROR;
+        if (ch < '0' || ch > '9') goto error;
         parser->http_minor = ch - '0';
         state = s_res_http_minor;
         break;
@@ -379,12 +378,12 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           break;
         }
 
-        if (ch < '0' || ch > '9') return ERROR;
+        if (ch < '0' || ch > '9') goto error;
 
         parser->http_minor *= 10;
         parser->http_minor += ch - '0';
 
-        if (parser->http_minor > 999) return ERROR;
+        if (parser->http_minor > 999) goto error;
         break;
       }
 
@@ -394,7 +393,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           if (ch == ' ') {
             break;
           }
-          return ERROR;
+          goto error;
         }
         parser->status_code = ch - '0';
         state = s_res_status_code;
@@ -415,7 +414,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
               state = s_header_field_start;
               break;
             default:
-              return ERROR;
+              goto error;
           }
           break;
         }
@@ -423,7 +422,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         parser->status_code *= 10;
         parser->status_code += ch - '0';
 
-        if (parser->status_code > 999) return ERROR;
+        if (parser->status_code > 999) goto error;
         break;
       }
 
@@ -479,7 +478,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             break;
 
           default:
-            return ERROR;
+            goto error;
         }
         break;
       }
@@ -528,7 +527,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             break;
 
           default:
-            return ERROR;
+            goto error;
         }
         break;
 
@@ -601,7 +600,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           break;
         }
 
-        return ERROR;
+        goto error;
       }
 
       case s_req_schema:
@@ -615,7 +614,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           break;
         }
 
-        return ERROR;
+        goto error;
       }
 
       case s_req_schema_slash:
@@ -650,7 +649,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             state = s_req_http_start;
             break;
           default:
-            return ERROR;
+            goto error;
         }
         break;
       }
@@ -672,7 +671,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             state = s_req_http_start;
             break;
           default:
-            return ERROR;
+            goto error;
         }
         break;
       }
@@ -708,7 +707,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             state = s_req_fragment_start;
             break;
           default:
-            return ERROR;
+            goto error;
         }
         break;
       }
@@ -742,7 +741,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             state = s_req_fragment_start;
             break;
           default:
-            return ERROR;
+            goto error;
         }
         break;
       }
@@ -774,7 +773,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             state = s_req_fragment_start;
             break;
           default:
-            return ERROR;
+            goto error;
         }
         break;
       }
@@ -809,7 +808,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           case '#':
             break;
           default:
-            return ERROR;
+            goto error;
         }
         break;
       }
@@ -840,7 +839,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           case '#':
             break;
           default:
-            return ERROR;
+            goto error;
         }
         break;
       }
@@ -853,7 +852,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           case ' ':
             break;
           default:
-            return ERROR;
+            goto error;
         }
         break;
 
@@ -879,7 +878,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
       /* first digit of major HTTP version */
       case s_req_first_http_major:
-        if (ch < '1' || ch > '9') return ERROR;
+        if (ch < '1' || ch > '9') goto error;
         parser->http_major = ch - '0';
         state = s_req_http_major;
         break;
@@ -892,18 +891,18 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           break;
         }
 
-        if (ch < '0' || ch > '9') return ERROR;
+        if (ch < '0' || ch > '9') goto error;
 
         parser->http_major *= 10;
         parser->http_major += ch - '0';
 
-        if (parser->http_major > 999) return ERROR;
+        if (parser->http_major > 999) goto error;
         break;
       }
 
       /* first digit of minor HTTP version */
       case s_req_first_http_minor:
-        if (ch < '0' || ch > '9') return ERROR;
+        if (ch < '0' || ch > '9') goto error;
         parser->http_minor = ch - '0';
         state = s_req_http_minor;
         break;
@@ -923,19 +922,19 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
         /* XXX allow spaces after digit? */
 
-        if (ch < '0' || ch > '9') return ERROR;
+        if (ch < '0' || ch > '9') goto error;
 
         parser->http_minor *= 10;
         parser->http_minor += ch - '0';
 
-        if (parser->http_minor > 999) return ERROR;
+        if (parser->http_minor > 999) goto error;
         break;
       }
 
       /* end of request line */
       case s_req_line_almost_done:
       {
-        if (ch != LF) return ERROR;
+        if (ch != LF) goto error;
         state = s_header_field_start;
         break;
       }
@@ -954,7 +953,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
         c = LOWER(ch);
 
-        if (c < 'a' || 'z' < c) return ERROR;
+        if (c < 'a' || 'z' < c) goto error;
 
         MARK(header_field);
 
@@ -1078,7 +1077,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           break;
         }
 
-        return ERROR;
+        goto error;
       }
 
       case s_header_value_start:
@@ -1119,7 +1118,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             break;
 
           case h_content_length:
-            if (ch < '0' || ch > '9') return ERROR;
+            if (ch < '0' || ch > '9') goto error;
             parser->content_length = ch - '0';
             break;
 
@@ -1171,7 +1170,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             break;
 
           case h_content_length:
-            if (ch < '0' || ch > '9') return ERROR;
+            if (ch < '0' || ch > '9') goto error;
             parser->content_length *= 10;
             parser->content_length += ch - '0';
             break;
@@ -1313,7 +1312,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         assert(parser->flags & F_CHUNKED);
 
         c = unhex[(int)ch];
-        if (c == -1) return ERROR;
+        if (c == -1) goto error;
         parser->content_length = c;
         state = s_chunk_size;
         break;
@@ -1335,7 +1334,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             state = s_chunk_parameters;
             break;
           }
-          return ERROR;
+          goto error;
         }
 
         parser->content_length *= 16;
@@ -1401,7 +1400,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
       default:
         assert(0 && "unhandled state");
-        return ERROR;
+        goto error;
     }
   }
 
@@ -1417,6 +1416,9 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
   parser->header_index = header_index;
 
   return len;
+
+error:
+  return (p - data);
 }
 
 
