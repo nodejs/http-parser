@@ -1052,7 +1052,6 @@ main (void)
   for (request_count = 0; requests[request_count].name; request_count++);
   for (response_count = 0; responses[response_count].name; response_count++);
 
-#if 0
   //// RESPONSES
 
   for (i = 0; i < response_count; i++) {
@@ -1076,7 +1075,6 @@ main (void)
            );
 
   puts("responses okay");
-#endif
 
 
   /// REQUESTS
