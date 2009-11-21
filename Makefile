@@ -28,6 +28,6 @@ tags: http_parser.c http_parser.h test.c
 	ctags $^
 
 clean:
-	rm -f *.o test test_fast test_debug http_parser.tar
+	rm -f *.o test test_fast test_debug http_parser.tar tags
 
 .PHONY: clean package test-run test-run-timed test-valgrind
