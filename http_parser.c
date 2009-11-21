@@ -1471,5 +1471,12 @@ http_parser_init (http_parser *parser)
   parser->on_headers_complete = NULL;
   parser->on_body = NULL;
   parser->on_message_complete = NULL;
+
+  parser->header_field_mark = NULL;
+  parser->header_value_mark = NULL;
+  parser->query_string_mark = NULL;
+  parser->path_mark = NULL;
+  parser->url_mark = NULL;
+  parser->fragment_mark = NULL;
 }
 
