@@ -145,6 +145,8 @@ static const uint32_t  usual[] = {
     0xffffffff  /* 1111 1111 1111 1111  1111 1111 1111 1111 */
 };
 
+#define USUAL(c) (usual[c >> 5] & (1 << (c & 0x1f)))
+
 enum state 
   { s_dead = 1 /* important that this is > 0 */
 
@@ -678,7 +680,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
       case s_req_path:
       {
-        if (usual[ch >> 5] & (1 << (ch & 0x1f))) break;
+        if (USUAL(ch)) break;
 
         switch (ch) {
           case ' ':
@@ -714,7 +716,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
       case s_req_query_string_start:
       {
-        if (usual[ch >> 5] & (1 << (ch & 0x1f))) {
+        if (USUAL(ch)) {
           MARK(query_string);
           state = s_req_query_string;
           break;
@@ -748,7 +750,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
       case s_req_query_string:
       {
-        if (usual[ch >> 5] & (1 << (ch & 0x1f))) break;
+        if (USUAL(ch)) break;
 
         switch (ch) {
           case ' ':
@@ -780,7 +782,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
       case s_req_fragment_start:
       {
-        if (usual[ch >> 5] & (1 << (ch & 0x1f))) {
+        if (USUAL(ch)) {
           MARK(fragment);
           state = s_req_fragment;
           break;
@@ -815,7 +817,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
       case s_req_fragment:
       {
-        if (usual[ch >> 5] & (1 << (ch & 0x1f))) break;
+        if (USUAL(ch)) break;
 
         switch (ch) {
           case ' ':
