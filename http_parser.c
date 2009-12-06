@@ -165,20 +165,73 @@ enum state
   , s_res_line_almost_done
 
   , s_start_req
-  , s_req_method_G
-  , s_req_method_GE
-  , s_req_method_P
-  , s_req_method_PU
-  , s_req_method_PO
-  , s_req_method_POS
-  , s_req_method_H
-  , s_req_method_HE
-  , s_req_method_HEA
+
+  /* COPY */
+  , s_req_method_C
+  , s_req_method_CO
+  , s_req_method_COP
+  /* DELETE */
   , s_req_method_D
   , s_req_method_DE
   , s_req_method_DEL
   , s_req_method_DELE
   , s_req_method_DELET
+  /* GET */
+  , s_req_method_G
+  , s_req_method_GE
+  /* HEAD */
+  , s_req_method_H
+  , s_req_method_HE
+  , s_req_method_HEA
+  /* LOCK */
+  , s_req_method_L
+  , s_req_method_LO
+  , s_req_method_LOC
+  /* MKCOL */
+  , s_req_method_M
+  , s_req_method_MK
+  , s_req_method_MKC
+  , s_req_method_MKCO
+  /* MOVE */
+  , s_req_method_MO
+  , s_req_method_MOV
+  /* OPTIONS */
+  , s_req_method_O
+  , s_req_method_OP
+  , s_req_method_OPT
+  , s_req_method_OPTI
+  , s_req_method_OPTIO
+  , s_req_method_OPTION
+  /* PUT */
+  , s_req_method_P
+  , s_req_method_PU
+  /* POST */
+  , s_req_method_PO
+  , s_req_method_POS
+  /* PROPFIND */
+  , s_req_method_PR
+  , s_req_method_PRO
+  , s_req_method_PROP
+  , s_req_method_PROPF
+  , s_req_method_PROPFI
+  , s_req_method_PROPFIN
+  /* PROPPATCH */
+  , s_req_method_PROPP
+  , s_req_method_PROPPA
+  , s_req_method_PROPPAT
+  , s_req_method_PROPPATC
+  /* TRACE */
+  , s_req_method_T
+  , s_req_method_TR
+  , s_req_method_TRA
+  , s_req_method_TRAC
+  /* UNLOCK */
+  , s_req_method_U
+  , s_req_method_UN
+  , s_req_method_UNL
+  , s_req_method_UNLO
+  , s_req_method_UNLOC
+
   , s_req_spaces_before_url
   , s_req_schema
   , s_req_schema_slash
@@ -455,14 +508,19 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         CALLBACK2(message_begin);
 
         switch (ch) {
+          /* COPY */
+          case 'C':
+            state = s_req_method_C;
+            break;
+
+          /* DELETE */
+          case 'D':
+            state = s_req_method_D;
+            break;
+
           /* GET */
           case 'G':
             state = s_req_method_G;
-            break;
-
-          /* POST, PUT */
-          case 'P':
-            state = s_req_method_P;
             break;
 
           /* HEAD */
@@ -470,9 +528,34 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             state = s_req_method_H;
             break;
 
-          /* DELETE */
-          case 'D':
-            state = s_req_method_D;
+          /* LOCK */
+          case 'L':
+            state = s_req_method_L;
+            break;
+
+          /* MKCOL, MOVE */
+          case 'M':
+            state = s_req_method_M;
+            break;
+
+          /* OPTIONS */
+          case 'O':
+            state = s_req_method_O;
+            break;
+
+          /* POST, PUT, PROPFIND, PROPPATCH */
+          case 'P':
+            state = s_req_method_P;
+            break;
+
+          /* TRACE */
+          case 'T':
+            state = s_req_method_T;
+            break;
+
+          /* UNLOCK */
+          case 'U':
+            state = s_req_method_U;
             break;
 
           case CR:
@@ -484,6 +567,52 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         }
         break;
       }
+
+      /* COPY */
+
+      case s_req_method_C:
+        STRICT_CHECK(ch != 'O');
+        state = s_req_method_CO;
+        break;
+
+      case s_req_method_CO:
+        STRICT_CHECK(ch != 'P');
+        state = s_req_method_COP;
+        break;
+
+      case s_req_method_COP:
+        STRICT_CHECK(ch != 'Y');
+        parser->method = HTTP_COPY;
+        state = s_req_spaces_before_url;
+        break;
+
+      /* DELETE */
+
+      case s_req_method_D:
+        STRICT_CHECK(ch != 'E');
+        state = s_req_method_DE;
+        break;
+
+      case s_req_method_DE:
+        STRICT_CHECK(ch != 'L');
+        state = s_req_method_DEL;
+        break;
+
+      case s_req_method_DEL:
+        STRICT_CHECK(ch != 'E');
+        state = s_req_method_DELE;
+        break;
+
+      case s_req_method_DELE:
+        STRICT_CHECK(ch != 'T');
+        state = s_req_method_DELET;
+        break;
+
+      case s_req_method_DELET:
+        STRICT_CHECK(ch != 'E');
+        parser->method = HTTP_DELETE;
+        state = s_req_spaces_before_url;
+        break;
 
       /* GET */
 
@@ -516,12 +645,115 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         state = s_req_spaces_before_url;
         break;
 
-      /* POST, PUT */
+      /* LOCK */
+
+      case s_req_method_L:
+        STRICT_CHECK(ch != 'O');
+        state = s_req_method_LO;
+        break;
+
+      case s_req_method_LO:
+        STRICT_CHECK(ch != 'C');
+        state = s_req_method_LOC;
+        break;
+
+      case s_req_method_LOC:
+        STRICT_CHECK(ch != 'K');
+        parser->method = HTTP_LOCK;
+        state = s_req_spaces_before_url;
+        break;
+
+      /* MKCOL, MOVE */
+
+      case s_req_method_M:
+        switch (ch) {
+          case 'K':
+            state = s_req_method_MK;
+            break;
+
+          case 'O':
+            state = s_req_method_MO;
+            break;
+
+          default:
+            goto error;
+        }
+        break;
+
+      /* MKCOL */
+
+      case s_req_method_MK:
+        STRICT_CHECK(ch != 'C');
+        state = s_req_method_MKC;
+        break;
+
+      case s_req_method_MKC:
+        STRICT_CHECK(ch != 'O');
+        state = s_req_method_MKCO;
+        break;
+
+      case s_req_method_MKCO:
+        STRICT_CHECK(ch != 'L');
+        parser->method = HTTP_MKCOL;
+        state = s_req_spaces_before_url;
+        break;
+
+      /* MOVE */
+
+      case s_req_method_MO:
+        STRICT_CHECK(ch != 'V');
+        state = s_req_method_MOV;
+        break;
+
+      case s_req_method_MOV:
+        STRICT_CHECK(ch != 'E');
+        parser->method = HTTP_MOVE;
+        state = s_req_spaces_before_url;
+        break;
+
+      /* OPTIONS */
+
+      case s_req_method_O:
+        STRICT_CHECK(ch != 'P');
+        state = s_req_method_OP;
+        break;
+
+      case s_req_method_OP:
+        STRICT_CHECK(ch != 'T');
+        state = s_req_method_OPT;
+        break;
+
+      case s_req_method_OPT:
+        STRICT_CHECK(ch != 'I');
+        state = s_req_method_OPTI;
+        break;
+
+      case s_req_method_OPTI:
+        STRICT_CHECK(ch != 'O');
+        state = s_req_method_OPTIO;
+        break;
+
+      case s_req_method_OPTIO:
+        STRICT_CHECK(ch != 'N');
+        state = s_req_method_OPTION;
+        break;
+
+      case s_req_method_OPTION:
+        STRICT_CHECK(ch != 'S');
+        parser->method = HTTP_OPTIONS;
+        state = s_req_spaces_before_url;
+        break;
+
+      /* POST, PUT, PROPFIND, PROPPATCH */
 
       case s_req_method_P:
         switch (ch) {
           case 'O':
             state = s_req_method_PO;
+            break;
+
+          case 'R':
+            state = s_req_method_PR;
             break;
 
           case 'U':
@@ -554,34 +786,126 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         state = s_req_spaces_before_url;
         break;
 
-      /* DELETE */
+      /* PROPFIND, PROPPATCH */
 
-      case s_req_method_D:
-        STRICT_CHECK(ch != 'E');
-        state = s_req_method_DE;
+      case s_req_method_PR:
+        STRICT_CHECK(ch != 'O');
+        state = s_req_method_PRO;
         break;
 
-      case s_req_method_DE:
-        STRICT_CHECK(ch != 'L');
-        state = s_req_method_DEL;
+      case s_req_method_PRO:
+        STRICT_CHECK(ch != 'P');
+        state = s_req_method_PROP;
         break;
 
-      case s_req_method_DEL:
-        STRICT_CHECK(ch != 'E');
-        state = s_req_method_DELE;
+      case s_req_method_PROP:
+        switch (ch) {
+          case 'F':
+            state = s_req_method_PROPF;
+            break;
+
+          case 'P':
+            state = s_req_method_PROPP;
+            break;
+
+          default:
+            goto error;
+        }
         break;
 
-      case s_req_method_DELE:
-        STRICT_CHECK(ch != 'T');
-        state = s_req_method_DELET;
+      /* PROPFIND */
+
+      case s_req_method_PROPF:
+        STRICT_CHECK(ch != 'I');
+        state = s_req_method_PROPFI;
         break;
 
-      case s_req_method_DELET:
-        STRICT_CHECK(ch != 'E');
-        parser->method = HTTP_DELETE;
+      case s_req_method_PROPFI:
+        STRICT_CHECK(ch != 'N');
+        state = s_req_method_PROPFIN;
+        break;
+
+      case s_req_method_PROPFIN:
+        STRICT_CHECK(ch != 'D');
+        parser->method = HTTP_PROPFIND;
         state = s_req_spaces_before_url;
         break;
 
+      /* PROPPATCH */
+
+      case s_req_method_PROPP:
+        STRICT_CHECK(ch != 'A');
+        state = s_req_method_PROPPA;
+        break;
+
+      case s_req_method_PROPPA:
+        STRICT_CHECK(ch != 'T');
+        state = s_req_method_PROPPAT;
+        break;
+
+      case s_req_method_PROPPAT:
+        STRICT_CHECK(ch != 'C');
+        state = s_req_method_PROPPATC;
+        break;
+
+      case s_req_method_PROPPATC:
+        STRICT_CHECK(ch != 'H');
+        parser->method = HTTP_PROPPATCH;
+        state = s_req_spaces_before_url;
+        break;
+
+      /* TRACE */
+
+      case s_req_method_T:
+        STRICT_CHECK(ch != 'R');
+        state = s_req_method_TR;
+        break;
+
+      case s_req_method_TR:
+        STRICT_CHECK(ch != 'A');
+        state = s_req_method_TRA;
+        break;
+
+      case s_req_method_TRA:
+        STRICT_CHECK(ch != 'C');
+        state = s_req_method_TRAC;
+        break;
+
+      case s_req_method_TRAC:
+        STRICT_CHECK(ch != 'E');
+        parser->method = HTTP_TRACE;
+        state = s_req_spaces_before_url;
+        break;
+
+      /* UNLOCK */
+
+      case s_req_method_U:
+        STRICT_CHECK(ch != 'N');
+        state = s_req_method_UN;
+        break;
+
+      case s_req_method_UN:
+        STRICT_CHECK(ch != 'L');
+        state = s_req_method_UNL;
+        break;
+
+      case s_req_method_UNL:
+        STRICT_CHECK(ch != 'O');
+        state = s_req_method_UNLO;
+        break;
+
+      case s_req_method_UNLO:
+        STRICT_CHECK(ch != 'C');
+        state = s_req_method_UNLOC;
+        break;
+
+      case s_req_method_UNLOC:
+        STRICT_CHECK(ch != 'K');
+        parser->method = HTTP_UNLOCK;
+        state = s_req_spaces_before_url;
+        break;
+
+      /* whew! that was annoying! */
 
       case s_req_spaces_before_url:
       {
