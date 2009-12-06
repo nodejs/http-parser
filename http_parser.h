@@ -55,22 +55,23 @@ typedef int (*http_cb) (http_parser*);
 
 /* Request Methods */
 enum http_method
-  { HTTP_DELETE    = 0x0002
-  , HTTP_GET       = 0x0004
-  , HTTP_HEAD      = 0x0008
-  , HTTP_POST      = 0x0010
-  , HTTP_PUT       = 0x0020
-  /* webdav methods */
-  , HTTP_COPY      = 0x0040
-  , HTTP_LOCK      = 0x0080
-  , HTTP_MKCOL     = 0x0100
-  , HTTP_MOVE      = 0x0200
-  , HTTP_OPTIONS   = 0x0400
-  , HTTP_PROPFIND  = 0x0800
-  , HTTP_PROPPATCH = 0x1000
-  , HTTP_TRACE     = 0x2000
+  { HTTP_DELETE    = 0x0001
+  , HTTP_GET       = 0x0002
+  , HTTP_HEAD      = 0x0004
+  , HTTP_POST      = 0x0008
+  , HTTP_PUT       = 0x0010
+  /* pathological */
+  , HTTP_CONNECT   = 0x0020
+  , HTTP_OPTIONS   = 0x0040
+  , HTTP_TRACE     = 0x0080
+  /* webdav */
+  , HTTP_COPY      = 0x0100
+  , HTTP_LOCK      = 0x0200
+  , HTTP_MKCOL     = 0x0400
+  , HTTP_MOVE      = 0x0800
+  , HTTP_PROPFIND  = 0x1000
+  , HTTP_PROPPATCH = 0x2000
   , HTTP_UNLOCK    = 0x4000
-  , HTTP_CONNECT   = 0x8000
   };
 
 struct http_parser {
