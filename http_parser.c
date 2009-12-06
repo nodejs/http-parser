@@ -537,7 +537,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
             case 8:
               if (strncmp(parser->buffer, "PROPFIND", 8) == 0) {
-                parser->method = HTTP_OPTIONS;
+                parser->method = HTTP_PROPFIND;
                 break;
               }
 
@@ -545,7 +545,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
             case 9:
               if (strncmp(parser->buffer, "PROPPATCH", 9) == 0) {
-                parser->method = HTTP_OPTIONS;
+                parser->method = HTTP_PROPPATCH;
                 break;
               }
 
