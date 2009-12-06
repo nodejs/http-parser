@@ -24,6 +24,7 @@
 #include <http_parser.h>
 #include <stdint.h>
 #include <assert.h>
+#include <string.h> /* strncmp */
 
 #ifndef NULL
 # define NULL ((void*)0)
@@ -166,72 +167,7 @@ enum state
 
   , s_start_req
 
-  /* COPY */
-  , s_req_method_C
-  , s_req_method_CO
-  , s_req_method_COP
-  /* DELETE */
-  , s_req_method_D
-  , s_req_method_DE
-  , s_req_method_DEL
-  , s_req_method_DELE
-  , s_req_method_DELET
-  /* GET */
-  , s_req_method_G
-  , s_req_method_GE
-  /* HEAD */
-  , s_req_method_H
-  , s_req_method_HE
-  , s_req_method_HEA
-  /* LOCK */
-  , s_req_method_L
-  , s_req_method_LO
-  , s_req_method_LOC
-  /* MKCOL */
-  , s_req_method_M
-  , s_req_method_MK
-  , s_req_method_MKC
-  , s_req_method_MKCO
-  /* MOVE */
-  , s_req_method_MO
-  , s_req_method_MOV
-  /* OPTIONS */
-  , s_req_method_O
-  , s_req_method_OP
-  , s_req_method_OPT
-  , s_req_method_OPTI
-  , s_req_method_OPTIO
-  , s_req_method_OPTION
-  /* PUT */
-  , s_req_method_P
-  , s_req_method_PU
-  /* POST */
-  , s_req_method_PO
-  , s_req_method_POS
-  /* PROPFIND */
-  , s_req_method_PR
-  , s_req_method_PRO
-  , s_req_method_PROP
-  , s_req_method_PROPF
-  , s_req_method_PROPFI
-  , s_req_method_PROPFIN
-  /* PROPPATCH */
-  , s_req_method_PROPP
-  , s_req_method_PROPPA
-  , s_req_method_PROPPAT
-  , s_req_method_PROPPATC
-  /* TRACE */
-  , s_req_method_T
-  , s_req_method_TR
-  , s_req_method_TRA
-  , s_req_method_TRAC
-  /* UNLOCK */
-  , s_req_method_U
-  , s_req_method_UN
-  , s_req_method_UNL
-  , s_req_method_UNLO
-  , s_req_method_UNLOC
-
+  , s_req_method
   , s_req_spaces_before_url
   , s_req_schema
   , s_req_schema_slash
@@ -327,7 +263,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
   enum state state = parser->state;
   enum header_states header_state = parser->header_state;
-  size_t header_index = parser->header_index;
+  size_t index = parser->index;
 
   if (len == 0) {
     if (state == s_body_identity_eof) {
@@ -507,405 +443,127 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
         CALLBACK2(message_begin);
 
-        switch (ch) {
-          /* COPY */
-          case 'C':
-            state = s_req_method_C;
-            break;
+        if (ch < 'A' || 'Z' < ch) goto error;
 
-          /* DELETE */
-          case 'D':
-            state = s_req_method_D;
-            break;
-
-          /* GET */
-          case 'G':
-            state = s_req_method_G;
-            break;
-
-          /* HEAD */
-          case 'H':
-            state = s_req_method_H;
-            break;
-
-          /* LOCK */
-          case 'L':
-            state = s_req_method_L;
-            break;
-
-          /* MKCOL, MOVE */
-          case 'M':
-            state = s_req_method_M;
-            break;
-
-          /* OPTIONS */
-          case 'O':
-            state = s_req_method_O;
-            break;
-
-          /* POST, PUT, PROPFIND, PROPPATCH */
-          case 'P':
-            state = s_req_method_P;
-            break;
-
-          /* TRACE */
-          case 'T':
-            state = s_req_method_T;
-            break;
-
-          /* UNLOCK */
-          case 'U':
-            state = s_req_method_U;
-            break;
-
-          case CR:
-          case LF:
-            break;
-
-          default:
-            goto error;
-        }
+        parser->method = 0;
+        index = 0;
+        parser->buffer[0] = ch;
+        state = s_req_method;
         break;
       }
 
-      /* COPY */
+      case s_req_method:
+        if (ch == ' ') {
+          assert(index+1 < HTTP_PARSER_MAX_METHOD_LEN);
+          parser->buffer[index+1] = '\0';
 
-      case s_req_method_C:
-        STRICT_CHECK(ch != 'O');
-        state = s_req_method_CO;
-        break;
+          /* TODO Instead of using strncmp() use NGINX's ngx_str3Ocmp() */
 
-      case s_req_method_CO:
-        STRICT_CHECK(ch != 'P');
-        state = s_req_method_COP;
-        break;
+          switch (index+1) {
+            case 3:
+              if (strncmp(parser->buffer, "GET", 3) == 0) {
+                parser->method = HTTP_GET;
+                break;
+              } 
 
-      case s_req_method_COP:
-        STRICT_CHECK(ch != 'Y');
-        parser->method = HTTP_COPY;
-        state = s_req_spaces_before_url;
-        break;
+              if (strncmp(parser->buffer, "PUT", 3) == 0) {
+                parser->method = HTTP_PUT;
+                break;
+              }
 
-      /* DELETE */
+              break;
 
-      case s_req_method_D:
-        STRICT_CHECK(ch != 'E');
-        state = s_req_method_DE;
-        break;
+            case 4:
+              if (strncmp(parser->buffer, "POST", 4) == 0) {
+                parser->method = HTTP_POST;
+                break;
+              }
 
-      case s_req_method_DE:
-        STRICT_CHECK(ch != 'L');
-        state = s_req_method_DEL;
-        break;
+              if (strncmp(parser->buffer, "HEAD", 4) == 0) {
+                parser->method = HTTP_HEAD;
+                break;
+              }
 
-      case s_req_method_DEL:
-        STRICT_CHECK(ch != 'E');
-        state = s_req_method_DELE;
-        break;
+              if (strncmp(parser->buffer, "COPY", 4) == 0) {
+                parser->method = HTTP_COPY;
+                break;
+              }
 
-      case s_req_method_DELE:
-        STRICT_CHECK(ch != 'T');
-        state = s_req_method_DELET;
-        break;
+              if (strncmp(parser->buffer, "MOVE", 4) == 0) {
+                parser->method = HTTP_MOVE;
+                break;
+              }
 
-      case s_req_method_DELET:
-        STRICT_CHECK(ch != 'E');
-        parser->method = HTTP_DELETE;
-        state = s_req_spaces_before_url;
-        break;
+              break;
 
-      /* GET */
+            case 5:
+              if (strncmp(parser->buffer, "MKCOL", 5) == 0) {
+                parser->method = HTTP_MKCOL;
+                break;
+              }
 
-      case s_req_method_G:
-        STRICT_CHECK(ch != 'E');
-        state = s_req_method_GE;
-        break;
+              if (strncmp(parser->buffer, "TRACE", 5) == 0) {
+                parser->method = HTTP_TRACE;
+                break;
+              }
 
-      case s_req_method_GE:
-        STRICT_CHECK(ch != 'T');
-        parser->method = HTTP_GET;
-        state = s_req_spaces_before_url;
-        break;
+              break;
 
-      /* HEAD */
+            case 6:
+              if (strncmp(parser->buffer, "DELETE", 6) == 0) {
+                parser->method = HTTP_DELETE;
+                break;
+              }
 
-      case s_req_method_H:
-        STRICT_CHECK(ch != 'E');
-        state = s_req_method_HE;
-        break;
+              if (strncmp(parser->buffer, "UNLOCK", 6) == 0) {
+                parser->method = HTTP_UNLOCK;
+                break;
+              }
 
-      case s_req_method_HE:
-        STRICT_CHECK(ch != 'A');
-        state = s_req_method_HEA;
-        break;
+              break;
 
-      case s_req_method_HEA:
-        STRICT_CHECK(ch != 'D');
-        parser->method = HTTP_HEAD;
-        state = s_req_spaces_before_url;
-        break;
+            case 7:
+              if (strncmp(parser->buffer, "OPTIONS", 7) == 0) {
+                parser->method = HTTP_OPTIONS;
+                break;
+              }
 
-      /* LOCK */
+              if (strncmp(parser->buffer, "CONNECT", 7) == 0) {
+                parser->method = HTTP_CONNECT;
+                break;
+              }
 
-      case s_req_method_L:
-        STRICT_CHECK(ch != 'O');
-        state = s_req_method_LO;
-        break;
+              break;
 
-      case s_req_method_LO:
-        STRICT_CHECK(ch != 'C');
-        state = s_req_method_LOC;
-        break;
+            case 8:
+              if (strncmp(parser->buffer, "PROPFIND", 8) == 0) {
+                parser->method = HTTP_OPTIONS;
+                break;
+              }
 
-      case s_req_method_LOC:
-        STRICT_CHECK(ch != 'K');
-        parser->method = HTTP_LOCK;
-        state = s_req_spaces_before_url;
-        break;
+              break;
 
-      /* MKCOL, MOVE */
+            case 9:
+              if (strncmp(parser->buffer, "PROPPATCH", 9) == 0) {
+                parser->method = HTTP_OPTIONS;
+                break;
+              }
 
-      case s_req_method_M:
-        switch (ch) {
-          case 'K':
-            state = s_req_method_MK;
-            break;
-
-          case 'O':
-            state = s_req_method_MO;
-            break;
-
-          default:
-            goto error;
+              break;
+          }
+          state = s_req_spaces_before_url;
+          break;
         }
-        break;
 
-      /* MKCOL */
+        if (ch < 'A' || 'Z' < ch) goto error;
 
-      case s_req_method_MK:
-        STRICT_CHECK(ch != 'C');
-        state = s_req_method_MKC;
-        break;
-
-      case s_req_method_MKC:
-        STRICT_CHECK(ch != 'O');
-        state = s_req_method_MKCO;
-        break;
-
-      case s_req_method_MKCO:
-        STRICT_CHECK(ch != 'L');
-        parser->method = HTTP_MKCOL;
-        state = s_req_spaces_before_url;
-        break;
-
-      /* MOVE */
-
-      case s_req_method_MO:
-        STRICT_CHECK(ch != 'V');
-        state = s_req_method_MOV;
-        break;
-
-      case s_req_method_MOV:
-        STRICT_CHECK(ch != 'E');
-        parser->method = HTTP_MOVE;
-        state = s_req_spaces_before_url;
-        break;
-
-      /* OPTIONS */
-
-      case s_req_method_O:
-        STRICT_CHECK(ch != 'P');
-        state = s_req_method_OP;
-        break;
-
-      case s_req_method_OP:
-        STRICT_CHECK(ch != 'T');
-        state = s_req_method_OPT;
-        break;
-
-      case s_req_method_OPT:
-        STRICT_CHECK(ch != 'I');
-        state = s_req_method_OPTI;
-        break;
-
-      case s_req_method_OPTI:
-        STRICT_CHECK(ch != 'O');
-        state = s_req_method_OPTIO;
-        break;
-
-      case s_req_method_OPTIO:
-        STRICT_CHECK(ch != 'N');
-        state = s_req_method_OPTION;
-        break;
-
-      case s_req_method_OPTION:
-        STRICT_CHECK(ch != 'S');
-        parser->method = HTTP_OPTIONS;
-        state = s_req_spaces_before_url;
-        break;
-
-      /* POST, PUT, PROPFIND, PROPPATCH */
-
-      case s_req_method_P:
-        switch (ch) {
-          case 'O':
-            state = s_req_method_PO;
-            break;
-
-          case 'R':
-            state = s_req_method_PR;
-            break;
-
-          case 'U':
-            state = s_req_method_PU;
-            break;
-
-          default:
-            goto error;
+        if (++index >= HTTP_PARSER_MAX_METHOD_LEN - 1) {
+          goto error;
         }
+
+        parser->buffer[index] = ch;
+
         break;
-
-      /* PUT */
-
-      case s_req_method_PU:
-        STRICT_CHECK(ch != 'T');
-        parser->method = HTTP_PUT;
-        state = s_req_spaces_before_url;
-        break;
-
-      /* POST */
-
-      case s_req_method_PO:
-        STRICT_CHECK(ch != 'S');
-        state = s_req_method_POS;
-        break;
-
-      case s_req_method_POS:
-        STRICT_CHECK(ch != 'T');
-        parser->method = HTTP_POST;
-        state = s_req_spaces_before_url;
-        break;
-
-      /* PROPFIND, PROPPATCH */
-
-      case s_req_method_PR:
-        STRICT_CHECK(ch != 'O');
-        state = s_req_method_PRO;
-        break;
-
-      case s_req_method_PRO:
-        STRICT_CHECK(ch != 'P');
-        state = s_req_method_PROP;
-        break;
-
-      case s_req_method_PROP:
-        switch (ch) {
-          case 'F':
-            state = s_req_method_PROPF;
-            break;
-
-          case 'P':
-            state = s_req_method_PROPP;
-            break;
-
-          default:
-            goto error;
-        }
-        break;
-
-      /* PROPFIND */
-
-      case s_req_method_PROPF:
-        STRICT_CHECK(ch != 'I');
-        state = s_req_method_PROPFI;
-        break;
-
-      case s_req_method_PROPFI:
-        STRICT_CHECK(ch != 'N');
-        state = s_req_method_PROPFIN;
-        break;
-
-      case s_req_method_PROPFIN:
-        STRICT_CHECK(ch != 'D');
-        parser->method = HTTP_PROPFIND;
-        state = s_req_spaces_before_url;
-        break;
-
-      /* PROPPATCH */
-
-      case s_req_method_PROPP:
-        STRICT_CHECK(ch != 'A');
-        state = s_req_method_PROPPA;
-        break;
-
-      case s_req_method_PROPPA:
-        STRICT_CHECK(ch != 'T');
-        state = s_req_method_PROPPAT;
-        break;
-
-      case s_req_method_PROPPAT:
-        STRICT_CHECK(ch != 'C');
-        state = s_req_method_PROPPATC;
-        break;
-
-      case s_req_method_PROPPATC:
-        STRICT_CHECK(ch != 'H');
-        parser->method = HTTP_PROPPATCH;
-        state = s_req_spaces_before_url;
-        break;
-
-      /* TRACE */
-
-      case s_req_method_T:
-        STRICT_CHECK(ch != 'R');
-        state = s_req_method_TR;
-        break;
-
-      case s_req_method_TR:
-        STRICT_CHECK(ch != 'A');
-        state = s_req_method_TRA;
-        break;
-
-      case s_req_method_TRA:
-        STRICT_CHECK(ch != 'C');
-        state = s_req_method_TRAC;
-        break;
-
-      case s_req_method_TRAC:
-        STRICT_CHECK(ch != 'E');
-        parser->method = HTTP_TRACE;
-        state = s_req_spaces_before_url;
-        break;
-
-      /* UNLOCK */
-
-      case s_req_method_U:
-        STRICT_CHECK(ch != 'N');
-        state = s_req_method_UN;
-        break;
-
-      case s_req_method_UN:
-        STRICT_CHECK(ch != 'L');
-        state = s_req_method_UNL;
-        break;
-
-      case s_req_method_UNL:
-        STRICT_CHECK(ch != 'O');
-        state = s_req_method_UNLO;
-        break;
-
-      case s_req_method_UNLO:
-        STRICT_CHECK(ch != 'C');
-        state = s_req_method_UNLOC;
-        break;
-
-      case s_req_method_UNLOC:
-        STRICT_CHECK(ch != 'K');
-        parser->method = HTTP_UNLOCK;
-        state = s_req_spaces_before_url;
-        break;
-
-      /* whew! that was annoying! */
 
       case s_req_spaces_before_url:
       {
@@ -1283,7 +941,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
         MARK(header_field);
 
-        header_index = 0;
+        index = 0;
         state = s_header_field;
 
         switch (c) {
@@ -1312,17 +970,17 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
               break;
 
             case h_C:
-              header_index++;
+              index++;
               header_state = (c == 'o' ? h_CO : h_general);
               break;
 
             case h_CO:
-              header_index++;
+              index++;
               header_state = (c == 'n' ? h_CON : h_general);
               break;
 
             case h_CON:
-              header_index++;
+              index++;
               switch (c) {
                 case 'n':
                   header_state = h_matching_connection;
@@ -1339,11 +997,11 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             /* connection */
 
             case h_matching_connection:
-              header_index++;
-              if (header_index > sizeof(CONNECTION)-1
-                  || c != CONNECTION[header_index]) {
+              index++;
+              if (index > sizeof(CONNECTION)-1
+                  || c != CONNECTION[index]) {
                 header_state = h_general;
-              } else if (header_index == sizeof(CONNECTION)-2) {
+              } else if (index == sizeof(CONNECTION)-2) {
                 header_state = h_connection;
               }
               break;
@@ -1351,11 +1009,11 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             /* content-length */
 
             case h_matching_content_length:
-              header_index++;
-              if (header_index > sizeof(CONTENT_LENGTH)-1
-                  || c != CONTENT_LENGTH[header_index]) {
+              index++;
+              if (index > sizeof(CONTENT_LENGTH)-1
+                  || c != CONTENT_LENGTH[index]) {
                 header_state = h_general;
-              } else if (header_index == sizeof(CONTENT_LENGTH)-2) {
+              } else if (index == sizeof(CONTENT_LENGTH)-2) {
                 header_state = h_content_length;
               }
               break;
@@ -1363,11 +1021,11 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
             /* transfer-encoding */
 
             case h_matching_transfer_encoding:
-              header_index++;
-              if (header_index > sizeof(TRANSFER_ENCODING)-1
-                  || c != TRANSFER_ENCODING[header_index]) {
+              index++;
+              if (index > sizeof(TRANSFER_ENCODING)-1
+                  || c != TRANSFER_ENCODING[index]) {
                 header_state = h_general;
-              } else if (header_index == sizeof(TRANSFER_ENCODING)-2) {
+              } else if (index == sizeof(TRANSFER_ENCODING)-2) {
                 header_state = h_transfer_encoding;
               }
               break;
@@ -1413,7 +1071,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         MARK(header_value);
 
         state = s_header_value;
-        header_index = 0;
+        index = 0;
 
         c = lowcase[(int)ch];
 
@@ -1503,32 +1161,32 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
           /* Transfer-Encoding: chunked */
           case h_matching_transfer_encoding_chunked:
-            header_index++;
-            if (header_index > sizeof(CHUNKED)-1 
-                || c != CHUNKED[header_index]) {
+            index++;
+            if (index > sizeof(CHUNKED)-1 
+                || c != CHUNKED[index]) {
               header_state = h_general;
-            } else if (header_index == sizeof(CHUNKED)-2) {
+            } else if (index == sizeof(CHUNKED)-2) {
               header_state = h_transfer_encoding_chunked;
             }
             break;
 
           /* looking for 'Connection: keep-alive' */
           case h_matching_connection_keep_alive:
-            header_index++;
-            if (header_index > sizeof(KEEP_ALIVE)-1
-                || c != KEEP_ALIVE[header_index]) {
+            index++;
+            if (index > sizeof(KEEP_ALIVE)-1
+                || c != KEEP_ALIVE[index]) {
               header_state = h_general;
-            } else if (header_index == sizeof(KEEP_ALIVE)-2) {
+            } else if (index == sizeof(KEEP_ALIVE)-2) {
               header_state = h_connection_keep_alive;
             }
             break;
 
           /* looking for 'Connection: close' */
           case h_matching_connection_close:
-            header_index++;
-            if (header_index > sizeof(CLOSE)-1 || c != CLOSE[header_index]) {
+            index++;
+            if (index > sizeof(CLOSE)-1 || c != CLOSE[index]) {
               header_state = h_general;
-            } else if (header_index == sizeof(CLOSE)-2) {
+            } else if (index == sizeof(CLOSE)-2) {
               header_state = h_connection_close;
             }
             break;
@@ -1739,7 +1397,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
   parser->state = state;
   parser->header_state = header_state;
-  parser->header_index = header_index;
+  parser->index = index;
 
   return len;
 
