@@ -1,25 +1,25 @@
 /* Copyright 2009 Ryan Dahl <ry@tinyclouds.org>
  *
  * Some parts of this source file were taken from NGINX
- * (src/http/ngx_http_parser.c) copyright (C) 2002-2009 Igor Sysoev. 
- * 
+ * (src/http/ngx_http_parser.c) copyright (C) 2002-2009 Igor Sysoev.
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
  * deal in the Software without restriction, including without limitation the
  * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
  * sell copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE. 
+ * IN THE SOFTWARE.
  */
 #include <http_parser.h>
 #include <stdint.h>
@@ -148,7 +148,7 @@ static const uint32_t  usual[] = {
 
 #define USUAL(c) (usual[c >> 5] & (1 << (c & 0x1f)))
 
-enum state 
+enum state
   { s_dead = 1 /* important that this is > 0 */
 
   , s_start_res
@@ -212,7 +212,7 @@ enum state
   , s_body_identity_eof
   };
 
-enum header_states 
+enum header_states
   { h_general = 0
   , h_C
   , h_CO
@@ -249,15 +249,15 @@ enum flags
 #if HTTP_PARSER_STRICT
 # define STRICT_CHECK(cond) if (cond) goto error
 # define NEW_MESSAGE() (http_should_keep_alive(parser) ? start_state : s_dead)
-#else 
-# define STRICT_CHECK(cond) 
+#else
+# define STRICT_CHECK(cond)
 # define NEW_MESSAGE() start_state
 #endif
 
 static inline
 size_t parse (http_parser *parser, const char *data, size_t len, int start_state)
 {
-  char c, ch; 
+  char c, ch;
   const char *p, *pe;
   ssize_t to_read;
 
@@ -298,7 +298,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
         switch (ch) {
           case 'H':
-            state = s_res_H; 
+            state = s_res_H;
             break;
 
           case CR:
@@ -321,7 +321,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         state = s_res_HTT;
         break;
 
-      case s_res_HTT: 
+      case s_res_HTT:
         STRICT_CHECK(ch != 'P');
         state = s_res_HTTP;
         break;
@@ -353,7 +353,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         if (parser->http_major > 999) goto error;
         break;
       }
-       
+
       /* first digit of minor HTTP version */
       case s_res_first_http_minor:
         if (ch < '0' || ch > '9') goto error;
@@ -464,7 +464,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
               if (strncmp(parser->buffer, "GET", 3) == 0) {
                 parser->method = HTTP_GET;
                 break;
-              } 
+              }
 
               if (strncmp(parser->buffer, "PUT", 3) == 0) {
                 parser->method = HTTP_PUT;
@@ -706,7 +706,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
         switch (ch) {
           case '?':
-            break; // XXX ignore extra '?' ... is this right? 
+            break; // XXX ignore extra '?' ... is this right?
           case ' ':
             CALLBACK(url);
             state = s_req_http_start;
@@ -1089,7 +1089,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
           header_state = h_general;
           break;
-        } 
+        }
 
         switch (header_state) {
           case h_transfer_encoding:
@@ -1162,7 +1162,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
           /* Transfer-Encoding: chunked */
           case h_matching_transfer_encoding_chunked:
             index++;
-            if (index > sizeof(CHUNKED)-1 
+            if (index > sizeof(CHUNKED)-1
                 || c != CHUNKED[index]) {
               header_state = h_general;
             } else if (index == sizeof(CHUNKED)-2) {
@@ -1241,7 +1241,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         parser->body_read = 0;
 
         CALLBACK2(headers_complete);
-        
+
         if (parser->flags & F_CHUNKED) {
           /* chunked encoding - ignore Content-Length header */
           state = s_chunk_size_start;
