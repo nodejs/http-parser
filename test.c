@@ -1049,9 +1049,6 @@ main (void)
 
   printf("sizeof(http_parser) = %d\n", sizeof(http_parser));
 
-  assert(strcmp(http_method_str(HTTP_GET), "GET") == 0);
-  assert(strcmp(http_method_str(HTTP_CONNECT), "CONNECT") == 0);
-
   for (request_count = 0; requests[request_count].name; request_count++);
   for (response_count = 0; responses[response_count].name; response_count++);
 

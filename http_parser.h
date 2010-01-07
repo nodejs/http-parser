@@ -135,28 +135,6 @@ size_t http_parse_responses(http_parser *parser, const char *data, size_t len);
  */
 int http_should_keep_alive(http_parser *parser);
 
-static inline const char * http_method_str (enum http_method method)
-{
-  switch (method) {
-    case HTTP_DELETE:     return "DELETE";
-    case HTTP_GET:        return "GET";
-    case HTTP_HEAD:       return "HEAD";
-    case HTTP_POST:       return "POST";
-    case HTTP_PUT:        return "PUT";
-    case HTTP_CONNECT:    return "CONNECT";
-    case HTTP_OPTIONS:    return "OPTIONS";
-    case HTTP_TRACE:      return "TRACE";
-    case HTTP_COPY:       return "COPY";
-    case HTTP_LOCK:       return "LOCK";
-    case HTTP_MKCOL:      return "MKCOL";
-    case HTTP_MOVE:       return "MOVE";
-    case HTTP_PROPFIND:   return "PROPFIND";
-    case HTTP_PROPPATCH:  return "PROPPATCH";
-    case HTTP_UNLOCK:     return "UNLOCK";
-    default:              return (const char*)0;
-  }
-}
-
 #ifdef __cplusplus
 }
 #endif
