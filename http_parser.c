@@ -198,7 +198,6 @@ enum state
   , s_header_almost_done
 
   , s_headers_almost_done
-  , s_headers_done
 
   , s_chunk_size_start
   , s_chunk_size
@@ -931,8 +930,8 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         }
 
         if (ch == LF) {
-          state = s_headers_done;
-          break;
+          // XXX recover from this? nginx does.
+          goto error;
         }
 
         c = LOWER(ch);
