@@ -236,10 +236,10 @@ enum header_states
   };
 
 enum flags
-  { F_CHUNKED               = 0x0001
-  , F_CONNECTION_KEEP_ALIVE = 0x0002
-  , F_CONNECTION_CLOSE      = 0x0004
-  , F_TRAILING              = 0x0010
+  { F_CHUNKED               = 1 << 0
+  , F_CONNECTION_KEEP_ALIVE = 1 << 1
+  , F_CONNECTION_CLOSE      = 1 << 2
+  , F_TRAILING              = 1 << 3
   };
 
 #define CR '\r'
