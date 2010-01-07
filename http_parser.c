@@ -930,8 +930,10 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
         }
 
         if (ch == LF) {
-          // XXX recover from this? nginx does.
-          goto error;
+          /* they might be just sending \n instead of \r\n so this would be
+           * the second \n to denote the end of headers*/
+          state = s_headers_almost_done;
+          goto headers_almost_done;
         }
 
         c = LOWER(ch);
@@ -1137,8 +1139,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
 
           if (ch == LF) {
             CALLBACK(header_value);
-            state = s_header_field_start;
-            break;
+            goto header_almost_done;
           }
           break;
         }
@@ -1205,6 +1206,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
       }
 
       case s_header_almost_done:
+      header_almost_done:
       {
         STRICT_CHECK(ch != LF);
 
@@ -1227,6 +1229,7 @@ size_t parse (http_parser *parser, const char *data, size_t len, int start_state
       }
 
       case s_headers_almost_done:
+      headers_almost_done:
       {
         STRICT_CHECK(ch != LF);
 

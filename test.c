@@ -579,6 +579,27 @@ const struct message responses[] =
 
   }
 
+#define NO_CARRIAGE_RET 5
+, {.name="no carriage ret"
+  ,.type= RESPONSE
+  ,.raw= "HTTP/1.1 200 OK\n"
+         "Content-Type: text/html; charset=utf-8\n"
+         "Connection: close\n"
+         "\n"
+         "these headers are from http://news.ycombinator.com/"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 200
+  ,.num_headers= 2
+  ,.headers=
+    { {"Content-Type", "text/html; charset=utf-8" }
+    , {"Connection", "close" }
+    }
+  ,.body= "these headers are from http://news.ycombinator.com/"
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
