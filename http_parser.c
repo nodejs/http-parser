@@ -1,4 +1,4 @@
-/* Copyright 2009 Ryan Dahl <ry@tinyclouds.org>
+/* Copyright 2009,2010 Ryan Dahl <ry@tinyclouds.org>
  *
  * Some parts of this source file were taken from NGINX
  * (src/http/ngx_http_parser.c) copyright (C) 2002-2009 Igor Sysoev.
