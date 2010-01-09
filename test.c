@@ -597,6 +597,31 @@ const struct message responses[] =
   ,.body= "these headers are from http://news.ycombinator.com/"
   }
 
+#define PROXY_CONNECTION 6
+, {.name="proxy connection"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 200 OK\r\n"
+         "Content-Type: text/html; charset=UTF-8\r\n"
+         "Content-Length: 11\r\n"
+         "Proxy-Connection: close\r\n"
+         "Date: Thu, 31 Dec 2009 20:55:48 +0000\r\n"
+         "\r\n"
+         "hello world"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 200
+  ,.num_headers= 4
+  ,.headers=
+    { {"Content-Type", "text/html; charset=UTF-8" }
+    , {"Content-Length", "11" }
+    , {"Proxy-Connection", "close" }
+    , {"Date", "Thu, 31 Dec 2009 20:55:48 +0000"}
+    }
+  ,.body= "hello world"
+  }
+
 , {.name= NULL } /* sentinel */
 };
 

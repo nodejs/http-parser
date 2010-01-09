@@ -97,6 +97,7 @@ static inline int message_complete_callback (http_parser *parser)
   return parser->on_message_complete(parser);
 }
 
+#define PROXY_CONNECTION "proxy-connection"
 #define CONNECTION "connection"
 #define CONTENT_LENGTH "content-length"
 #define TRANSFER_ENCODING "transfer-encoding"
@@ -218,6 +219,7 @@ enum header_states
   , h_CON
 
   , h_matching_connection
+  , h_matching_proxy_connection
   , h_matching_content_length
   , h_matching_transfer_encoding
 
@@ -953,6 +955,10 @@ size_t http_parser_execute (http_parser *parser,
             header_state = h_C;
             break;
 
+          case 'p':
+            header_state = h_matching_proxy_connection;
+            break;
+
           case 't':
             header_state = h_matching_transfer_encoding;
             break;
@@ -1006,6 +1012,18 @@ size_t http_parser_execute (http_parser *parser,
                   || c != CONNECTION[index]) {
                 header_state = h_general;
               } else if (index == sizeof(CONNECTION)-2) {
+                header_state = h_connection;
+              }
+              break;
+
+            /* proxy-connection */
+
+            case h_matching_proxy_connection:
+              index++;
+              if (index > sizeof(PROXY_CONNECTION)-1
+                  || c != PROXY_CONNECTION[index]) {
+                header_state = h_general;
+              } else if (index == sizeof(PROXY_CONNECTION)-2) {
                 header_state = h_connection;
               }
               break;
