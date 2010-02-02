@@ -443,6 +443,27 @@ const struct message requests[] =
   ,.body= ""
   }
 
+#define PREFIX_NEWLINE_GET 15
+/* Some clients, especially after a POST in a keep-alive connection,
+ * will send an extra CRLF before the next request
+ */
+, {.name = "newline prefix get"
+  ,.type= HTTP_REQUEST
+  ,.raw= "\r\nGET /test HTTP/1.1\r\n\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GET
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/test"
+  ,.request_url= "/test"
+  ,.num_headers= 0
+  ,.headers= { }
+  ,.body= ""
+  }
+
 , {.name= NULL } /* sentinel */
 };
 

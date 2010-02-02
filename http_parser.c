@@ -441,6 +441,8 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_start_req:
       {
+        if (ch == CR || ch == LF)
+          break;
         parser->flags = 0;
         parser->content_length = -1;
 
