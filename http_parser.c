@@ -106,11 +106,10 @@ static inline int message_complete_callback (http_parser *parser)
 #define KEEP_ALIVE "keep-alive"
 #define CLOSE "close"
 
-
 static const unsigned char lowcase[] =
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
   "\0\0\0\0\0\0\0\0\0\0\0\0\0-\0\0" "0123456789\0\0\0\0\0\0"
-  "\0abcdefghijklmnopqrstuvwxyz\0\0\0\0\0"
+  "\0abcdefghijklmnopqrstuvwxyz\0\0\0\0_"
   "\0abcdefghijklmnopqrstuvwxyz\0\0\0\0\0"
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
