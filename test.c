@@ -423,6 +423,26 @@ const struct message requests[] =
   ,.body= ""
   }
 
+#define QUERY_URL_WITH_QUESTION_MARK_GET 14
+/* Some clients include '?' characters in query strings.
+ */
+, {.name = "query url with question mark"
+  ,.type= HTTP_REQUEST
+  ,.raw= "GET /test.cgi?foo=bar?baz HTTP/1.1\r\n\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GET
+  ,.query_string= "foo=bar?baz"
+  ,.fragment= ""
+  ,.request_path= "/test.cgi"
+  ,.request_url= "/test.cgi?foo=bar?baz"
+  ,.num_headers= 0
+  ,.headers= {}
+  ,.body= ""
+  }
+
 , {.name= NULL } /* sentinel */
 };
 

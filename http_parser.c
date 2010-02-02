@@ -739,6 +739,9 @@ size_t http_parser_execute (http_parser *parser,
         if (USUAL(ch)) break;
 
         switch (ch) {
+          case '?':
+            // allow extra '?' in query string
+            break;
           case ' ':
             CALLBACK(url);
             CALLBACK(query_string);
