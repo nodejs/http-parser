@@ -198,7 +198,10 @@ enum state
   , s_header_almost_done
 
   , s_headers_almost_done
-
+  /* Important: 's_headers_almost_done' must be the last 'header' state. All
+   * states beyond this must be 'body' states. It is used for overflow
+   * checking. See the PARSING_HEADER() macro.
+   */
   , s_chunk_size_start
   , s_chunk_size
   , s_chunk_size_almost_done
@@ -210,6 +213,8 @@ enum state
   , s_body_identity
   , s_body_identity_eof
   };
+
+#define PARSING_HEADER(state) (state <= s_headers_almost_done)
 
 enum header_states
   { h_general = 0
@@ -267,6 +272,7 @@ size_t http_parser_execute (http_parser *parser,
   enum state state = parser->state;
   enum header_states header_state = parser->header_state;
   size_t index = parser->index;
+  size_t nread = parser->nread;
 
   if (len == 0) {
     if (state == s_body_identity_eof) {
@@ -284,6 +290,12 @@ size_t http_parser_execute (http_parser *parser,
 
   for (p=data, pe=data+len; p != pe; p++) {
     ch = *p;
+
+    if (++nread > HTTP_MAX_HEADER_SIZE && PARSING_HEADER(state)) {
+      /* Buffer overflow attack */
+      goto error;
+    }
+
     switch (state) {
 
       case s_dead:
@@ -1266,6 +1278,7 @@ size_t http_parser_execute (http_parser *parser,
         }
 
         parser->body_read = 0;
+        nread = 0;
 
         CALLBACK2(headers_complete);
 
@@ -1425,6 +1438,7 @@ size_t http_parser_execute (http_parser *parser,
   parser->state = state;
   parser->header_state = header_state;
   parser->index = index;
+  parser->nread = nread;
 
   return len;
 
@@ -1459,6 +1473,8 @@ http_parser_init (http_parser *parser, enum http_parser_type t)
 {
   parser->type = t;
   parser->state = (t == HTTP_REQUEST ? s_start_req : s_start_res);
+  parser->nread = 0;
+
   parser->on_message_begin = NULL;
   parser->on_path = NULL;
   parser->on_query_string = NULL;
