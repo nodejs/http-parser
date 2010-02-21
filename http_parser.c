@@ -269,8 +269,8 @@ size_t http_parser_execute (http_parser *parser,
   const char *p = data, *pe;
   ssize_t to_read;
 
-  enum state state = parser->state;
-  enum header_states header_state = parser->header_state;
+  enum state state = (enum state) parser->state;
+  enum header_states header_state = (enum header_states) parser->header_state;
   size_t index = parser->index;
   size_t nread = parser->nread;
 
@@ -462,7 +462,7 @@ size_t http_parser_execute (http_parser *parser,
 
         if (ch < 'A' || 'Z' < ch) goto error;
 
-        parser->method = 0;
+        parser->method = (enum http_method) 0;
         index = 0;
         parser->buffer[0] = ch;
         state = s_req_method;

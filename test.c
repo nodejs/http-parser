@@ -950,7 +950,7 @@ print_error (const char *raw, size_t error_location)
   for (j = 0; j < error_location_line; j++) {
     fputc(' ', stderr);
   }
-  fprintf(stderr, "^\n\nerror location: %d\n", error_location);
+  fprintf(stderr, "^\n\nerror location: %lu\n", error_location);
 }
 
 
@@ -1142,9 +1142,9 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
 
 error:
   fprintf(stderr, "i=%d  j=%d\n", i, j);
-  fprintf(stderr, "buf1 (%d) %s\n\n", buf1_len, buf1);
-  fprintf(stderr, "buf2 (%d) %s\n\n", buf2_len , buf2);
-  fprintf(stderr, "buf3 (%d) %s\n", buf3_len, buf3);
+  fprintf(stderr, "buf1 (%lu) %s\n\n", buf1_len, buf1);
+  fprintf(stderr, "buf2 (%lu) %s\n\n", buf2_len , buf2);
+  fprintf(stderr, "buf3 (%lu) %s\n", buf3_len, buf3);
   exit(1);
 }
 
@@ -1156,7 +1156,7 @@ main (void)
   int request_count;
   int response_count;
 
-  printf("sizeof(http_parser) = %d\n", sizeof(http_parser));
+  printf("sizeof(http_parser) = %lu\n", sizeof(http_parser));
 
   for (request_count = 0; requests[request_count].name; request_count++);
   for (response_count = 0; responses[response_count].name; response_count++);
