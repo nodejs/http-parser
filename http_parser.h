@@ -43,7 +43,7 @@ extern "C" {
 
 typedef struct http_parser http_parser;
 
-/* Callbacks should return non-zero to indicate an error. The parse will
+/* Callbacks should return non-zero to indicate an error. The parser will
  * then halt execution.
  *
  * http_data_cb does not return data chunks. It will be call arbitrarally
@@ -133,11 +133,14 @@ struct http_parser {
 };
 
 void http_parser_init(http_parser *parser, enum http_parser_type type);
+
 size_t http_parser_execute(http_parser *parser, const char *data, size_t len);
-/* Call this in the on_headers_complete or on_message_complete callback to
- * determine if this will be the last message on the connection.
- * If you are the server, respond with the "Connection: close" header
- * if you are the client, close the connection.
+
+/* If http_should_keep_alive() in the on_headers_complete or
+ * on_message_complete callback returns true, then this will be should be
+ * the last message on the connection.
+ * If you are the server, respond with the "Connection: close" header.
+ * If you are the client, close the connection.
  */
 int http_should_keep_alive(http_parser *parser);
 
