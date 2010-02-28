@@ -36,6 +36,12 @@
 
 #define MAX_FIELD_SIZE (80*1024)
 
+#define CALLBACK2(FOR)                                               \
+do {                                                                 \
+  if (parser->on_##FOR) {                                            \
+    if (0 != parser->on_##FOR(parser)) return (p - data);            \
+  }                                                                  \
+} while (0)                                       
 
 #define MARK(FOR)                                                    \
 do {                                                                 \
@@ -43,59 +49,27 @@ do {                                                                 \
   parser->FOR##_size = 0;                                            \
 } while (0)
 
+#define CALLBACK_NOCLEAR(FOR)                                        \
+do {                                                                 \
+  if (parser->FOR##_mark) {                                          \
+    parser->FOR##_size += p - parser->FOR##_mark;                    \
+    if (parser->FOR##_size > MAX_FIELD_SIZE) return (p - data);      \
+    if (parser->on_##FOR) {                                          \
+      if (0 != parser->on_##FOR(parser,                              \
+                                parser->FOR##_mark,                  \
+                                p - parser->FOR##_mark)) {           \
+        return (p - data);                                           \
+      }                                                              \
+    }                                                                \
+  }                                                                  \
+} while (0)
+
 #define CALLBACK(FOR)                                                \
 do {                                                                 \
-  if (0 != FOR##_callback(parser, p)) return (p - data);             \
+  CALLBACK_NOCLEAR(FOR);                                             \
   parser->FOR##_mark = NULL;                                         \
 } while (0)
 
-#define CALLBACK_NOCLEAR(FOR)                                        \
-do {                                                                 \
-  if (0 != FOR##_callback(parser, p)) return (p - data);             \
-} while (0)
-
-#define CALLBACK2(FOR)                                               \
-do {                                                                 \
-  if (0 != FOR##_callback(parser)) return (p - data);                \
-} while (0)
-
-#define DEFINE_CALLBACK(FOR) \
-static inline int FOR##_callback (http_parser *parser, const char *p) \
-{ \
-  if (!parser->FOR##_mark) return 0; \
-  assert(parser->FOR##_mark); \
-  const char *mark = parser->FOR##_mark; \
-  parser->FOR##_size += p - mark; \
-  if (parser->FOR##_size > MAX_FIELD_SIZE) return -1; \
-  int r = 0; \
-  if (parser->on_##FOR) r = parser->on_##FOR(parser, mark, p - mark); \
-  return r; \
-}
-
-DEFINE_CALLBACK(url)
-DEFINE_CALLBACK(path)
-DEFINE_CALLBACK(query_string)
-DEFINE_CALLBACK(fragment)
-DEFINE_CALLBACK(header_field)
-DEFINE_CALLBACK(header_value)
-
-static inline int headers_complete_callback (http_parser *parser)
-{
-  if (parser->on_headers_complete == NULL) return 0;
-  return parser->on_headers_complete(parser);
-}
-
-static inline int message_begin_callback (http_parser *parser)
-{
-  if (parser->on_message_begin == NULL) return 0;
-  return parser->on_message_begin(parser);
-}
-
-static inline int message_complete_callback (http_parser *parser)
-{
-  if (parser->on_message_complete == NULL) return 0;
-  return parser->on_message_complete(parser);
-}
 
 #define PROXY_CONNECTION "proxy-connection"
 #define CONNECTION "connection"
