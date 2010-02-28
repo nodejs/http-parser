@@ -26,15 +26,19 @@
 #include <assert.h>
 #include <string.h> /* strncmp */
 
+
 #ifndef NULL
 # define NULL ((void*)0)
 #endif
+
 
 #ifndef MIN
 # define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
+
 #define MAX_FIELD_SIZE (80*1024)
+
 
 #define CALLBACK2(FOR)                                               \
 do {                                                                 \
@@ -43,11 +47,13 @@ do {                                                                 \
   }                                                                  \
 } while (0)
 
+
 #define MARK(FOR)                                                    \
 do {                                                                 \
   parser->FOR##_mark = p;                                            \
   parser->FOR##_size = 0;                                            \
 } while (0)
+
 
 #define CALLBACK_NOCLEAR(FOR)                                        \
 do {                                                                 \
@@ -65,6 +71,7 @@ do {                                                                 \
   }                                                                  \
 } while (0)
 
+
 #define CALLBACK(FOR)                                                \
 do {                                                                 \
   CALLBACK_NOCLEAR(FOR);                                             \
@@ -76,10 +83,10 @@ do {                                                                 \
 #define CONNECTION "connection"
 #define CONTENT_LENGTH "content-length"
 #define TRANSFER_ENCODING "transfer-encoding"
-
 #define CHUNKED "chunked"
 #define KEEP_ALIVE "keep-alive"
 #define CLOSE "close"
+
 
 static const unsigned char lowcase[] =
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
@@ -91,6 +98,7 @@ static const unsigned char lowcase[] =
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
+
 static const int unhex[] =
   {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
@@ -101,6 +109,7 @@ static const int unhex[] =
   ,-1,10,11,12,13,14,15,-1,-1,-1,-1,-1,-1,-1,-1,-1
   ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   };
+
 
 
 static const uint32_t  usual[] = {
@@ -122,6 +131,7 @@ static const uint32_t  usual[] = {
 };
 
 #define USUAL(c) (usual[c >> 5] & (1 << (c & 0x1f)))
+
 
 enum state
   { s_dead = 1 /* important that this is > 0 */
@@ -191,6 +201,7 @@ enum state
 
 #define PARSING_HEADER(state) (state <= s_headers_almost_done)
 
+
 enum header_states
   { h_general = 0
   , h_C
@@ -215,6 +226,7 @@ enum header_states
   , h_connection_close
   };
 
+
 enum flags
   { F_CHUNKED               = 1 << 0
   , F_CONNECTION_KEEP_ALIVE = 1 << 1
@@ -222,11 +234,14 @@ enum flags
   , F_TRAILING              = 1 << 3
   };
 
+
 #define CR '\r'
 #define LF '\n'
 #define LOWER(c) (unsigned char)(c | 0x20)
 
+
 #define start_state (parser->type == HTTP_REQUEST ? s_start_req : s_start_res)
+
 
 #if HTTP_PARSER_STRICT
 # define STRICT_CHECK(cond) if (cond) goto error
@@ -235,6 +250,7 @@ enum flags
 # define STRICT_CHECK(cond)
 # define NEW_MESSAGE() start_state
 #endif
+
 
 #define ngx_str3_cmp(m, c0, c1, c2)                                           \
     m[0] == c0 && m[1] == c1 && m[2] == c2
@@ -263,6 +279,8 @@ enum flags
 #define ngx_str9cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8)                    \
     m[0] == c0 && m[1] == c1 && m[2] == c2 && m[3] == c3                      \
         && m[4] == c4 && m[5] == c5 && m[6] == c6 && m[7] == c7 && m[8] == c8
+
+
 size_t http_parser_execute (http_parser *parser,
                             http_parser_settings settings,
                             const char *data,

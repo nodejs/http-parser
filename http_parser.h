@@ -24,10 +24,12 @@
 extern "C" {
 #endif
 
+
 #ifdef _MSC_VER
-#  include <stddef.h>
+# include <stddef.h>
 #endif
 #include <sys/types.h>
+
 
 /* Compile with -DHTTP_PARSER_STRICT=0 to make less checks, but run
  * faster
@@ -38,11 +40,14 @@ extern "C" {
 # define HTTP_PARSER_STRICT 0
 #endif
 
+
 /* Maximium header size allowed */
 #define HTTP_MAX_HEADER_SIZE (80*1024)
 
+
 typedef struct http_parser http_parser;
 typedef struct http_parser_settings http_parser_settings;
+
 
 /* Callbacks should return non-zero to indicate an error. The parser will
  * then halt execution.
@@ -54,8 +59,10 @@ typedef struct http_parser_settings http_parser_settings;
 typedef int (*http_data_cb) (http_parser*, const char *at, size_t length);
 typedef int (*http_cb) (http_parser*);
 
+
 /* Should be at least one longer than the longest request method */
 #define HTTP_PARSER_MAX_METHOD_LEN 10
+
 
 /* Request Methods */
 enum http_method
@@ -78,7 +85,9 @@ enum http_method
   , HTTP_UNLOCK    = 0x4000
   };
 
+
 enum http_parser_type { HTTP_REQUEST, HTTP_RESPONSE };
+
 
 struct http_parser {
   /** PRIVATE **/
@@ -117,17 +126,13 @@ struct http_parser {
   void *data; /* A pointer to get hook to the "connection" or "socket" object */
 };
 
+
 struct http_parser_settings {
-  /* an ordered list of callbacks */
-
   http_cb      on_message_begin;
-
-  /* requests only */
   http_data_cb on_path;
   http_data_cb on_query_string;
   http_data_cb on_url;
   http_data_cb on_fragment;
-
   http_data_cb on_header_field;
   http_data_cb on_header_value;
   http_cb      on_headers_complete;
@@ -135,12 +140,15 @@ struct http_parser_settings {
   http_cb      on_message_complete;
 };
 
+
 void http_parser_init(http_parser *parser, enum http_parser_type type);
+
 
 size_t http_parser_execute(http_parser *parser,
                            http_parser_settings settings,
                            const char *data,
                            size_t len);
+
 
 /* If http_should_keep_alive() in the on_headers_complete or
  * on_message_complete callback returns true, then this will be should be
@@ -149,6 +157,7 @@ size_t http_parser_execute(http_parser *parser,
  * If you are the client, close the connection.
  */
 int http_should_keep_alive(http_parser *parser);
+
 
 #ifdef __cplusplus
 }
