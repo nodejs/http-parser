@@ -42,6 +42,7 @@ extern "C" {
 #define HTTP_MAX_HEADER_SIZE (80*1024)
 
 typedef struct http_parser http_parser;
+typedef struct http_parser_settings http_parser_settings;
 
 /* Callbacks should return non-zero to indicate an error. The parser will
  * then halt execution.
@@ -114,7 +115,9 @@ struct http_parser {
 
   /** PUBLIC **/
   void *data; /* A pointer to get hook to the "connection" or "socket" object */
+};
 
+struct http_parser_settings {
   /* an ordered list of callbacks */
 
   http_cb      on_message_begin;
@@ -134,7 +137,10 @@ struct http_parser {
 
 void http_parser_init(http_parser *parser, enum http_parser_type type);
 
-size_t http_parser_execute(http_parser *parser, const char *data, size_t len);
+size_t http_parser_execute(http_parser *parser,
+                           http_parser_settings settings,
+                           const char *data,
+                           size_t len);
 
 /* If http_should_keep_alive() in the on_headers_complete or
  * on_message_complete callback returns true, then this will be should be

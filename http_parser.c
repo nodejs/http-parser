@@ -38,10 +38,10 @@
 
 #define CALLBACK2(FOR)                                               \
 do {                                                                 \
-  if (parser->on_##FOR) {                                            \
-    if (0 != parser->on_##FOR(parser)) return (p - data);            \
+  if (settings.on_##FOR) {                                           \
+    if (0 != settings.on_##FOR(parser)) return (p - data);           \
   }                                                                  \
-} while (0)                                       
+} while (0)
 
 #define MARK(FOR)                                                    \
 do {                                                                 \
@@ -54,10 +54,11 @@ do {                                                                 \
   if (parser->FOR##_mark) {                                          \
     parser->FOR##_size += p - parser->FOR##_mark;                    \
     if (parser->FOR##_size > MAX_FIELD_SIZE) return (p - data);      \
-    if (parser->on_##FOR) {                                          \
-      if (0 != parser->on_##FOR(parser,                              \
-                                parser->FOR##_mark,                  \
-                                p - parser->FOR##_mark)) {           \
+    if (settings.on_##FOR) {                                         \
+      if (0 != settings.on_##FOR(parser,                             \
+                                 parser->FOR##_mark,                 \
+                                 p - parser->FOR##_mark))            \
+      {                                                              \
         return (p - data);                                           \
       }                                                              \
     }                                                                \
@@ -236,6 +237,7 @@ enum flags
 #endif
 
 size_t http_parser_execute (http_parser *parser,
+                            http_parser_settings settings,
                             const char *data,
                             size_t len)
 {
@@ -1285,7 +1287,7 @@ size_t http_parser_execute (http_parser *parser,
       case s_body_identity:
         to_read = MIN(pe - p, (ssize_t)(parser->content_length - parser->body_read));
         if (to_read > 0) {
-          if (parser->on_body) parser->on_body(parser, p, to_read);
+          if (settings.on_body) settings.on_body(parser, p, to_read);
           p += to_read - 1;
           parser->body_read += to_read;
           if (parser->body_read == parser->content_length) {
@@ -1299,7 +1301,7 @@ size_t http_parser_execute (http_parser *parser,
       case s_body_identity_eof:
         to_read = pe - p;
         if (to_read > 0) {
-          if (parser->on_body) parser->on_body(parser, p, to_read);
+          if (settings.on_body) settings.on_body(parser, p, to_read);
           p += to_read - 1;
           parser->body_read += to_read;
         }
@@ -1372,7 +1374,7 @@ size_t http_parser_execute (http_parser *parser,
         to_read = MIN(pe - p, (ssize_t)(parser->content_length));
 
         if (to_read > 0) {
-          if (parser->on_body) parser->on_body(parser, p, to_read);
+          if (settings.on_body) settings.on_body(parser, p, to_read);
           p += to_read - 1;
         }
 
@@ -1448,17 +1450,6 @@ http_parser_init (http_parser *parser, enum http_parser_type t)
   parser->type = t;
   parser->state = (t == HTTP_REQUEST ? s_start_req : s_start_res);
   parser->nread = 0;
-
-  parser->on_message_begin = NULL;
-  parser->on_path = NULL;
-  parser->on_query_string = NULL;
-  parser->on_url = NULL;
-  parser->on_fragment = NULL;
-  parser->on_header_field = NULL;
-  parser->on_header_value = NULL;
-  parser->on_headers_complete = NULL;
-  parser->on_body = NULL;
-  parser->on_message_complete = NULL;
 
   parser->header_field_mark = NULL;
   parser->header_value_mark = NULL;

@@ -63,14 +63,6 @@ struct message {
 
 static int currently_parsing_eof;
 
-inline size_t parse (const char *buf, size_t len)
-{
-  size_t nparsed;
-  currently_parsing_eof = (len == 0);
-  nparsed = http_parser_execute(parser, buf, len);
-  return nparsed;
-}
-
 static struct message messages[5];
 static int num_messages;
 
@@ -802,6 +794,19 @@ message_complete_cb (http_parser *p)
   return 0;
 }
 
+static http_parser_settings settings = 
+  {.on_message_begin = message_begin_cb
+  ,.on_header_field = header_field_cb
+  ,.on_header_value = header_value_cb
+  ,.on_path = request_path_cb
+  ,.on_url = request_url_cb
+  ,.on_fragment = fragment_cb
+  ,.on_query_string = query_string_cb
+  ,.on_body = body_cb
+  ,.on_headers_complete = headers_complete_cb
+  ,.on_message_complete = message_complete_cb
+  };
+
 void
 parser_init (enum http_parser_type type)
 {
@@ -815,16 +820,6 @@ parser_init (enum http_parser_type type)
 
   memset(&messages, 0, sizeof messages);
 
-  parser->on_message_begin     = message_begin_cb;
-  parser->on_header_field      = header_field_cb;
-  parser->on_header_value      = header_value_cb;
-  parser->on_path              = request_path_cb;
-  parser->on_url               = request_url_cb;
-  parser->on_fragment          = fragment_cb;
-  parser->on_query_string      = query_string_cb;
-  parser->on_body              = body_cb;
-  parser->on_headers_complete  = headers_complete_cb;
-  parser->on_message_complete  = message_complete_cb;
 }
 
 void
@@ -833,6 +828,14 @@ parser_free ()
   assert(parser);
   free(parser);
   parser = NULL;
+}
+
+inline size_t parse (const char *buf, size_t len)
+{
+  size_t nparsed;
+  currently_parsing_eof = (len == 0);
+  nparsed = http_parser_execute(parser, settings, buf, len);
+  return nparsed;
 }
 
 static inline int
