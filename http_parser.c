@@ -24,7 +24,6 @@
 #include <http_parser.h>
 #include <stdint.h>
 #include <assert.h>
-#include <string.h> /* strncmp */
 
 
 #ifndef NULL
