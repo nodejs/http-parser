@@ -236,6 +236,33 @@ enum flags
 # define NEW_MESSAGE() start_state
 #endif
 
+#define ngx_str3_cmp(m, c0, c1, c2)                                           \
+    m[0] == c0 && m[1] == c1 && m[2] == c2
+
+#define ngx_str3Ocmp(m, c0, c1, c2, c3)                                       \
+    m[0] == c0 && m[2] == c2 && m[3] == c3
+
+#define ngx_str4cmp(m, c0, c1, c2, c3)                                        \
+    m[0] == c0 && m[1] == c1 && m[2] == c2 && m[3] == c3
+
+#define ngx_str5cmp(m, c0, c1, c2, c3, c4)                                    \
+    m[0] == c0 && m[1] == c1 && m[2] == c2 && m[3] == c3 && m[4] == c4
+
+#define ngx_str6cmp(m, c0, c1, c2, c3, c4, c5)                                \
+    m[0] == c0 && m[1] == c1 && m[2] == c2 && m[3] == c3                      \
+        && m[4] == c4 && m[5] == c5
+
+#define ngx_str7_cmp(m, c0, c1, c2, c3, c4, c5, c6, c7)                       \
+    m[0] == c0 && m[1] == c1 && m[2] == c2 && m[3] == c3                      \
+        && m[4] == c4 && m[5] == c5 && m[6] == c6
+
+#define ngx_str8cmp(m, c0, c1, c2, c3, c4, c5, c6, c7)                        \
+    m[0] == c0 && m[1] == c1 && m[2] == c2 && m[3] == c3                      \
+        && m[4] == c4 && m[5] == c5 && m[6] == c6 && m[7] == c7
+
+#define ngx_str9cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8)                    \
+    m[0] == c0 && m[1] == c1 && m[2] == c2 && m[3] == c3                      \
+        && m[4] == c4 && m[5] == c5 && m[6] == c6 && m[7] == c7 && m[8] == c8
 size_t http_parser_execute (http_parser *parser,
                             http_parser_settings settings,
                             const char *data,
@@ -450,16 +477,14 @@ size_t http_parser_execute (http_parser *parser,
           assert(index+1 < HTTP_PARSER_MAX_METHOD_LEN);
           parser->buffer[index+1] = '\0';
 
-          /* TODO Instead of using strncmp() use NGINX's ngx_str3Ocmp() */
-
           switch (index+1) {
             case 3:
-              if (strncmp(parser->buffer, "GET", 3) == 0) {
+              if (ngx_str3_cmp(parser->buffer, 'G', 'E', 'T')) {
                 parser->method = HTTP_GET;
                 break;
               }
 
-              if (strncmp(parser->buffer, "PUT", 3) == 0) {
+              if (ngx_str3_cmp(parser->buffer, 'P', 'U', 'T')) {
                 parser->method = HTTP_PUT;
                 break;
               }
@@ -467,22 +492,22 @@ size_t http_parser_execute (http_parser *parser,
               break;
 
             case 4:
-              if (strncmp(parser->buffer, "POST", 4) == 0) {
+              if (ngx_str4cmp(parser->buffer, 'P', 'O', 'S', 'T')) {
                 parser->method = HTTP_POST;
                 break;
               }
 
-              if (strncmp(parser->buffer, "HEAD", 4) == 0) {
+              if (ngx_str4cmp(parser->buffer, 'H', 'E', 'A', 'D')) {
                 parser->method = HTTP_HEAD;
                 break;
               }
 
-              if (strncmp(parser->buffer, "COPY", 4) == 0) {
+              if (ngx_str4cmp(parser->buffer, 'C', 'O', 'P', 'Y')) {
                 parser->method = HTTP_COPY;
                 break;
               }
 
-              if (strncmp(parser->buffer, "MOVE", 4) == 0) {
+              if (ngx_str4cmp(parser->buffer, 'M', 'O', 'V', 'E')) {
                 parser->method = HTTP_MOVE;
                 break;
               }
@@ -490,12 +515,12 @@ size_t http_parser_execute (http_parser *parser,
               break;
 
             case 5:
-              if (strncmp(parser->buffer, "MKCOL", 5) == 0) {
+              if (ngx_str5cmp(parser->buffer, 'M', 'K', 'C', 'O', 'L')) {
                 parser->method = HTTP_MKCOL;
                 break;
               }
 
-              if (strncmp(parser->buffer, "TRACE", 5) == 0) {
+              if (ngx_str5cmp(parser->buffer, 'T', 'R', 'A', 'C', 'E')) {
                 parser->method = HTTP_TRACE;
                 break;
               }
@@ -503,12 +528,12 @@ size_t http_parser_execute (http_parser *parser,
               break;
 
             case 6:
-              if (strncmp(parser->buffer, "DELETE", 6) == 0) {
+              if (ngx_str6cmp(parser->buffer, 'D', 'E', 'L', 'E', 'T', 'E')) {
                 parser->method = HTTP_DELETE;
                 break;
               }
 
-              if (strncmp(parser->buffer, "UNLOCK", 6) == 0) {
+              if (ngx_str6cmp(parser->buffer, 'U', 'N', 'L', 'O', 'C', 'K')) {
                 parser->method = HTTP_UNLOCK;
                 break;
               }
@@ -516,12 +541,14 @@ size_t http_parser_execute (http_parser *parser,
               break;
 
             case 7:
-              if (strncmp(parser->buffer, "OPTIONS", 7) == 0) {
+              if (ngx_str7_cmp(parser->buffer,
+                    'O', 'P', 'T', 'I', 'O', 'N', 'S', '\0')) {
                 parser->method = HTTP_OPTIONS;
                 break;
               }
 
-              if (strncmp(parser->buffer, "CONNECT", 7) == 0) {
+              if (ngx_str7_cmp(parser->buffer,
+                    'C', 'O', 'N', 'N', 'E', 'C', 'T', '\0')) {
                 parser->method = HTTP_CONNECT;
                 break;
               }
@@ -529,7 +556,8 @@ size_t http_parser_execute (http_parser *parser,
               break;
 
             case 8:
-              if (strncmp(parser->buffer, "PROPFIND", 8) == 0) {
+              if (ngx_str8cmp(parser->buffer,
+                    'P', 'R', 'O', 'P', 'F', 'I', 'N', 'D')) {
                 parser->method = HTTP_PROPFIND;
                 break;
               }
@@ -537,7 +565,8 @@ size_t http_parser_execute (http_parser *parser,
               break;
 
             case 9:
-              if (strncmp(parser->buffer, "PROPPATCH", 9) == 0) {
+              if (ngx_str9cmp(parser->buffer, 
+                    'P', 'R', 'O', 'P', 'P', 'A', 'T', 'C', 'H')) {
                 parser->method = HTTP_PROPPATCH;
                 break;
               }
