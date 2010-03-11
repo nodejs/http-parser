@@ -24,11 +24,7 @@
 #include <http_parser.h>
 #include <stdint.h>
 #include <assert.h>
-
-
-#ifndef NULL
-# define NULL ((void*)0)
-#endif
+#include <stddef.h>
 
 
 #ifndef MIN
