@@ -25,9 +25,6 @@ extern "C" {
 #endif
 
 
-#ifdef _MSC_VER
-# include <stddef.h>
-#endif
 #include <sys/types.h>
 
 
