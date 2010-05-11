@@ -149,7 +149,7 @@ void http_parser_init(http_parser *parser, enum http_parser_type type);
 
 
 size_t http_parser_execute(http_parser *parser,
-                           http_parser_settings settings,
+                           const http_parser_settings *settings,
                            const char *data,
                            size_t len);
 

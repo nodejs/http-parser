@@ -37,8 +37,8 @@
 
 #define CALLBACK2(FOR)                                               \
 do {                                                                 \
-  if (settings.on_##FOR) {                                           \
-    if (0 != settings.on_##FOR(parser)) return (p - data);           \
+  if (settings->on_##FOR) {                                          \
+    if (0 != settings->on_##FOR(parser)) return (p - data);          \
   }                                                                  \
 } while (0)
 
@@ -55,8 +55,8 @@ do {                                                                 \
   if (parser->FOR##_mark) {                                          \
     parser->FOR##_size += p - parser->FOR##_mark;                    \
     if (parser->FOR##_size > MAX_FIELD_SIZE) return (p - data);      \
-    if (settings.on_##FOR) {                                         \
-      if (0 != settings.on_##FOR(parser,                             \
+    if (settings->on_##FOR) {                                        \
+      if (0 != settings->on_##FOR(parser,                            \
                                  parser->FOR##_mark,                 \
                                  p - parser->FOR##_mark))            \
       {                                                              \
@@ -282,7 +282,7 @@ enum flags
 
 
 size_t http_parser_execute (http_parser *parser,
-                            http_parser_settings settings,
+                            const http_parser_settings *settings,
                             const char *data,
                             size_t len)
 {
@@ -1364,7 +1364,7 @@ size_t http_parser_execute (http_parser *parser,
       case s_body_identity:
         to_read = MIN(pe - p, (ssize_t)(parser->content_length - parser->body_read));
         if (to_read > 0) {
-          if (settings.on_body) settings.on_body(parser, p, to_read);
+          if (settings->on_body) settings->on_body(parser, p, to_read);
           p += to_read - 1;
           parser->body_read += to_read;
           if (parser->body_read == parser->content_length) {
@@ -1378,7 +1378,7 @@ size_t http_parser_execute (http_parser *parser,
       case s_body_identity_eof:
         to_read = pe - p;
         if (to_read > 0) {
-          if (settings.on_body) settings.on_body(parser, p, to_read);
+          if (settings->on_body) settings->on_body(parser, p, to_read);
           p += to_read - 1;
           parser->body_read += to_read;
         }
@@ -1451,7 +1451,7 @@ size_t http_parser_execute (http_parser *parser,
         to_read = MIN(pe - p, (ssize_t)(parser->content_length));
 
         if (to_read > 0) {
-          if (settings.on_body) settings.on_body(parser, p, to_read);
+          if (settings->on_body) settings->on_body(parser, p, to_read);
           p += to_read - 1;
         }
 
