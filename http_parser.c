@@ -232,6 +232,7 @@ enum flags
   , F_CONNECTION_CLOSE      = 1 << 2
   , F_TRAILING              = 1 << 3
   , F_UPGRADE               = 1 << 4
+  , F_SKIPBODY              = 1 << 5
   };
 
 
@@ -1327,7 +1328,25 @@ size_t http_parser_execute (http_parser *parser,
 
         if (parser->flags & F_UPGRADE) parser->upgrade = 1;
 
-        CALLBACK2(headers_complete);
+        /* Here we call the headers_complete callback. This is somewhat
+         * different than other callbacks because if the user returns 1, we
+         * will interpret that as saying that this message has no body. This
+         * is needed for the annoying case of recieving a response to a HEAD
+         * request.
+         */
+        if (settings->on_headers_complete) {
+          switch (settings->on_headers_complete(parser)) {
+            case 0:
+              break;
+
+            case 1:
+              parser->flags |= F_SKIPBODY;
+              break;
+
+            default:
+              return p - data; /* Error */
+          }
+        }
 
         // Exit, the rest of the connect is in a different protocol.
         if (parser->flags & F_UPGRADE) {
@@ -1335,7 +1354,10 @@ size_t http_parser_execute (http_parser *parser,
           return (p - data);
         }
 
-        if (parser->flags & F_CHUNKED) {
+        if (parser->flags & F_SKIPBODY) {
+          CALLBACK2(message_complete);
+          state = NEW_MESSAGE();
+        } else if (parser->flags & F_CHUNKED) {
           /* chunked encoding - ignore Content-Length header */
           state = s_chunk_size_start;
         } else {
