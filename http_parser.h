@@ -112,18 +112,13 @@ struct http_parser {
   ssize_t body_read;
   ssize_t content_length;
 
+  size_t      current_mark_size;
   const char *header_field_mark;
-  size_t      header_field_size;
   const char *header_value_mark;
-  size_t      header_value_size;
   const char *query_string_mark;
-  size_t      query_string_size;
   const char *path_mark;
-  size_t      path_size;
   const char *url_mark;
-  size_t      url_size;
   const char *fragment_mark;
-  size_t      fragment_size;
 
   /** READ-ONLY **/
   unsigned short status_code; /* responses only */
