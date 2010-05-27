@@ -89,7 +89,7 @@ enum http_method
   };
 
 
-enum http_parser_type { HTTP_REQUEST, HTTP_RESPONSE };
+enum http_parser_type { HTTP_REQUEST, HTTP_RESPONSE, HTTP_BOTH };
 
 
 struct http_parser {

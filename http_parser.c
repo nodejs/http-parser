@@ -132,6 +132,8 @@ static const uint32_t  usual[] = {
 enum state
   { s_dead = 1 /* important that this is > 0 */
 
+  , s_start_res_or_resp
+  , s_res_or_resp_H
   , s_start_res
   , s_res_H
   , s_res_HT
@@ -325,6 +327,42 @@ size_t http_parser_execute (http_parser *parser,
          * the parser will error out if it reads another message
          */
         goto error;
+
+      case s_start_res_or_resp:
+      {
+        if (ch == CR || ch == LF)
+          break;
+        parser->flags = 0;
+        parser->content_length = -1;
+
+        CALLBACK2(message_begin);
+
+	if (ch == 'H')
+	  state = s_res_or_resp_H;
+	else {
+	  parser->type = HTTP_REQUEST;
+	  if (ch < 'A' || 'Z' < ch) goto error;
+	  parser->buffer[0] = ch;
+	  index = 0;
+	  state = s_req_method;
+	}
+	break;
+      }
+
+      case s_res_or_resp_H:
+	if (ch == 'T') {
+	  parser->type = HTTP_RESPONSE;
+	  state = s_res_HT;
+	} else {
+	  if (ch < 'A' || 'Z' < ch) goto error;
+	  parser->type = HTTP_REQUEST;
+	  parser->method = (enum http_method) 0;
+	  parser->buffer[0] = 'H';
+	  parser->buffer[1] = ch;
+	  index = 1;
+	  state = s_req_method;
+	}
+	break;
 
       case s_start_res:
       {
@@ -1547,7 +1585,7 @@ void
 http_parser_init (http_parser *parser, enum http_parser_type t)
 {
   parser->type = t;
-  parser->state = (t == HTTP_REQUEST ? s_start_req : s_start_res);
+  parser->state = (t == HTTP_REQUEST ? s_start_req : (t == HTTP_RESPONSE ? s_start_res : s_start_res_or_resp));
   parser->nread = 0;
   parser->upgrade = 0;
 
