@@ -45,25 +45,25 @@ do {                                                                 \
 
 #define MARK(FOR)                                                    \
 do {                                                                 \
-  parser->FOR##_mark = p;                                            \
+  FOR##_mark = p;                                                    \
   parser->current_mark_size = 0;                                     \
 } while (0)
 
 #define MARK_NOSIZECLEAR(FOR)                                        \
 do {                                                                 \
-  parser->FOR##_mark = p;                                            \
+  FOR##_mark = p;                                                    \
 } while (0)
 
 
 #define CALLBACK_NOCLEAR(FOR)                                        \
 do {                                                                 \
-  if (parser->FOR##_mark) {                                          \
-    parser->current_mark_size += p - parser->FOR##_mark;             \
+  if (FOR##_mark) {                                                  \
+    parser->current_mark_size += p - FOR##_mark;                     \
     if (parser->current_mark_size > MAX_FIELD_SIZE) return (p - data); \
     if (settings->on_##FOR) {                                        \
       if (0 != settings->on_##FOR(parser,                            \
-                                 parser->FOR##_mark,                 \
-                                 p - parser->FOR##_mark))            \
+                                 FOR##_mark,                         \
+                                 p - FOR##_mark))                    \
       {                                                              \
         return (p - data);                                           \
       }                                                              \
@@ -75,7 +75,7 @@ do {                                                                 \
 #define CALLBACK(FOR)                                                \
 do {                                                                 \
   CALLBACK_NOCLEAR(FOR);                                             \
-  parser->FOR##_mark = NULL;                                         \
+  FOR##_mark = NULL;                                                 \
 } while (0)
 
 
@@ -310,12 +310,31 @@ size_t http_parser_execute (http_parser *parser,
     return 0;
   }
 
-  if (parser->header_field_mark)   parser->header_field_mark   = data;
-  if (parser->header_value_mark)   parser->header_value_mark   = data;
-  if (parser->fragment_mark)       parser->fragment_mark       = data;
-  if (parser->query_string_mark)   parser->query_string_mark   = data;
-  if (parser->path_mark)           parser->path_mark           = data;
-  if (parser->url_mark)            parser->url_mark            = data;
+  /* technically we could combine all of these (except for url_mark) into one
+     variable, saving stack space, but it seems more clear to have them
+     separated. */
+  const char *header_field_mark = 0;
+  const char *header_value_mark = 0;
+  const char *fragment_mark = 0;
+  const char *query_string_mark = 0;
+  const char *path_mark = 0;
+  const char *url_mark = 0;
+
+  if (state == s_header_field)
+    header_field_mark = data;
+  if (state == s_header_value)
+    header_value_mark = data;
+  if (state == s_req_fragment)
+    fragment_mark = data;
+  if (state == s_req_query_string)
+    query_string_mark = data;
+  if (state == s_req_path)
+    path_mark = data;
+  if (state == s_req_path || state == s_req_schema || state == s_req_schema_slash
+      || state == s_req_schema_slash_slash || state == s_req_port
+      || state == s_req_query_string_start || state == s_req_query_string
+      || state == s_req_fragment_start || state == s_req_fragment)
+    url_mark = data;
 
   for (p=data, pe=data+len; p != pe; p++) {
     ch = *p;
@@ -1593,12 +1612,5 @@ http_parser_init (http_parser *parser, enum http_parser_type t)
   parser->state = (t == HTTP_REQUEST ? s_start_req : (t == HTTP_RESPONSE ? s_start_res : s_start_res_or_resp));
   parser->nread = 0;
   parser->upgrade = 0;
-
-  parser->header_field_mark = NULL;
-  parser->header_value_mark = NULL;
-  parser->query_string_mark = NULL;
-  parser->path_mark = NULL;
-  parser->url_mark = NULL;
-  parser->fragment_mark = NULL;
 }
 
