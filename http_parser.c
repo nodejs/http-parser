@@ -337,32 +337,32 @@ size_t http_parser_execute (http_parser *parser,
 
         CALLBACK2(message_begin);
 
-	if (ch == 'H')
-	  state = s_res_or_resp_H;
-	else {
-	  parser->type = HTTP_REQUEST;
-	  if (ch < 'A' || 'Z' < ch) goto error;
-	  parser->buffer[0] = ch;
-	  index = 0;
-	  state = s_req_method;
-	}
-	break;
+        if (ch == 'H')
+          state = s_res_or_resp_H;
+        else {
+          parser->type = HTTP_REQUEST;
+          if (ch < 'A' || 'Z' < ch) goto error;
+          parser->buffer[0] = ch;
+          index = 0;
+          state = s_req_method;
+        }
+        break;
       }
 
       case s_res_or_resp_H:
-	if (ch == 'T') {
-	  parser->type = HTTP_RESPONSE;
-	  state = s_res_HT;
-	} else {
-	  if (ch < 'A' || 'Z' < ch) goto error;
-	  parser->type = HTTP_REQUEST;
-	  parser->method = (enum http_method) 0;
-	  parser->buffer[0] = 'H';
-	  parser->buffer[1] = ch;
-	  index = 1;
-	  state = s_req_method;
-	}
-	break;
+        if (ch == 'T') {
+          parser->type = HTTP_RESPONSE;
+          state = s_res_HT;
+        } else {
+          if (ch < 'A' || 'Z' < ch) goto error;
+          parser->type = HTTP_REQUEST;
+          parser->method = (enum http_method) 0;
+          parser->buffer[0] = 'H';
+          parser->buffer[1] = ch;
+          index = 1;
+          state = s_req_method;
+        }
+        break;
 
       case s_start_res:
       {
@@ -622,7 +622,7 @@ size_t http_parser_execute (http_parser *parser,
               break;
 
             case 9:
-              if (ngx_str9cmp(parser->buffer, 
+              if (ngx_str9cmp(parser->buffer,
                     'P', 'R', 'O', 'P', 'P', 'A', 'T', 'C', 'H')) {
                 parser->method = HTTP_PROPPATCH;
                 break;

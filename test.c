@@ -1217,67 +1217,67 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
     for (j = 2; j < total_len; j ++ ) {
       for (i = 1; i < j; i ++ ) {
 
-	if (ops % 1000 == 0)  {
-	  printf("\b\b\b\b%3.0f%%", 100 * (float)ops /(float)total_ops);
-	  fflush(stdout);
-	}
-	ops += 1;
+        if (ops % 1000 == 0)  {
+          printf("\b\b\b\b%3.0f%%", 100 * (float)ops /(float)total_ops);
+          fflush(stdout);
+        }
+        ops += 1;
 
-	parser_init(type_both ? HTTP_BOTH : r1->type);
+        parser_init(type_both ? HTTP_BOTH : r1->type);
 
-	buf1_len = i;
-	strncpy(buf1, total, buf1_len);
-	buf1[buf1_len] = 0;
+        buf1_len = i;
+        strncpy(buf1, total, buf1_len);
+        buf1[buf1_len] = 0;
 
-	buf2_len = j - i;
-	strncpy(buf2, total+i, buf2_len);
-	buf2[buf2_len] = 0;
+        buf2_len = j - i;
+        strncpy(buf2, total+i, buf2_len);
+        buf2[buf2_len] = 0;
 
-	buf3_len = total_len - j;
-	strncpy(buf3, total+j, buf3_len);
-	buf3[buf3_len] = 0;
+        buf3_len = total_len - j;
+        strncpy(buf3, total+j, buf3_len);
+        buf3[buf3_len] = 0;
 
-	read = parse(buf1, buf1_len);
-	if (read != buf1_len) {
-	  print_error(buf1, read);
-	  goto error;
-	}
+        read = parse(buf1, buf1_len);
+        if (read != buf1_len) {
+          print_error(buf1, read);
+          goto error;
+        }
 
-	read = parse(buf2, buf2_len);
-	if (read != buf2_len) {
-	  print_error(buf2, read);
-	  goto error;
-	}
+        read = parse(buf2, buf2_len);
+        if (read != buf2_len) {
+          print_error(buf2, read);
+          goto error;
+        }
 
-	read = parse(buf3, buf3_len);
-	if (read != buf3_len) {
-	  print_error(buf3, read);
-	  goto error;
-	}
+        read = parse(buf3, buf3_len);
+        if (read != buf3_len) {
+          print_error(buf3, read);
+          goto error;
+        }
 
-	parse(NULL, 0);
+        parse(NULL, 0);
 
-	if (3 != num_messages) {
-	  fprintf(stderr, "\n\nParser didn't see 3 messages only %d\n", num_messages);
-	  goto error;
-	}
+        if (3 != num_messages) {
+          fprintf(stderr, "\n\nParser didn't see 3 messages only %d\n", num_messages);
+          goto error;
+        }
 
-	if (!message_eq(0, r1)) {
-	  fprintf(stderr, "\n\nError matching messages[0] in test_scan.\n");
-	  goto error;
-	}
+        if (!message_eq(0, r1)) {
+          fprintf(stderr, "\n\nError matching messages[0] in test_scan.\n");
+          goto error;
+        }
 
-	if (!message_eq(1, r2)) {
-	  fprintf(stderr, "\n\nError matching messages[1] in test_scan.\n");
-	  goto error;
-	}
+        if (!message_eq(1, r2)) {
+          fprintf(stderr, "\n\nError matching messages[1] in test_scan.\n");
+          goto error;
+        }
 
-	if (!message_eq(2, r3)) {
-	  fprintf(stderr, "\n\nError matching messages[2] in test_scan.\n");
-	  goto error;
-	}
+        if (!message_eq(2, r3)) {
+          fprintf(stderr, "\n\nError matching messages[2] in test_scan.\n");
+          goto error;
+        }
 
-	parser_free();
+        parser_free();
       }
     }
   }
