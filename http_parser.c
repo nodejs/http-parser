@@ -32,9 +32,6 @@
 #endif
 
 
-#define MAX_FIELD_SIZE (80*1024)
-
-
 #define CALLBACK2(FOR)                                               \
 do {                                                                 \
   if (settings->on_##FOR) {                                          \
@@ -46,20 +43,11 @@ do {                                                                 \
 #define MARK(FOR)                                                    \
 do {                                                                 \
   FOR##_mark = p;                                                    \
-  parser->current_mark_size = 0;                                     \
 } while (0)
-
-#define MARK_NOSIZECLEAR(FOR)                                        \
-do {                                                                 \
-  FOR##_mark = p;                                                    \
-} while (0)
-
 
 #define CALLBACK_NOCLEAR(FOR)                                        \
 do {                                                                 \
   if (FOR##_mark) {                                                  \
-    parser->current_mark_size += p - FOR##_mark;                     \
-    if (parser->current_mark_size > MAX_FIELD_SIZE) return (p - data); \
     if (settings->on_##FOR) {                                        \
       if (0 != settings->on_##FOR(parser,                            \
                                  FOR##_mark,                         \
@@ -674,7 +662,7 @@ size_t http_parser_execute (http_parser *parser,
 
         if (ch == '/') {
           MARK(url);
-          MARK_NOSIZECLEAR(path);
+          MARK(path);
           state = s_req_path;
           break;
         }
@@ -724,7 +712,7 @@ size_t http_parser_execute (http_parser *parser,
             state = s_req_port;
             break;
           case '/':
-            MARK_NOSIZECLEAR(path);
+            MARK(path);
             state = s_req_path;
             break;
           case ' ':
@@ -746,7 +734,7 @@ size_t http_parser_execute (http_parser *parser,
         if (ch >= '0' && ch <= '9') break;
         switch (ch) {
           case '/':
-            MARK_NOSIZECLEAR(path);
+            MARK(path);
             state = s_req_path;
             break;
           case ' ':
@@ -802,7 +790,7 @@ size_t http_parser_execute (http_parser *parser,
       case s_req_query_string_start:
       {
         if (USUAL(ch)) {
-          MARK_NOSIZECLEAR(query_string);
+          MARK(query_string);
           state = s_req_query_string;
           break;
         }
@@ -871,7 +859,7 @@ size_t http_parser_execute (http_parser *parser,
       case s_req_fragment_start:
       {
         if (USUAL(ch)) {
-          MARK_NOSIZECLEAR(fragment);
+          MARK(fragment);
           state = s_req_fragment;
           break;
         }
@@ -892,7 +880,7 @@ size_t http_parser_execute (http_parser *parser,
             state = s_header_field_start;
             break;
           case '?':
-            MARK_NOSIZECLEAR(fragment);
+            MARK(fragment);
             state = s_req_fragment;
             break;
           case '#':

@@ -105,8 +105,6 @@ struct http_parser {
   ssize_t body_read;
   ssize_t content_length;
 
-  size_t current_mark_size;
-
   /** READ-ONLY **/
   unsigned short status_code; /* responses only */
   unsigned short method;    /* requests only */
