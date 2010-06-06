@@ -687,6 +687,9 @@ size_t http_parser_execute (http_parser *parser,
         if (ch == ':') {
           state = s_req_schema_slash;
           break;
+        } else if (ch == '.') {
+          state = s_req_host;
+          break;
         }
 
         goto error;
