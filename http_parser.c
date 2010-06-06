@@ -1206,12 +1206,14 @@ size_t http_parser_execute (http_parser *parser,
 
         if (!c) {
           if (ch == CR) {
+            CALLBACK(header_value);
             header_state = h_general;
             state = s_header_almost_done;
             break;
           }
 
           if (ch == LF) {
+            CALLBACK(header_value);
             state = s_header_field_start;
             break;
           }

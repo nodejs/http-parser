@@ -721,6 +721,43 @@ const struct message responses[] =
   ,.body= ""
   }
 
+#define BONJOUR_MADAME_FR 8
+/* The client should not merge two headers fields when the first one doesn't
+ * have a value.
+ */
+, {.name= "bonjourmadame.fr"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.0 301 Moved Permanently\r\n"
+         "Date: Thu, 03 Jun 2010 09:56:32 GMT\r\n"
+         "Server: Apache/2.2.3 (Red Hat)\r\n"
+         "Cache-Control: public\r\n"
+         "Pragma: \r\n"
+         "Location: http://www.bonjourmadame.fr/\r\n"
+         "Vary: Accept-Encoding\r\n"
+         "Content-Length: 0\r\n"
+         "Content-Type: text/html; charset=UTF-8\r\n"
+         "Connection: keep-alive\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 0
+  ,.status_code= 301
+  ,.num_headers= 9
+  ,.headers=
+    { { "Date", "Thu, 03 Jun 2010 09:56:32 GMT" }
+    , { "Server", "Apache/2.2.3 (Red Hat)" }
+    , { "Cache-Control", "public" }
+    , { "Pragma", "" }
+    , { "Location", "http://www.bonjourmadame.fr/" }
+    , { "Vary",  "Accept-Encoding" }
+    , { "Content-Length", "0" }
+    , { "Content-Type", "text/html; charset=UTF-8" }
+    , { "Connection", "keep-alive" }
+    }
+  ,.body= ""
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
@@ -1397,10 +1434,16 @@ main (void)
 
 
 
-  printf("response scan 1/1      ");
+  printf("response scan 1/2      ");
   test_scan( &responses[TRAILING_SPACE_ON_CHUNKED_BODY]
            , &responses[NO_HEADERS_NO_BODY_404]
            , &responses[NO_REASON_PHRASE]
+           );
+
+  printf("response scan 1/2      ");
+  test_scan( &responses[BONJOUR_MADAME_FR]
+           , &responses[UNDERSTORE_HEADER_KEY]
+           , &responses[NO_CARRIAGE_RET]
            );
 
   puts("responses okay");
