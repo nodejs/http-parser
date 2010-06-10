@@ -63,29 +63,25 @@ typedef int (*http_data_cb) (http_parser*, const char *at, size_t length);
 typedef int (*http_cb) (http_parser*);
 
 
-/* Should be at least one longer than the longest request method */
-#define HTTP_PARSER_MAX_METHOD_LEN 10
-
-
 /* Request Methods */
 enum http_method
-  { HTTP_DELETE    = 0x0001
-  , HTTP_GET       = 0x0002
-  , HTTP_HEAD      = 0x0004
-  , HTTP_POST      = 0x0008
-  , HTTP_PUT       = 0x0010
+  { HTTP_DELETE    = 0
+  , HTTP_GET
+  , HTTP_HEAD
+  , HTTP_POST
+  , HTTP_PUT
   /* pathological */
-  , HTTP_CONNECT   = 0x0020
-  , HTTP_OPTIONS   = 0x0040
-  , HTTP_TRACE     = 0x0080
+  , HTTP_CONNECT
+  , HTTP_OPTIONS
+  , HTTP_TRACE
   /* webdav */
-  , HTTP_COPY      = 0x0100
-  , HTTP_LOCK      = 0x0200
-  , HTTP_MKCOL     = 0x0400
-  , HTTP_MOVE      = 0x0800
-  , HTTP_PROPFIND  = 0x1000
-  , HTTP_PROPPATCH = 0x2000
-  , HTTP_UNLOCK    = 0x4000
+  , HTTP_COPY
+  , HTTP_LOCK
+  , HTTP_MKCOL
+  , HTTP_MOVE
+  , HTTP_PROPFIND
+  , HTTP_PROPPATCH
+  , HTTP_UNLOCK
   };
 
 
@@ -105,11 +101,10 @@ struct http_parser {
   ssize_t content_length;
 
   /** READ-ONLY **/
-  unsigned short status_code; /* responses only */
-  unsigned short method;    /* requests only */
   unsigned short http_major;
   unsigned short http_minor;
-  char buffer[HTTP_PARSER_MAX_METHOD_LEN];
+  unsigned short status_code; /* responses only */
+  unsigned char method;    /* requests only */
 
   /* 1 = Upgrade header was present and the parser has exited because of that.
    * 0 = No upgrade header present.

@@ -248,35 +248,6 @@ enum flags
 #endif
 
 
-#define ngx_str3_cmp(m, c0, c1, c2)                                           \
-    m[0] == c0 && m[1] == c1 && m[2] == c2
-
-#define ngx_str3Ocmp(m, c0, c1, c2, c3)                                       \
-    m[0] == c0 && m[2] == c2 && m[3] == c3
-
-#define ngx_str4cmp(m, c0, c1, c2, c3)                                        \
-    m[0] == c0 && m[1] == c1 && m[2] == c2 && m[3] == c3
-
-#define ngx_str5cmp(m, c0, c1, c2, c3, c4)                                    \
-    m[0] == c0 && m[1] == c1 && m[2] == c2 && m[3] == c3 && m[4] == c4
-
-#define ngx_str6cmp(m, c0, c1, c2, c3, c4, c5)                                \
-    m[0] == c0 && m[1] == c1 && m[2] == c2 && m[3] == c3                      \
-        && m[4] == c4 && m[5] == c5
-
-#define ngx_str7_cmp(m, c0, c1, c2, c3, c4, c5, c6, c7)                       \
-    m[0] == c0 && m[1] == c1 && m[2] == c2 && m[3] == c3                      \
-        && m[4] == c4 && m[5] == c5 && m[6] == c6
-
-#define ngx_str8cmp(m, c0, c1, c2, c3, c4, c5, c6, c7)                        \
-    m[0] == c0 && m[1] == c1 && m[2] == c2 && m[3] == c3                      \
-        && m[4] == c4 && m[5] == c5 && m[6] == c6 && m[7] == c7
-
-#define ngx_str9cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8)                    \
-    m[0] == c0 && m[1] == c1 && m[2] == c2 && m[3] == c3                      \
-        && m[4] == c4 && m[5] == c5 && m[6] == c6 && m[7] == c7 && m[8] == c8
-
-
 size_t http_parser_execute (http_parser *parser,
                             const http_parser_settings *settings,
                             const char *data,
@@ -354,10 +325,7 @@ size_t http_parser_execute (http_parser *parser,
           state = s_res_or_resp_H;
         else {
           parser->type = HTTP_REQUEST;
-          if (ch < 'A' || 'Z' < ch) goto error;
-          parser->buffer[0] = ch;
-          index = 0;
-          state = s_req_method;
+          goto start_req_method_assign;
         }
         break;
       }
@@ -367,12 +335,10 @@ size_t http_parser_execute (http_parser *parser,
           parser->type = HTTP_RESPONSE;
           state = s_res_HT;
         } else {
-          if (ch < 'A' || 'Z' < ch) goto error;
+          if (ch != 'E') goto error;
           parser->type = HTTP_REQUEST;
-          parser->method = (enum http_method) 0;
-          parser->buffer[0] = 'H';
-          parser->buffer[1] = ch;
-          index = 1;
+          parser->method = HTTP_HEAD;
+          index = 2;
           state = s_req_method;
         }
         break;
@@ -535,128 +501,69 @@ size_t http_parser_execute (http_parser *parser,
 
         if (ch < 'A' || 'Z' < ch) goto error;
 
+      start_req_method_assign:
         parser->method = (enum http_method) 0;
-        index = 0;
-        parser->buffer[0] = ch;
+        index = 1;
+        switch (ch) {
+          case 'C': parser->method = HTTP_CONNECT; /* or COPY */ break;
+          case 'D': parser->method = HTTP_DELETE; break;
+          case 'G': parser->method = HTTP_GET; break;
+          case 'H': parser->method = HTTP_HEAD; break;
+          case 'L': parser->method = HTTP_LOCK; break;
+          case 'M': parser->method = HTTP_MKCOL; /* or MOVE */ break;
+          case 'O': parser->method = HTTP_OPTIONS; break;
+          case 'P': parser->method = HTTP_POST; /* or PROPFIND or PROPPATCH or PUT */ break;
+          case 'T': parser->method = HTTP_TRACE; break;
+          case 'U': parser->method = HTTP_UNLOCK; break;
+          default: goto error;
+        }
         state = s_req_method;
         break;
       }
 
       case s_req_method:
-        if (ch == ' ') {
-          assert(index+1 < HTTP_PARSER_MAX_METHOD_LEN);
-          parser->buffer[index+1] = '\0';
-
-          switch (index+1) {
-            case 3:
-              if (ngx_str3_cmp(parser->buffer, 'G', 'E', 'T')) {
-                parser->method = HTTP_GET;
-                break;
-              }
-
-              if (ngx_str3_cmp(parser->buffer, 'P', 'U', 'T')) {
-                parser->method = HTTP_PUT;
-                break;
-              }
-
-              break;
-
-            case 4:
-              if (ngx_str4cmp(parser->buffer, 'P', 'O', 'S', 'T')) {
-                parser->method = HTTP_POST;
-                break;
-              }
-
-              if (ngx_str4cmp(parser->buffer, 'H', 'E', 'A', 'D')) {
-                parser->method = HTTP_HEAD;
-                break;
-              }
-
-              if (ngx_str4cmp(parser->buffer, 'C', 'O', 'P', 'Y')) {
-                parser->method = HTTP_COPY;
-                break;
-              }
-
-              if (ngx_str4cmp(parser->buffer, 'M', 'O', 'V', 'E')) {
-                parser->method = HTTP_MOVE;
-                break;
-              }
-
-              break;
-
-            case 5:
-              if (ngx_str5cmp(parser->buffer, 'M', 'K', 'C', 'O', 'L')) {
-                parser->method = HTTP_MKCOL;
-                break;
-              }
-
-              if (ngx_str5cmp(parser->buffer, 'T', 'R', 'A', 'C', 'E')) {
-                parser->method = HTTP_TRACE;
-                break;
-              }
-
-              break;
-
-            case 6:
-              if (ngx_str6cmp(parser->buffer, 'D', 'E', 'L', 'E', 'T', 'E')) {
-                parser->method = HTTP_DELETE;
-                break;
-              }
-
-              if (ngx_str6cmp(parser->buffer, 'U', 'N', 'L', 'O', 'C', 'K')) {
-                parser->method = HTTP_UNLOCK;
-                break;
-              }
-
-              break;
-
-            case 7:
-              if (ngx_str7_cmp(parser->buffer,
-                    'O', 'P', 'T', 'I', 'O', 'N', 'S', '\0')) {
-                parser->method = HTTP_OPTIONS;
-                break;
-              }
-
-              if (ngx_str7_cmp(parser->buffer,
-                    'C', 'O', 'N', 'N', 'E', 'C', 'T', '\0')) {
-                parser->method = HTTP_CONNECT;
-                break;
-              }
-
-              break;
-
-            case 8:
-              if (ngx_str8cmp(parser->buffer,
-                    'P', 'R', 'O', 'P', 'F', 'I', 'N', 'D')) {
-                parser->method = HTTP_PROPFIND;
-                break;
-              }
-
-              break;
-
-            case 9:
-              if (ngx_str9cmp(parser->buffer,
-                    'P', 'R', 'O', 'P', 'P', 'A', 'T', 'C', 'H')) {
-                parser->method = HTTP_PROPPATCH;
-                break;
-              }
-
-              break;
-          }
-          state = s_req_spaces_before_url;
-          break;
-        }
-
-        if (ch < 'A' || 'Z' < ch) goto error;
-
-        if (++index >= HTTP_PARSER_MAX_METHOD_LEN - 1) {
+      {
+        if (ch == '\0')
           goto error;
-        }
 
-        parser->buffer[index] = ch;
+        static const char *match_strs[] = {
+          "DELETE",
+          "GET",
+          "HEAD",
+          "POST",
+          "PUT",
+          "CONNECT",
+          "OPTIONS",
+          "TRACE",
+          "COPY",
+          "LOCK",
+          "MKCOL",
+          "MOVE",
+          "PROPFIND",
+          "PROPPATCH",
+          "UNLOCK" };
 
+        const char *matcher = match_strs[parser->method];
+        if (ch == ' ' && matcher[index] == '\0')
+          state = s_req_spaces_before_url;
+        else if (ch == matcher[index])
+          ; // nada
+        else if (index == 2 && parser->method == HTTP_CONNECT && ch == 'P')
+          parser->method = HTTP_COPY;
+        else if (index == 1 && parser->method == HTTP_MKCOL && ch == 'O')
+          parser->method = HTTP_MOVE;
+        else if (index == 1 && parser->method == HTTP_POST && ch == 'R')
+          parser->method = HTTP_PROPFIND; /* or HTTP_PROPPATCH */
+        else if (index == 1 && parser->method == HTTP_POST && ch == 'U')
+          parser->method = HTTP_PUT;
+        else if (index == 4 && parser->method == HTTP_PROPFIND && ch == 'P')
+          parser->method = HTTP_PROPPATCH;
+        else
+          goto error;
+
+        ++index;
         break;
-
+      }
       case s_req_spaces_before_url:
       {
         if (ch == ' ') break;
