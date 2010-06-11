@@ -1181,23 +1181,23 @@ test_message_count_body (const struct message *message)
 }
 
 void
-test_error (const char *buf)
+test_simple (const char *buf, int should_pass)
 {
   parser_init(HTTP_REQUEST);
 
   size_t parsed;
-
+  int pass;
   parsed = parse(buf, strlen(buf));
-  if (parsed != strlen(buf)) goto out;
+  pass = (parsed == strlen(buf));
   parsed = parse(NULL, 0);
-  if (parsed != 0) goto out;
+  pass &= (parsed == 0);
 
-  fprintf(stderr, "\n*** Error expected but none found ***\n\n%s", buf);
-  exit(1);
-  return;
-
-out:
   parser_free();
+
+  if (pass != should_pass) {
+    fprintf(stderr, "\n*** test_simple expected %s ***\n\n%s", should_pass ? "success" : "error", buf);
+    exit(1);
+  }
 }
 
 void
@@ -1556,8 +1556,36 @@ main (void)
   /// REQUESTS
 
 
-  test_error("hello world");
-  test_error("GET / HTP/1.1\r\n\r\n");
+  test_simple("hello world", 0);
+  test_simple("GET / HTP/1.1\r\n\r\n", 0);
+
+  test_simple("ASDF / HTTP/1.1\r\n\r\n", 0);
+  test_simple("PROPPATCHA / HTTP/1.1\r\n\r\n", 0);
+  test_simple("GETA / HTTP/1.1\r\n\r\n", 0);
+
+  static const char *all_methods[] = {
+    "DELETE",
+    "GET",
+    "HEAD",
+    "POST",
+    "PUT",
+    "CONNECT",
+    "OPTIONS",
+    "TRACE",
+    "COPY",
+    "LOCK",
+    "MKCOL",
+    "MOVE",
+    "PROPFIND",
+    "PROPPATCH",
+    "UNLOCK",
+    0 };
+  const char **this_method;
+  for (this_method = all_methods; *this_method; this_method++) {
+    char buf[200];
+    sprintf(buf, "%s / HTTP/1.1\r\n\r\n", *this_method);
+    test_simple(buf, 1);
+  }
 
   const char *dumbfuck2 =
     "GET / HTTP/1.1\r\n"
@@ -1594,7 +1622,7 @@ main (void)
     "\tRA==\r\n"
     "\t-----END CERTIFICATE-----\r\n"
     "\r\n";
-  test_error(dumbfuck2);
+  test_simple(dumbfuck2, 0);
 
 #if 0
   // NOTE(Wed Nov 18 11:57:27 CET 2009) this seems okay. we just read body
@@ -1606,7 +1634,7 @@ main (void)
                                            "Accept: */*\r\n"
                                            "\r\n"
                                            "HELLO";
-  test_error(bad_get_no_headers_no_body);
+  test_simple(bad_get_no_headers_no_body, 0);
 #endif
   /* TODO sending junk and large headers gets rejected */
 
