@@ -1379,7 +1379,6 @@ size_t http_parser_execute (http_parser *parser,
           break;
         }
 
-        parser->body_read = 0;
         nread = 0;
 
         if (parser->flags & F_UPGRADE) parser->upgrade = 1;
@@ -1440,12 +1439,12 @@ size_t http_parser_execute (http_parser *parser,
       }
 
       case s_body_identity:
-        to_read = MIN(pe - p, (ssize_t)(parser->content_length - parser->body_read));
+        to_read = MIN(pe - p, (ssize_t)parser->content_length);
         if (to_read > 0) {
           if (settings->on_body) settings->on_body(parser, p, to_read);
           p += to_read - 1;
-          parser->body_read += to_read;
-          if (parser->body_read == parser->content_length) {
+          parser->content_length -= to_read;
+          if (parser->content_length == 0) {
             CALLBACK2(message_complete);
             state = NEW_MESSAGE();
           }
@@ -1458,7 +1457,6 @@ size_t http_parser_execute (http_parser *parser,
         if (to_read > 0) {
           if (settings->on_body) settings->on_body(parser, p, to_read);
           p += to_read - 1;
-          parser->body_read += to_read;
         }
         break;
 

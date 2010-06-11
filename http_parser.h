@@ -102,7 +102,6 @@ struct http_parser {
   char flags;
 
   size_t nread;
-  ssize_t body_read;
   ssize_t content_length;
 
   /** READ-ONLY **/
