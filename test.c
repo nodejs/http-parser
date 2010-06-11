@@ -932,6 +932,19 @@ static http_parser_settings settings_count_body =
   ,.on_message_complete = message_complete_cb
   };
 
+static http_parser_settings settings_null =
+  {.on_message_begin = 0
+  ,.on_header_field = 0
+  ,.on_header_value = 0
+  ,.on_path = 0
+  ,.on_url = 0
+  ,.on_fragment = 0
+  ,.on_query_string = 0
+  ,.on_body = 0
+  ,.on_headers_complete = 0
+  ,.on_message_complete = 0
+  };
+
 void
 parser_init (enum http_parser_type type)
 {
@@ -1188,6 +1201,63 @@ out:
 }
 
 void
+test_header_overflow_error (int req)
+{
+  http_parser parser;
+  http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
+  size_t parsed;
+  const char *buf;
+  buf = req ? "GET / HTTP/1.1\r\n" : "HTTP/1.0 200 OK\r\n";
+  parsed = http_parser_execute(&parser, &settings_null, buf, strlen(buf));
+  assert(parsed == strlen(buf));
+
+  buf = "header-key: header-value\r\n";
+  int i;
+  for (i = 0; i < 10000; i++) {
+    if (http_parser_execute(&parser, &settings_null, buf, strlen(buf)) != strlen(buf)) {
+      //fprintf(stderr, "error found on iter %d\n", i);
+      return;
+    }
+  }
+
+  fprintf(stderr, "\n*** Error expected but none in header overflow test ***\n");
+  exit(1);
+}
+
+void
+test_no_overflow_long_body (int req, size_t length)
+{
+  http_parser parser;
+  http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
+  size_t parsed;
+  size_t i;
+  char buf1[3000];
+  size_t buf1len = sprintf(buf1, "%s\r\nConnection: Keep-Alive\r\nContent-Length: %ld\r\n\r\n",
+      req ? "POST / HTTP/1.0" : "HTTP/1.0 200 OK", length);
+  parsed = http_parser_execute(&parser, &settings_null, buf1, buf1len);
+  if (parsed != buf1len)
+    goto err;
+
+  for (i = 0; i < length; i++) {
+    char foo = 'a';
+    parsed = http_parser_execute(&parser, &settings_null, &foo, 1);
+    if (parsed != 1)
+      goto err;
+  }
+
+  parsed = http_parser_execute(&parser, &settings_null, buf1, buf1len);
+  if (parsed != buf1len) goto err;
+  return;
+
+ err:
+  fprintf(stderr,
+          "\n*** error in test_no_overflow_long_body %s of length %ld ***\n",
+          req ? "REQUEST" : "RESPONSE",
+          length);
+  exit(1);
+}
+
+void
 test_multiple3 (const struct message *r1, const struct message *r2, const struct message *r3)
 {
   int message_count = 1;
@@ -1409,6 +1479,16 @@ main (void)
 
   for (request_count = 0; requests[request_count].name; request_count++);
   for (response_count = 0; responses[response_count].name; response_count++);
+
+  //// OVERFLOW CONDITIONS
+
+  test_header_overflow_error(HTTP_REQUEST);
+  test_no_overflow_long_body(HTTP_REQUEST, 1000);
+  test_no_overflow_long_body(HTTP_REQUEST, 100000);
+
+  test_header_overflow_error(HTTP_RESPONSE);
+  test_no_overflow_long_body(HTTP_RESPONSE, 1000);
+  test_no_overflow_long_body(HTTP_RESPONSE, 100000);
 
   //// RESPONSES
 
