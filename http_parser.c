@@ -77,7 +77,7 @@ do {                                                                 \
 #define CLOSE "close"
 
 
-static const unsigned char lowcase[] =
+static const char lowcase[256] =
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
   "\0\0\0\0\0\0\0\0\0\0\0\0\0-\0\0" "0123456789\0\0\0\0\0\0"
   "\0abcdefghijklmnopqrstuvwxyz\0\0\0\0_"
@@ -977,7 +977,7 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_header_field:
       {
-        c = lowcase[(int)ch];
+        c = lowcase[(unsigned char)ch];
 
         if (c) {
           switch (header_state) {
@@ -1113,7 +1113,7 @@ size_t http_parser_execute (http_parser *parser,
         state = s_header_value;
         index = 0;
 
-        c = lowcase[(int)ch];
+        c = lowcase[(unsigned char)ch];
 
         if (!c) {
           if (ch == CR) {
@@ -1174,7 +1174,7 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_header_value:
       {
-        c = lowcase[(int)ch];
+        c = lowcase[(unsigned char)ch];
 
         if (!c) {
           if (ch == CR) {
