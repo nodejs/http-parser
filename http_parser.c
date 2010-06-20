@@ -505,14 +505,15 @@ size_t http_parser_execute (http_parser *parser,
         parser->method = (enum http_method) 0;
         index = 1;
         switch (ch) {
-          case 'C': parser->method = HTTP_CONNECT; /* or COPY */ break;
+          case 'C': parser->method = HTTP_CONNECT; /* or COPY, CHECKOUT */ break;
           case 'D': parser->method = HTTP_DELETE; break;
           case 'G': parser->method = HTTP_GET; break;
           case 'H': parser->method = HTTP_HEAD; break;
           case 'L': parser->method = HTTP_LOCK; break;
-          case 'M': parser->method = HTTP_MKCOL; /* or MOVE */ break;
+          case 'M': parser->method = HTTP_MKCOL; /* or MOVE, MKACTIVITY, MERGE */ break;
           case 'O': parser->method = HTTP_OPTIONS; break;
           case 'P': parser->method = HTTP_POST; /* or PROPFIND or PROPPATCH or PUT */ break;
+          case 'R': parser->method = HTTP_REPORT; break;
           case 'T': parser->method = HTTP_TRACE; break;
           case 'U': parser->method = HTTP_UNLOCK; break;
           default: goto error;
@@ -541,25 +542,40 @@ size_t http_parser_execute (http_parser *parser,
           "MOVE",
           "PROPFIND",
           "PROPPATCH",
-          "UNLOCK" };
+          "UNLOCK",
+          "REPORT",
+          "MKACTIVITY",
+          "CHECKOUT",
+          "MERGE" };
 
         const char *matcher = match_strs[parser->method];
-        if (ch == ' ' && matcher[index] == '\0')
+        if (ch == ' ' && matcher[index] == '\0') {
           state = s_req_spaces_before_url;
-        else if (ch == matcher[index])
+        } else if (ch == matcher[index]) {
           ; // nada
-        else if (index == 2 && parser->method == HTTP_CONNECT && ch == 'P')
-          parser->method = HTTP_COPY;
-        else if (index == 1 && parser->method == HTTP_MKCOL && ch == 'O')
-          parser->method = HTTP_MOVE;
-        else if (index == 1 && parser->method == HTTP_POST && ch == 'R')
+        } else if (parser->method == HTTP_CONNECT) {
+          if (index == 1 && ch == 'H') {
+            parser->method = HTTP_CHECKOUT;
+          } else if (index == 2  && ch == 'P') {
+            parser->method = HTTP_COPY;
+          }
+        } else if (parser->method == HTTP_MKCOL) {
+          if (index == 1 && ch == 'O') {
+            parser->method = HTTP_MOVE;
+          } else if (index == 1 && ch == 'E') {
+            parser->method = HTTP_MERGE;
+          } else if (index == 2 && ch == 'A') {
+            parser->method = HTTP_MKACTIVITY;
+          }
+        } else if (index == 1 && parser->method == HTTP_POST && ch == 'R') {
           parser->method = HTTP_PROPFIND; /* or HTTP_PROPPATCH */
-        else if (index == 1 && parser->method == HTTP_POST && ch == 'U')
+        } else if (index == 1 && parser->method == HTTP_POST && ch == 'U') {
           parser->method = HTTP_PUT;
-        else if (index == 4 && parser->method == HTTP_PROPFIND && ch == 'P')
+        } else if (index == 4 && parser->method == HTTP_PROPFIND && ch == 'P') {
           parser->method = HTTP_PROPPATCH;
-        else
+        } else {
           goto error;
+        }
 
         ++index;
         break;

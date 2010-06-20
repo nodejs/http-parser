@@ -82,6 +82,11 @@ enum http_method
   , HTTP_PROPFIND
   , HTTP_PROPPATCH
   , HTTP_UNLOCK
+  /* subversion */
+  , HTTP_REPORT
+  , HTTP_MKACTIVITY
+  , HTTP_CHECKOUT
+  , HTTP_MERGE
   };
 
 

@@ -519,6 +519,25 @@ const struct message requests[] =
   ,.body= ""
   }
 
+#define REPORT_REQ 18
+, {.name= "report request"
+  ,.type= HTTP_REQUEST
+  ,.raw= "REPORT /test HTTP/1.1\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_REPORT
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/test"
+  ,.request_url= "/test"
+  ,.num_headers= 0
+  ,.headers= {}
+  ,.body= ""
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
