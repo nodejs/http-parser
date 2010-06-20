@@ -154,6 +154,8 @@ size_t http_parser_execute(http_parser *parser,
  */
 int http_should_keep_alive(http_parser *parser);
 
+/* Returns a string version of the HTTP method. */
+const char *http_method_str(enum http_method);
 
 #ifdef __cplusplus
 }

@@ -77,6 +77,29 @@ do {                                                                 \
 #define CLOSE "close"
 
 
+static const char *method_strings[] =
+  { "DELETE"
+  , "GET"
+  , "HEAD"
+  , "POST"
+  , "PUT"
+  , "CONNECT"
+  , "OPTIONS"
+  , "TRACE"
+  , "COPY"
+  , "LOCK"
+  , "MKCOL"
+  , "MOVE"
+  , "PROPFIND"
+  , "PROPPATCH"
+  , "UNLOCK"
+  , "REPORT"
+  , "MKACTIVITY"
+  , "CHECKOUT"
+  , "MERGE"
+  };
+
+
 static const char lowcase[256] =
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
   "\0\0\0\0\0\0\0\0\0\0\0\0\0-\0\0" "0123456789\0\0\0\0\0\0"
@@ -527,28 +550,7 @@ size_t http_parser_execute (http_parser *parser,
         if (ch == '\0')
           goto error;
 
-        static const char *match_strs[] = {
-          "DELETE",
-          "GET",
-          "HEAD",
-          "POST",
-          "PUT",
-          "CONNECT",
-          "OPTIONS",
-          "TRACE",
-          "COPY",
-          "LOCK",
-          "MKCOL",
-          "MOVE",
-          "PROPFIND",
-          "PROPPATCH",
-          "UNLOCK",
-          "REPORT",
-          "MKACTIVITY",
-          "CHECKOUT",
-          "MERGE" };
-
-        const char *matcher = match_strs[parser->method];
+        const char *matcher = method_strings[parser->method];
         if (ch == ' ' && matcher[index] == '\0') {
           state = s_req_spaces_before_url;
         } else if (ch == matcher[index]) {
@@ -1520,6 +1522,12 @@ http_should_keep_alive (http_parser *parser)
 }
 
 
+const char * http_method_str (enum http_method m)
+{
+  return method_strings[m];
+}
+
+
 void
 http_parser_init (http_parser *parser, enum http_parser_type t)
 {
@@ -1528,4 +1536,3 @@ http_parser_init (http_parser *parser, enum http_parser_type t)
   parser->nread = 0;
   parser->upgrade = 0;
 }
-
