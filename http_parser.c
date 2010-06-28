@@ -22,7 +22,16 @@
  * IN THE SOFTWARE.
  */
 #include <http_parser.h>
+#ifdef _WIN32
+typedef __int8 int8_t;
+typedef unsigned __int8 uint8_t;
+typedef __int16 int16_t;
+typedef unsigned __int16 uint16_t;
+typedef __int16 int32_t;
+typedef unsigned __int32 uint32_t;
+#else
 #include <stdint.h>
+#endif
 #include <assert.h>
 #include <stddef.h>
 
