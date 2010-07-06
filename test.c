@@ -1129,38 +1129,57 @@ print_error (const char *raw, size_t error_location)
 void
 test_message (const struct message *message)
 {
-  parser_init(message->type);
+  size_t raw_len = strlen(message->raw);
+  size_t msg1len;
+  for (msg1len = 0; msg1len < raw_len; msg1len++) {
+    parser_init(message->type);
 
-  size_t read;
+    size_t read;
+    const char *msg1 = message->raw;
+    const char *msg2 = msg1 + msg1len;
+    size_t msg2len = raw_len - msg1len;
 
-  read = parse(message->raw, strlen(message->raw));
+    if (msg1len) {
+      read = parse(msg1, msg1len);
 
-  if (message->upgrade && parser->upgrade) goto test;
+      if (message->upgrade && parser->upgrade) goto test;
 
-  if (read != strlen(message->raw)) {
-    print_error(message->raw, read);
-    exit(1);
+      if (read != msg1len) {
+        print_error(msg1, read);
+        exit(1);
+      }
+    }
+
+
+    read = parse(msg2, msg2len);
+
+    if (message->upgrade && parser->upgrade) goto test;
+
+    if (read != msg2len) {
+      print_error(msg2, read);
+      exit(1);
+    }
+
+    read = parse(NULL, 0);
+
+    if (message->upgrade && parser->upgrade) goto test;
+
+    if (read != 0) {
+      print_error(message->raw, read);
+      exit(1);
+    }
+
+  test:
+
+    if (num_messages != 1) {
+      printf("\n*** num_messages != 1 after testing '%s' ***\n\n", message->name);
+      exit(1);
+    }
+
+    if(!message_eq(0, message)) exit(1);
+
+    parser_free();
   }
-
-  read = parse(NULL, 0);
-
-  if (message->upgrade && parser->upgrade) goto test;
-
-  if (read != 0) {
-    print_error(message->raw, read);
-    exit(1);
-  }
-
-test:
-
-  if (num_messages != 1) {
-    printf("\n*** num_messages != 1 after testing '%s' ***\n\n", message->name);
-    exit(1);
-  }
-
-  if(!message_eq(0, message)) exit(1);
-
-  parser_free();
 }
 
 void
