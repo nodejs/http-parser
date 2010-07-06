@@ -1448,23 +1448,17 @@ char *
 create_large_chunked_message (int body_size_in_kb, const char* headers)
 {
   int i;
-  size_t needed, wrote = 0;
+  size_t wrote = 0;
   size_t headers_len = strlen(headers);
-  size_t bufsize = headers_len + 10;
+  size_t bufsize = headers_len + (5+1024+2)*body_size_in_kb + 6;
   char * buf = malloc(bufsize);
 
-  strncpy(buf, headers, headers_len);
+  memcpy(buf, headers, headers_len);
   wrote += headers_len;
 
   for (i = 0; i < body_size_in_kb; i++) {
     // write 1kb chunk into the body.
-    needed = 5 + 1024 + 2; // "400\r\nCCCC...CCCC\r\n"
-    if (bufsize - wrote < needed) {
-      buf = realloc(buf, bufsize + needed);
-      bufsize += needed;
-    }
-
-    strcpy(buf + wrote, "400\r\n");
+    memcpy(buf + wrote, "400\r\n", 5);
     wrote += 5;
     memset(buf + wrote, 'C', 1024);
     wrote += 1024;
@@ -1472,15 +1466,9 @@ create_large_chunked_message (int body_size_in_kb, const char* headers)
     wrote += 2;
   }
 
-  needed = 5; // "0\r\n\r\n"
-  if (bufsize - wrote < needed) {
-    buf = realloc(buf, bufsize + needed);
-    bufsize += needed;
-  }
-  strcpy(buf + wrote, "0\r\n\r\n");
-  wrote += 5;
-
-  assert(buf[wrote] == 0);
+  memcpy(buf + wrote, "0\r\n\r\n", 6);
+  wrote += 6;
+  assert(wrote == bufsize);
 
   return buf;
 }
