@@ -1545,4 +1545,5 @@ http_parser_init (http_parser *parser, enum http_parser_type t)
   parser->state = (t == HTTP_REQUEST ? s_start_req : (t == HTTP_RESPONSE ? s_start_res : s_start_req_or_res));
   parser->nread = 0;
   parser->upgrade = 0;
+  parser->flags = 0;
 }
