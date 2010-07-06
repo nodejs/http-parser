@@ -157,7 +157,7 @@ static const uint32_t  usual[] = {
 enum state
   { s_dead = 1 /* important that this is > 0 */
 
-  , s_start_res_or_resp
+  , s_start_req_or_res
   , s_res_or_resp_H
   , s_start_res
   , s_res_H
@@ -345,7 +345,7 @@ size_t http_parser_execute (http_parser *parser,
          */
         goto error;
 
-      case s_start_res_or_resp:
+      case s_start_req_or_res:
       {
         if (ch == CR || ch == LF)
           break;
@@ -1542,7 +1542,7 @@ void
 http_parser_init (http_parser *parser, enum http_parser_type t)
 {
   parser->type = t;
-  parser->state = (t == HTTP_REQUEST ? s_start_req : (t == HTTP_RESPONSE ? s_start_res : s_start_res_or_resp));
+  parser->state = (t == HTTP_REQUEST ? s_start_req : (t == HTTP_RESPONSE ? s_start_res : s_start_req_or_res));
   parser->nread = 0;
   parser->upgrade = 0;
 }
