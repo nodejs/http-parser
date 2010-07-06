@@ -324,6 +324,7 @@ size_t http_parser_execute (http_parser *parser,
   if (state == s_req_path || state == s_req_schema || state == s_req_schema_slash
       || state == s_req_schema_slash_slash || state == s_req_port
       || state == s_req_query_string_start || state == s_req_query_string
+      || state == s_req_host
       || state == s_req_fragment_start || state == s_req_fragment)
     url_mark = data;
 

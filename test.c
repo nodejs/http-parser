@@ -1675,22 +1675,28 @@ main (void)
     }
   }
 
-  printf("request scan 1/3      ");
+  printf("request scan 1/4      ");
   test_scan( &requests[GET_NO_HEADERS_NO_BODY]
            , &requests[GET_ONE_HEADER_NO_BODY]
            , &requests[GET_NO_HEADERS_NO_BODY]
            );
 
-  printf("request scan 2/3      ");
+  printf("request scan 2/4      ");
   test_scan( &requests[POST_CHUNKED_ALL_YOUR_BASE]
            , &requests[POST_IDENTITY_BODY_WORLD]
            , &requests[GET_FUNKY_CONTENT_LENGTH]
            );
 
-  printf("request scan 3/3      ");
+  printf("request scan 3/4      ");
   test_scan( &requests[TWO_CHUNKS_MULT_ZERO_END]
            , &requests[CHUNKED_W_TRAILING_HEADERS]
            , &requests[CHUNKED_W_BULLSHIT_AFTER_LENGTH]
+           );
+
+  printf("request scan 4/4      ");
+  test_scan( &requests[QUERY_URL_WITH_QUESTION_MARK_GET]
+           , &requests[PREFIX_NEWLINE_GET ]
+           , &requests[CONNECT_REQUEST]
            );
 
   puts("requests okay");
