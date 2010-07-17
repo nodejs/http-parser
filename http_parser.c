@@ -1316,7 +1316,7 @@ size_t http_parser_execute (http_parser *parser,
 
         nread = 0;
 
-        if (parser->flags & F_UPGRADE) parser->upgrade = 1;
+        if (parser->flags & F_UPGRADE || parser->method == HTTP_CONNECT) parser->upgrade = 1;
 
         /* Here we call the headers_complete callback. This is somewhat
          * different than other callbacks because if the user returns 1, we
@@ -1339,7 +1339,7 @@ size_t http_parser_execute (http_parser *parser,
         }
 
         // Exit, the rest of the connect is in a different protocol.
-        if (parser->flags & F_UPGRADE) {
+        if (parser->flags & F_UPGRADE || parser->method == HTTP_CONNECT) {
           CALLBACK2(message_complete);
           return (p - data);
         }

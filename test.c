@@ -512,7 +512,7 @@ const struct message requests[] =
   ,.request_path= ""
   ,.request_url= "home.netscape.com:443"
   ,.num_headers= 2
-  ,.upgrade=0
+  ,.upgrade=1
   ,.headers= { { "User-agent", "Mozilla/1.1N" }
              , { "Proxy-authorization", "basic aGVsbG86d29ybGQ=" }
              }
@@ -1407,24 +1407,35 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
         buf3[buf3_len] = 0;
 
         read = parse(buf1, buf1_len);
+
+        if (r3->upgrade && parser->upgrade) goto test;
+
         if (read != buf1_len) {
           print_error(buf1, read);
           goto error;
         }
 
         read = parse(buf2, buf2_len);
+
+        if (r3->upgrade && parser->upgrade) goto test;
+
         if (read != buf2_len) {
           print_error(buf2, read);
           goto error;
         }
 
         read = parse(buf3, buf3_len);
+
+        if (r3->upgrade && parser->upgrade) goto test;
+
         if (read != buf3_len) {
           print_error(buf3, read);
           goto error;
         }
 
         parse(NULL, 0);
+
+test:
 
         if (3 != num_messages) {
           fprintf(stderr, "\n\nParser didn't see 3 messages only %d\n", num_messages);
@@ -1595,7 +1606,7 @@ main (void)
     "HEAD",
     "POST",
     "PUT",
-    "CONNECT",
+    //"CONNECT", //CONNECT can't be tested like other methods, it's a tunnel
     "OPTIONS",
     "TRACE",
     "COPY",
