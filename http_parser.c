@@ -1339,7 +1339,7 @@ size_t http_parser_execute (http_parser *parser,
         }
 
         // Exit, the rest of the connect is in a different protocol.
-        if (parser->flags & F_UPGRADE || parser->method == HTTP_CONNECT) {
+        if (parser->upgrade) {
           CALLBACK2(message_complete);
           return (p - data);
         }
