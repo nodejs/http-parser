@@ -1613,7 +1613,7 @@ main (void)
            , &responses[NO_REASON_PHRASE]
            );
 
-  printf("response scan 1/2      ");
+  printf("response scan 2/2      ");
   test_scan( &responses[BONJOUR_MADAME_FR]
            , &responses[UNDERSTORE_HEADER_KEY]
            , &responses[NO_CARRIAGE_RET]
