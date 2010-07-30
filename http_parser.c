@@ -1548,4 +1548,5 @@ http_parser_init (http_parser *parser, enum http_parser_type t)
   parser->nread = 0;
   parser->upgrade = 0;
   parser->flags = 0;
+  parser->method = 0;
 }
