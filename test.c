@@ -32,6 +32,12 @@
 #define FALSE 0
 
 #define MAX_HEADERS 13
+
+#define EXIT() do { \
+  assert(0); \
+  exit(1); \
+} while (0)
+
 #define MAX_ELEMENT_SIZE 500
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
@@ -794,7 +800,8 @@ const struct message responses[] =
          "Server: DCLK-AdSvr\r\n"
          "Content-Type: text/xml\r\n"
          "Content-Length: 0\r\n"
-         "DCLK_imp: v7;x;114750856;0-0;0;17820020;0/0;21603567/21621457/1;;~okv=;dcmt=text/xml;;~cs=o\r\n\r\n"
+         "DCLK_imp: v7;x;114750856;0-0;0;17820020;0/0;21603567/21621457/1;;~okv=;dcmt=text/xml;;~cs=o\r\n"
+         "\r\n"
   ,.should_keep_alive= TRUE
   ,.message_complete_on_eof= FALSE
   ,.http_major= 1
@@ -950,7 +957,7 @@ const struct message responses[] =
 int
 request_path_cb (http_parser *p, const char *buf, size_t len)
 {
-  assert(p == parser);
+  assert(p->data == parser->data);
   strncat(messages[num_messages].request_path, buf, len);
   return 0;
 }
@@ -958,7 +965,7 @@ request_path_cb (http_parser *p, const char *buf, size_t len)
 int
 request_url_cb (http_parser *p, const char *buf, size_t len)
 {
-  assert(p == parser);
+  assert(p->data == parser->data);
   strncat(messages[num_messages].request_url, buf, len);
   return 0;
 }
@@ -966,7 +973,7 @@ request_url_cb (http_parser *p, const char *buf, size_t len)
 int
 query_string_cb (http_parser *p, const char *buf, size_t len)
 {
-  assert(p == parser);
+  assert(p->data == parser->data);
   strncat(messages[num_messages].query_string, buf, len);
   return 0;
 }
@@ -974,7 +981,7 @@ query_string_cb (http_parser *p, const char *buf, size_t len)
 int
 fragment_cb (http_parser *p, const char *buf, size_t len)
 {
-  assert(p == parser);
+  assert(p->data == parser->data);
   strncat(messages[num_messages].fragment, buf, len);
   return 0;
 }
@@ -982,7 +989,7 @@ fragment_cb (http_parser *p, const char *buf, size_t len)
 int
 header_field_cb (http_parser *p, const char *buf, size_t len)
 {
-  assert(p == parser);
+  assert(p->data == parser->data);
   struct message *m = &messages[num_messages];
 
   if (m->last_header_element != FIELD)
@@ -998,7 +1005,7 @@ header_field_cb (http_parser *p, const char *buf, size_t len)
 int
 header_value_cb (http_parser *p, const char *buf, size_t len)
 {
-  assert(p == parser);
+  assert(p->data == parser->data);
   struct message *m = &messages[num_messages];
 
   strncat(m->headers[m->num_headers-1][1], buf, len);
@@ -1011,7 +1018,7 @@ header_value_cb (http_parser *p, const char *buf, size_t len)
 int
 body_cb (http_parser *p, const char *buf, size_t len)
 {
-  assert(p == parser);
+  assert(p->data == parser->data);
   strncat(messages[num_messages].body, buf, len);
   messages[num_messages].body_size += len;
  // printf("body_cb: '%s'\n", requests[num_messages].body);
@@ -1021,7 +1028,7 @@ body_cb (http_parser *p, const char *buf, size_t len)
 int
 count_body_cb (http_parser *p, const char *buf, size_t len)
 {
-  assert(p == parser);
+  assert(p->data == parser->data);
   assert(buf);
   messages[num_messages].body_size += len;
   return 0;
@@ -1030,7 +1037,7 @@ count_body_cb (http_parser *p, const char *buf, size_t len)
 int
 message_begin_cb (http_parser *p)
 {
-  assert(p == parser);
+  assert(p->data == parser->data);
   messages[num_messages].message_begin_cb_called = TRUE;
   return 0;
 }
@@ -1038,27 +1045,27 @@ message_begin_cb (http_parser *p)
 int
 headers_complete_cb (http_parser *p)
 {
-  assert(p == parser);
-  messages[num_messages].method = parser->method;
-  messages[num_messages].status_code = parser->status_code;
-  messages[num_messages].http_major = parser->http_major;
-  messages[num_messages].http_minor = parser->http_minor;
+  assert(p->data == parser->data);
+  messages[num_messages].method = p->method;
+  messages[num_messages].status_code = p->status_code;
+  messages[num_messages].http_major = p->http_major;
+  messages[num_messages].http_minor = p->http_minor;
   messages[num_messages].headers_complete_cb_called = TRUE;
-  messages[num_messages].should_keep_alive = http_should_keep_alive(parser);
+  messages[num_messages].should_keep_alive = http_should_keep_alive(p);
   return 0;
 }
 
 int
 message_complete_cb (http_parser *p)
 {
-  assert(p == parser);
-  if (messages[num_messages].should_keep_alive != http_should_keep_alive(parser))
+  assert(p->data == parser->data);
+  /* http_should_keep_alive() doesn't work with event_stream yet */
+  if (messages[num_messages].should_keep_alive != http_should_keep_alive(p))
   {
     fprintf(stderr, "\n\n *** Error http_should_keep_alive() should have same "
                     "value in both on_message_complete and on_headers_complete "
                     "but it doesn't! ***\n\n");
-    assert(0);
-    exit(1);
+    EXIT();
   }
   messages[num_messages].message_complete_cb_called = TRUE;
 
@@ -1289,7 +1296,7 @@ test_message (const struct message *message)
 
       if (read != msg1len) {
         print_error(msg1, read);
-        exit(1);
+        EXIT();
       }
     }
 
@@ -1300,7 +1307,7 @@ test_message (const struct message *message)
 
     if (read != msg2len) {
       print_error(msg2, read);
-      exit(1);
+      EXIT();
     }
 
     read = parse(NULL, 0);
@@ -1309,17 +1316,17 @@ test_message (const struct message *message)
 
     if (read != 0) {
       print_error(message->raw, read);
-      exit(1);
+      EXIT();
     }
 
   test:
 
     if (num_messages != 1) {
       printf("\n*** num_messages != 1 after testing '%s' ***\n\n", message->name);
-      exit(1);
+      EXIT();
     }
 
-    if(!message_eq(0, message)) exit(1);
+    if(!message_eq(0, message)) EXIT();
 
     parser_free();
   }
@@ -1340,7 +1347,7 @@ test_message_count_body (const struct message *message)
     read = parse_count_body(message->raw + i, toread);
     if (read != toread) {
       print_error(message->raw, read);
-      exit(1);
+      EXIT();
     }
   }
 
@@ -1348,15 +1355,15 @@ test_message_count_body (const struct message *message)
   read = parse_count_body(NULL, 0);
   if (read != 0) {
     print_error(message->raw, read);
-    exit(1);
+    EXIT();
   }
 
   if (num_messages != 1) {
     printf("\n*** num_messages != 1 after testing '%s' ***\n\n", message->name);
-    exit(1);
+    EXIT();
   }
 
-  if(!message_eq(0, message)) exit(1);
+  if(!message_eq(0, message)) EXIT();
 
   parser_free();
 }
@@ -1377,7 +1384,7 @@ test_simple (const char *buf, int should_pass)
 
   if (pass != should_pass) {
     fprintf(stderr, "\n*** test_simple expected %s ***\n\n%s", should_pass ? "success" : "error", buf);
-    exit(1);
+    EXIT();
   }
 }
 
@@ -1402,7 +1409,7 @@ test_header_overflow_error (int req)
   }
 
   fprintf(stderr, "\n*** Error expected but none in header overflow test ***\n");
-  exit(1);
+  EXIT();
 }
 
 void
@@ -1412,7 +1419,7 @@ test_no_overflow_long_body (int req, size_t length)
   http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
   size_t parsed;
   size_t i;
-  char buf1[3000];
+  char buf1[300];
   size_t buf1len = sprintf(buf1, "%s\r\nConnection: Keep-Alive\r\nContent-Length: %zu\r\n\r\n",
       req ? "POST / HTTP/1.0" : "HTTP/1.0 200 OK", length);
   parsed = http_parser_execute(&parser, &settings_null, buf1, buf1len);
@@ -1435,7 +1442,7 @@ test_no_overflow_long_body (int req, size_t length)
           "\n*** error in test_no_overflow_long_body %s of length %zu ***\n",
           req ? "REQUEST" : "RESPONSE",
           length);
-  exit(1);
+  EXIT();
 }
 
 void
@@ -1461,15 +1468,17 @@ test_multiple3 (const struct message *r1, const struct message *r2, const struct
 
   parser_init(r1->type);
 
+  size_t total_len = strlen(total);
+
   size_t read;
 
-  read = parse(total, strlen(total));
+  read = parse(total, total_len);
 
   if (has_upgrade && parser->upgrade) goto test;
 
-  if (read != strlen(total)) {
+  if (read != total_len) {
     print_error(total, read);
-    exit(1);
+    EXIT();
   }
 
   read = parse(NULL, 0);
@@ -1478,21 +1487,21 @@ test_multiple3 (const struct message *r1, const struct message *r2, const struct
 
   if (read != 0) {
     print_error(total, read);
-    exit(1);
+    EXIT();
   }
 
 test:
 
   if (message_count != num_messages) {
     fprintf(stderr, "\n\n*** Parser didn't see 3 messages only %d *** \n", num_messages);
-    exit(1);
+    EXIT();
   }
 
-  if (!message_eq(0, r1)) exit(1);
+  if (!message_eq(0, r1)) EXIT();
   if (message_count > 1) {
-    if (!message_eq(1, r2)) exit(1);
+    if (!message_eq(1, r2)) EXIT();
     if (message_count > 2) {
-      if (!message_eq(2, r3)) exit(1);
+      if (!message_eq(2, r3)) EXIT();
     }
   }
 
@@ -1612,7 +1621,7 @@ test:
   fprintf(stderr, "buf1 (%u) %s\n\n", (unsigned int)buf1_len, buf1);
   fprintf(stderr, "buf2 (%u) %s\n\n", (unsigned int)buf2_len , buf2);
   fprintf(stderr, "buf3 (%u) %s\n", (unsigned int)buf3_len, buf3);
-  exit(1);
+  EXIT();
 }
 
 // user required to free the result
@@ -1717,7 +1726,6 @@ main (void)
   }
 
 
-
   printf("response scan 1/2      ");
   test_scan( &responses[TRAILING_SPACE_ON_CHUNKED_BODY]
            , &responses[NO_HEADERS_NO_BODY_404]
@@ -1729,7 +1737,6 @@ main (void)
            , &responses[UNDERSTORE_HEADER_KEY]
            , &responses[NO_CARRIAGE_RET]
            );
-
   puts("responses okay");
 
 
