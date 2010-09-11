@@ -1545,6 +1545,7 @@ size_t http_parser_execute (http_parser *parser,
   return len;
 
 error:
+  parser->state = s_dead;
   return (p - data);
 }
 
