@@ -92,9 +92,11 @@ enum http_method
   , HTTP_MKACTIVITY
   , HTTP_CHECKOUT
   , HTTP_MERGE
-  /* ssdp */
+  /* upnp */
   , HTTP_MSEARCH
   , HTTP_NOTIFY
+  , HTTP_SUBSCRIBE
+  , HTTP_UNSUBSCRIBE
   };
 
 
