@@ -637,7 +637,7 @@ size_t http_parser_execute (http_parser *parser,
       {
         if (ch == ' ') break;
 
-        if (ch == '/') {
+        if (ch == '/' || ch == '*') {
           MARK(url);
           MARK(path);
           state = s_req_path;
