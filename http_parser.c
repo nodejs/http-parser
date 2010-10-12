@@ -95,6 +95,8 @@ static const char *method_strings[] =
   , "MERGE"
   , "M-SEARCH"
   , "NOTIFY"
+  , "SUBSCRIBE"
+  , "UNSUBSCRIBE"
   };
 
 
@@ -582,8 +584,9 @@ size_t http_parser_execute (http_parser *parser,
           case 'O': parser->method = HTTP_OPTIONS; break;
           case 'P': parser->method = HTTP_POST; /* or PROPFIND or PROPPATCH or PUT */ break;
           case 'R': parser->method = HTTP_REPORT; break;
+          case 'S': parser->method = HTTP_SUBSCRIBE; break;
           case 'T': parser->method = HTTP_TRACE; break;
-          case 'U': parser->method = HTTP_UNLOCK; break;
+          case 'U': parser->method = HTTP_UNLOCK; /* or UNSUBSCRIBE */ break;
           default: goto error;
         }
         state = s_req_method;
@@ -620,6 +623,8 @@ size_t http_parser_execute (http_parser *parser,
           parser->method = HTTP_PROPFIND; /* or HTTP_PROPPATCH */
         } else if (index == 1 && parser->method == HTTP_POST && ch == 'U') {
           parser->method = HTTP_PUT;
+        } else if (index == 2 && parser->method == HTTP_UNLOCK && ch == 'S') {
+          parser->method = HTTP_UNSUBSCRIBE;
         } else if (index == 4 && parser->method == HTTP_PROPFIND && ch == 'P') {
           parser->method = HTTP_PROPPATCH;
         } else {
