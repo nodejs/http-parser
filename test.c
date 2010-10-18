@@ -538,6 +538,25 @@ const struct message requests[] =
   ,.body= ""
   }
 
+#define NO_HTTP_VERSION 19
+, {.name= "request with no http version"
+  ,.type= HTTP_REQUEST
+  ,.raw= "GET /\r\n"
+         "\r\n"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 0
+  ,.http_minor= 9
+  ,.method= HTTP_GET
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/"
+  ,.request_url= "/"
+  ,.num_headers= 0
+  ,.headers= {}
+  ,.body= ""
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
