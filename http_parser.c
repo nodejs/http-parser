@@ -739,12 +739,14 @@ size_t http_parser_execute (http_parser *parser,
           case CR:
             CALLBACK(url);
             CALLBACK(path);
+            parser->http_major = 0;
             parser->http_minor = 9;
             state = s_req_line_almost_done;
             break;
           case LF:
             CALLBACK(url);
             CALLBACK(path);
+            parser->http_major = 0;
             parser->http_minor = 9;
             state = s_header_field_start;
             break;
@@ -779,11 +781,13 @@ size_t http_parser_execute (http_parser *parser,
             break;
           case CR:
             CALLBACK(url);
+            parser->http_major = 0;
             parser->http_minor = 9;
             state = s_req_line_almost_done;
             break;
           case LF:
             CALLBACK(url);
+            parser->http_major = 0;
             parser->http_minor = 9;
             state = s_header_field_start;
             break;
@@ -812,12 +816,14 @@ size_t http_parser_execute (http_parser *parser,
           case CR:
             CALLBACK(url);
             CALLBACK(query_string);
+            parser->http_major = 0;
             parser->http_minor = 9;
             state = s_req_line_almost_done;
             break;
           case LF:
             CALLBACK(url);
             CALLBACK(query_string);
+            parser->http_major = 0;
             parser->http_minor = 9;
             state = s_header_field_start;
             break;
@@ -846,11 +852,13 @@ size_t http_parser_execute (http_parser *parser,
             break;
           case CR:
             CALLBACK(url);
+            parser->http_major = 0;
             parser->http_minor = 9;
             state = s_req_line_almost_done;
             break;
           case LF:
             CALLBACK(url);
+            parser->http_major = 0;
             parser->http_minor = 9;
             state = s_header_field_start;
             break;
@@ -879,12 +887,14 @@ size_t http_parser_execute (http_parser *parser,
           case CR:
             CALLBACK(url);
             CALLBACK(fragment);
+            parser->http_major = 0;
             parser->http_minor = 9;
             state = s_req_line_almost_done;
             break;
           case LF:
             CALLBACK(url);
             CALLBACK(fragment);
+            parser->http_major = 0;
             parser->http_minor = 9;
             state = s_header_field_start;
             break;
