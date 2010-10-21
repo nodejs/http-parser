@@ -108,7 +108,7 @@ static const char *method_strings[] =
 
 /* ' ', '_', '-' and all alpha-numeric ascii characters are accepted by acceptable_header.
    The 'A'-'Z' are lower-cased.  */
-static const char acceptable_header[256] = {
+static const char acceptable_header[128] = {
 /*   0 nul    1 soh    2 stx    3 etx    4 eot    5 enq    6 ack    7 bel  */
         0,       0,       0,       0,       0,       0,       0,       0,
 /*   8 bs     9 ht    10 nl    11 vt    12 np    13 cr    14 so    15 si   */
@@ -143,7 +143,7 @@ static const char acceptable_header[256] = {
        'x',     'y',     'z',      0,       0,       0,       0,       0 };
 
 
-static const int8_t unhex[256] =
+static const int8_t unhex[128] =
   {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   ,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
@@ -155,7 +155,7 @@ static const int8_t unhex[256] =
   };
 
 
-static const uint8_t normal_url_char[256] = {
+static const uint8_t normal_url_char[128] = {
 /*   0 nul    1 soh    2 stx    3 etx    4 eot    5 enq    6 ack    7 bel  */
         0,       0,       0,       0,       0,       0,       0,       0,
 /*   8 bs     9 ht    10 nl    11 vt    12 np    13 cr    14 so    15 si   */
