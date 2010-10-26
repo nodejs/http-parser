@@ -26,11 +26,15 @@ extern "C" {
 
 
 #include <sys/types.h>
-#include <stdint.h>
 
 #ifdef _WIN32
 typedef unsigned int size_t;
 typedef int ssize_t;
+typedef unsigned int uint32_t;
+typedef long long  int64_t;
+typedef unsigned long long   uint64_t;
+#else
+#include <stdint.h>
 #endif
 
 /* Compile with -DHTTP_PARSER_STRICT=0 to make less checks, but run
