@@ -19,7 +19,7 @@
  * IN THE SOFTWARE.
  */
 #include <http_parser.h>
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 typedef __int8 int8_t;
 typedef unsigned __int8 uint8_t;
 typedef __int16 int16_t;

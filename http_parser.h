@@ -28,7 +28,7 @@ extern "C" {
 #include <sys/types.h>
 #include <stdint.h>
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 typedef unsigned int size_t;
 typedef int ssize_t;
 #endif
