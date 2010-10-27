@@ -1,12 +1,13 @@
 HTTP Parser
 ===========
 
-This is a parser for HTTP messages written in C. It parses both requests and
-responses. The parser is designed to be used in performance HTTP
-applications. It does not make any syscalls nor allocations, it does not
-buffer data, it can be interrupted at anytime. Depending on your
-architecture, it only requires about 40 bytes of data per message
-stream (in a web server that is per connection).
+This is a parser for HTTP written in Java, based quite heavily on
+the Ryan Dahl's C Version: `http-parser` available here:
+
+  http://github.com/ry/http-parser
+
+It parses both requests and responses. The parser is designed to be used
+in performance HTTP applications. 
 
 Features:
 
@@ -14,7 +15,6 @@ Features:
   * Handles persistent streams (keep-alive).
   * Decodes chunked encoding.
   * Upgrade support
-  * Defends against buffer overflow attacks.
 
 The parser extracts the following information from HTTP messages:
 
@@ -30,6 +30,21 @@ The parser extracts the following information from HTTP messages:
 
 Usage
 -----
+
+  TODO: in the present form, usage of the Java version of the parser
+  shouldn't be too difficult to figure out for someone familiar with the
+  C version.
+
+  More documentation will follow shortly, in case you're looking for an
+  easy to use http library, this lib is probably not what you are
+  looking for anyway ...
+
+  All text after this paragraph (and most of the text above it) are from
+  the original C version of the README and are currently only here for
+  reference. In case you encounter any difficulties, find bugs, need
+  help or have suggestions, feel free to contact me at
+  (tim.becker@kuriositaet.de).
+
 
 One `http_parser` object is used per TCP connection. Initialize the struct
 using `http_parser_init()` and set the callbacks. That might look something
