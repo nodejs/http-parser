@@ -1398,7 +1398,7 @@ size_t http_parser_execute (http_parser *parser,
             /* Content-Length header given and non-zero */
             state = s_body_identity;
           } else {
-            if (parser->type == HTTP_REQUEST || http_should_keep_alive(parser)) {
+            if (parser->type == HTTP_REQUEST) {
               /* Assume content-length 0 - read the next */
               CALLBACK2(message_complete);
               state = NEW_MESSAGE();
