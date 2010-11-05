@@ -31,7 +31,7 @@
 #undef FALSE
 #define FALSE 0
 
-#define MAX_HEADERS 10
+#define MAX_HEADERS 13
 #define MAX_ELEMENT_SIZE 500
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
@@ -831,6 +831,47 @@ const struct message responses[] =
     , { "Connection", "keep-alive" }
     }
   ,.body= "<xml>hello</xml>"
+  }
+
+
+#define RES_FIELD_UNDERSCORE 10
+/* Should handle spaces in header fields */
+, {.name= "field underscore"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 200 OK\r\n"
+         "Date: Tue, 28 Sep 2010 01:14:13 GMT\r\n"
+         "Server: Apache\r\n"
+         "Cache-Control: no-cache, must-revalidate\r\n"
+         "Expires: Mon, 26 Jul 1997 05:00:00 GMT\r\n"
+         "Set-Cookie: PlaxoCS=1274804622353690521; path=/; domain=.plaxo.com\r\n"
+         "Vary: Accept-Encoding\r\n"
+         "_eep-Alive: timeout=45\r\n" /* semantic value ignored */
+         "_onnection: Keep-Alive\r\n" /* semantic value ignored */
+         "Transfer-Encoding: chunked\r\n"
+         "Content-Type: text/html\r\n"
+         "Connection: close\r\n"
+         "\r\n"
+         "0\r\n\r\n"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 200
+  ,.num_headers= 11
+  ,.headers=
+    { { "Date", "Tue, 28 Sep 2010 01:14:13 GMT" }
+    , { "Server", "Apache" }
+    , { "Cache-Control", "no-cache, must-revalidate" }
+    , { "Expires", "Mon, 26 Jul 1997 05:00:00 GMT" }
+    , { "Set-Cookie", "PlaxoCS=1274804622353690521; path=/; domain=.plaxo.com" }
+    , { "Vary", "Accept-Encoding" }
+    , { "_eep-Alive", "timeout=45" }
+    , { "_onnection", "Keep-Alive" }
+    , { "Transfer-Encoding", "chunked" }
+    , { "Content-Type", "text/html" }
+    , { "Connection", "close" }
+    }
+  ,.body= ""
   }
 
 , {.name= NULL } /* sentinel */
