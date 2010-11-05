@@ -874,6 +874,30 @@ const struct message responses[] =
   ,.body= ""
   }
 
+#define NON_ASCII_IN_STATUS_LINE 11
+/* Should handle non-ASCII in status line */
+, {.name= "non-ASCII in status line"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 500 Oriëntatieprobleem\r\n"
+         "Date: Fri, 5 Nov 2010 23:07:12 GMT+2\r\n"
+         "Content-Length: 0\r\n"
+         "Connection: close\r\n"
+         "\r\n"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 500
+  ,.num_headers= 3
+  ,.headers=
+    { { "Date", "Fri, 5 Nov 2010 23:07:12 GMT+2" }
+    , { "Content-Length", "0" }
+    , { "Connection", "close" }
+    }
+  ,.body= ""
+  }
+
+
 , {.name= NULL } /* sentinel */
 };
 
