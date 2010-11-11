@@ -570,6 +570,7 @@ const struct message responses[] =
          "Content-Type: text/html; charset=UTF-8\r\n"
          "Date: Sun, 26 Apr 2009 11:11:49 GMT\r\n"
          "Expires: Tue, 26 May 2009 11:11:49 GMT\r\n"
+         "X-$PrototypeBI-Version: 1.6.0.3\r\n" /* $ char in header field */
          "Cache-Control: public, max-age=2592000\r\n"
          "Server: gws\r\n"
          "Content-Length:  219  \r\n"
@@ -585,12 +586,13 @@ const struct message responses[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 301
-  ,.num_headers= 7
+  ,.num_headers= 8
   ,.headers=
     { { "Location", "http://www.google.com/" }
     , { "Content-Type", "text/html; charset=UTF-8" }
     , { "Date", "Sun, 26 Apr 2009 11:11:49 GMT" }
     , { "Expires", "Tue, 26 May 2009 11:11:49 GMT" }
+    , { "X-$PrototypeBI-Version", "1.6.0.3" }
     , { "Cache-Control", "public, max-age=2592000" }
     , { "Server", "gws" }
     , { "Content-Length", "219  " }
