@@ -843,7 +843,7 @@ const struct message responses[] =
          "Server: Apache\r\n"
          "Cache-Control: no-cache, must-revalidate\r\n"
          "Expires: Mon, 26 Jul 1997 05:00:00 GMT\r\n"
-         "Set-Cookie: PlaxoCS=1274804622353690521; path=/; domain=.plaxo.com\r\n"
+         ".et-Cookie: PlaxoCS=1274804622353690521; path=/; domain=.plaxo.com\r\n"
          "Vary: Accept-Encoding\r\n"
          "_eep-Alive: timeout=45\r\n" /* semantic value ignored */
          "_onnection: Keep-Alive\r\n" /* semantic value ignored */
@@ -863,7 +863,7 @@ const struct message responses[] =
     , { "Server", "Apache" }
     , { "Cache-Control", "no-cache, must-revalidate" }
     , { "Expires", "Mon, 26 Jul 1997 05:00:00 GMT" }
-    , { "Set-Cookie", "PlaxoCS=1274804622353690521; path=/; domain=.plaxo.com" }
+    , { ".et-Cookie", "PlaxoCS=1274804622353690521; path=/; domain=.plaxo.com" }
     , { "Vary", "Accept-Encoding" }
     , { "_eep-Alive", "timeout=45" }
     , { "_onnection", "Keep-Alive" }
