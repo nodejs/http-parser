@@ -498,7 +498,7 @@ const struct message requests[] =
 #define CONNECT_REQUEST 17
 , {.name = "connect request"
   ,.type= HTTP_REQUEST
-  ,.raw= "CONNECT home.netscape.com:443 HTTP/1.0\r\n"
+  ,.raw= "CONNECT home0.netscape.com:443 HTTP/1.0\r\n"
          "User-agent: Mozilla/1.1N\r\n"
          "Proxy-authorization: basic aGVsbG86d29ybGQ=\r\n"
          "\r\n"
@@ -510,7 +510,7 @@ const struct message requests[] =
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= ""
-  ,.request_url= "home.netscape.com:443"
+  ,.request_url= "home0.netscape.com:443"
   ,.num_headers= 2
   ,.upgrade=1
   ,.headers= { { "User-agent", "Mozilla/1.1N" }

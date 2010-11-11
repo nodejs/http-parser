@@ -658,6 +658,9 @@ size_t http_parser_execute (http_parser *parser,
         } else if (ch == '.') {
           state = s_req_host;
           break;
+        } else if ('0' <= ch && ch <= '9') {
+          state = s_req_host;
+          break;
         }
 
         goto error;
