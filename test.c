@@ -553,7 +553,7 @@ const struct message responses[] =
          "Expires: Tue, 26 May 2009 11:11:49 GMT\r\n"
          "Cache-Control: public, max-age=2592000\r\n"
          "Server: gws\r\n"
-         "Content-Length: 219\r\n"
+         "Content-Length:  219  \r\n"
          "\r\n"
          "<HTML><HEAD><meta http-equiv=\"content-type\" content=\"text/html;charset=utf-8\">\n"
          "<TITLE>301 Moved</TITLE></HEAD><BODY>\n"
@@ -574,7 +574,7 @@ const struct message responses[] =
     , { "Expires", "Tue, 26 May 2009 11:11:49 GMT" }
     , { "Cache-Control", "public, max-age=2592000" }
     , { "Server", "gws" }
-    , { "Content-Length", "219" }
+    , { "Content-Length", "219  " }
     }
   ,.body= "<HTML><HEAD><meta http-equiv=\"content-type\" content=\"text/html;charset=utf-8\">\n"
           "<TITLE>301 Moved</TITLE></HEAD><BODY>\n"
