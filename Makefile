@@ -1,5 +1,5 @@
-OPT_DEBUG=-O0 -g -Wall -Wextra -Werror -I.
-OPT_FAST=-O3 -DHTTP_PARSER_STRICT=0 -I.
+OPT_DEBUG=-O0 -g -Wall -Wextra -Werror -I. -fPIC
+OPT_FAST=-O3 -DHTTP_PARSER_STRICT=0 -I. -fPIC
 
 CC?=gcc
 AR?=ar
