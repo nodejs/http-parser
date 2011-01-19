@@ -247,7 +247,7 @@ struct http_parser_data {
  *      space in the user-supplied `http_parser_data` array. The last
  *      element of `data` will be HTTP_NEEDS_DATA_ELEMENTS. Restart
  *      http_parser_execute2() with a fresh array of elements starting at
- *      the place that HTTP_NEEDS_DATA_ELEMENTS pointed to.
+ *      payload.string.p in the HTTP_NEEDS_DATA_ELEMENTS object.
  *
  *   3. The parser cannot continue until http_parser_has_body(parser, 1) 
  *      or http_parser_has_body(parser, 0) is called. This is required for
@@ -260,8 +260,8 @@ struct http_parser_data {
  *
  *      The last element of `data` will be HTTP_NEEDS_INPUT. The user must
  *      call http_parser_has_body() and then restart http_parser_execute2
- *      with a fresh array of `data` elements and starting at the place
- *      HTTP_NEEDS_INPUT pointed to.
+ *      with a fresh array of `data` elements and starting at
+ *      payload.string.p that HTTP_NEEDS_INPUT pointed to.
  */
 int http_parser_execute2(http_parser* parser,
                          const char* buf,
