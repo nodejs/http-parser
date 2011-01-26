@@ -1384,6 +1384,7 @@ size_t http_parser_execute (http_parser *parser,
               break;
 
             default:
+              parser->state = state;
               return p - data; /* Error */
           }
         }
