@@ -258,7 +258,7 @@ enum state
   };
 
 
-#define PARSING_HEADER(state) (state <= s_headers_almost_done && 0 == (parser->flags & F_TRAILING))
+#define PARSING_HEADER(state) (state <= s_headers_almost_done)
 
 
 enum header_states
