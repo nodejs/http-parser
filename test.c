@@ -1655,6 +1655,7 @@ main (void)
   int request_count;
   int response_count;
 
+  printf("This is http_parser git version : %s\n", http_git_version());
   printf("sizeof(http_parser) = %u\n", (unsigned int)sizeof(http_parser));
 
   for (request_count = 0; requests[request_count].name; request_count++);

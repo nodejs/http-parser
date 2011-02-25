@@ -175,6 +175,9 @@ int http_should_keep_alive(http_parser *parser);
 /* Returns a string version of the HTTP method. */
 const char *http_method_str(enum http_method);
 
+/* Returns a string containing the git version of the library http_parser */
+const char *http_git_version();
+
 #ifdef __cplusplus
 }
 #endif

@@ -3,3 +3,4 @@ tags
 test
 test_g
 *.a
+version-*.c
