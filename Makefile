@@ -1,14 +1,24 @@
 OPT_DEBUG=-O0 -g -Wall -Wextra -Werror -I. -fPIC
-OPT_FAST=-O3 -DHTTP_PARSER_STRICT=0 -I. -fPIC
+OPT_FAST=-O3 -Wall -DHTTP_PARSER_STRICT=0 -I. -fPIC
 
 CC?=gcc
 AR?=ar
 GIT?=git
 
+LIBEXT?=so
+LIBPRE?=lib
+
 GIT_VERSION:=$(shell $(GIT) log -1 --format=%H || echo Unknown)$(shell $(GIT) status --porcelain |grep "^[ MARCDU][ MDAU] " > /dev/null && echo "-Modified")
 
-test: test_g
+test: ltest_g test_g
+	./ltest_g
 	./test_g
+
+ltest: test.o $(LIBPRE)http_parser.$(LIBEXT)
+	$(CC) $(OPT_FAST) -o $@ -Wl,-rpath=. -L. -lhttp_parser $<
+
+ltest_g: test_g.o $(LIBPRE)http_parser_g.$(LIBEXT)
+	$(CC) $(OPT_FAST) -o $@ -Wl,-rpath=. -L. -lhttp_parser_g $<
 
 test_g: http_parser_g.a test_g.o
 	$(CC) $(OPT_DEBUG) test_g.o http_parser_g.a -o $@
@@ -40,6 +50,12 @@ http_parser.a: http_parser.o version.o
 http_parser_g.a: http_parser_g.o version_g.o
 	$(AR) rcs $@ $^
 
+$(LIBPRE)http_parser.$(LIBEXT): http_parser.o version.o
+	$(CC) -shared -Wl,-rpath=. -o $@ $^
+
+$(LIBPRE)http_parser_g.$(LIBEXT): http_parser_g.o version_g.o
+	$(CC) -shared -Wl,-rpath=. -o $@ $^
+
 version-$(GIT_VERSION).c : Makefile
 	echo "const char * http_git_version() { return \"$(GIT_VERSION)\"; }" > $@
 
@@ -53,6 +69,6 @@ tags: http_parser.c http_parser.h test.c
 	ctags $^
 
 clean:
-	rm -f *.o *.a test test_fast test_g http_parser.tar tags version-*.c
+	rm -f *.o *.a *.so test test_fast test_g http_parser.tar tags version-*.c
 
 .PHONY: clean package test-run test-run-timed test-valgrind
