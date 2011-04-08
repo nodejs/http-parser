@@ -657,7 +657,7 @@ size_t http_parser_execute (http_parser *parser,
 
         c = LOWER(ch);
 
-        if (c >= 'a' && c <= 'z') {
+        if ((c >= 'a' && c <= 'z') || (c >= '1' && c <= '9')) {
           MARK(url);
           state = s_req_schema;
           break;

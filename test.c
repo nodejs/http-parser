@@ -582,6 +582,30 @@ const struct message requests[] =
   ,.body= ""
   }
 
+#define CONNECT_REQUEST_IP 18
+, {.name = "connect request with ip address"
+  ,.type= HTTP_REQUEST
+  ,.raw= "CONNECT 192.168.0.1:443 HTTP/1.0\r\n"
+         "User-agent: Mozilla/1.1N\r\n"
+         "Proxy-authorization: basic aGVsbG86d29ybGQ=\r\n"
+         "\r\n"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 0
+  ,.method= HTTP_CONNECT
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= ""
+  ,.request_url= "192.168.0.1:443"
+  ,.num_headers= 2
+  ,.upgrade=1
+  ,.headers= { { "User-agent", "Mozilla/1.1N" }
+             , { "Proxy-authorization", "basic aGVsbG86d29ybGQ=" }
+             }
+  ,.body= ""
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
@@ -1845,29 +1869,34 @@ main (void)
     }
   }
 
-  printf("request scan 1/4      ");
+  printf("request scan 1/5      ");
   test_scan( &requests[GET_NO_HEADERS_NO_BODY]
            , &requests[GET_ONE_HEADER_NO_BODY]
            , &requests[GET_NO_HEADERS_NO_BODY]
            );
 
-  printf("request scan 2/4      ");
+  printf("request scan 2/5      ");
   test_scan( &requests[POST_CHUNKED_ALL_YOUR_BASE]
            , &requests[POST_IDENTITY_BODY_WORLD]
            , &requests[GET_FUNKY_CONTENT_LENGTH]
            );
 
-  printf("request scan 3/4      ");
+  printf("request scan 3/5      ");
   test_scan( &requests[TWO_CHUNKS_MULT_ZERO_END]
            , &requests[CHUNKED_W_TRAILING_HEADERS]
            , &requests[CHUNKED_W_BULLSHIT_AFTER_LENGTH]
            );
 
-  printf("request scan 4/4      ");
+  printf("request scan 4/5      ");
   test_scan( &requests[QUERY_URL_WITH_QUESTION_MARK_GET]
            , &requests[PREFIX_NEWLINE_GET ]
            , &requests[CONNECT_REQUEST]
            );
+
+  printf("request scan 5/5      ");
+  test_scan( &requests[CONNECT_REQUEST_IP]
+      , &requests[CONNECT_REQUEST_IP]
+      , &requests[CONNECT_REQUEST_IP]);
 
   puts("requests okay");
 
