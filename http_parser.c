@@ -1,4 +1,4 @@
-/* Copyright 2009,2010 Ryan Dahl <ry@tinyclouds.org>
+/* Copyright Joyent, Inc. and other Node contributors. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -240,15 +240,17 @@ enum state
 
   , s_header_almost_done
 
+  , s_chunk_size_start
+  , s_chunk_size
+  , s_chunk_parameters
+  , s_chunk_size_almost_done
+  
   , s_headers_almost_done
   /* Important: 's_headers_almost_done' must be the last 'header' state. All
    * states beyond this must be 'body' states. It is used for overflow
    * checking. See the PARSING_HEADER() macro.
    */
-  , s_chunk_size_start
-  , s_chunk_size
-  , s_chunk_size_almost_done
-  , s_chunk_parameters
+
   , s_chunk_data
   , s_chunk_data_almost_done
   , s_chunk_data_done
@@ -258,7 +260,7 @@ enum state
   };
 
 
-#define PARSING_HEADER(state) (state <= s_headers_almost_done && 0 == (parser->flags & F_TRAILING))
+#define PARSING_HEADER(state) (state <= s_headers_almost_done)
 
 
 enum header_states
@@ -1458,6 +1460,7 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_chunk_size_start:
       {
+        assert(nread == 1);
         assert(parser->flags & F_CHUNKED);
 
         c = unhex[(unsigned char)ch];
@@ -1506,6 +1509,8 @@ size_t http_parser_execute (http_parser *parser,
       {
         assert(parser->flags & F_CHUNKED);
         STRICT_CHECK(ch != LF);
+
+        nread = 0;
 
         if (parser->content_length == 0) {
           parser->flags |= F_TRAILING;
