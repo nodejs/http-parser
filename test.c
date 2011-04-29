@@ -768,13 +768,19 @@ const struct message responses[] =
 
   }
 
+#ifdef HTTP_PARSER_STRICT_EOL
+#define EOL "\r\n"
+#else
+#define EOL "\n"
+#endif
+
 #define NO_CARRIAGE_RET 5
 , {.name="no carriage ret"
   ,.type= HTTP_RESPONSE
-  ,.raw= "HTTP/1.1 200 OK\n"
-         "Content-Type: text/html; charset=utf-8\n"
-         "Connection: close\n"
-         "\n"
+  ,.raw= "HTTP/1.1 200 OK" EOL
+         "Content-Type: text/html; charset=utf-8" EOL
+         "Connection: close" EOL
+         EOL
          "these headers are from http://news.ycombinator.com/"
   ,.should_keep_alive= FALSE
   ,.message_complete_on_eof= TRUE

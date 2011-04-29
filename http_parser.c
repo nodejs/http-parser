@@ -318,6 +318,11 @@ enum flags
 # define NEW_MESSAGE() start_state
 #endif
 
+#if HTTP_PARSER_STRICT_EOL
+# define ACCEPT_LF(ch) (0)
+#else
+# define ACCEPT_LF(ch) (ch == LF)
+#endif
 
 size_t http_parser_execute (http_parser *parser,
                             const http_parser_settings *settings,
@@ -561,7 +566,7 @@ size_t http_parser_execute (http_parser *parser,
           break;
         }
 
-        if (ch == LF) {
+        if (ACCEPT_LF(ch)) {
           state = s_header_field_start;
           break;
         }
@@ -1000,7 +1005,7 @@ size_t http_parser_execute (http_parser *parser,
           break;
         }
 
-        if (ch == LF) {
+        if (ACCEPT_LF(ch)) {
           state = s_header_field_start;
           break;
         }
@@ -1032,7 +1037,7 @@ size_t http_parser_execute (http_parser *parser,
           break;
         }
 
-        if (ch == LF) {
+        if (ACCEPT_LF(ch)) {
           /* they might be just sending \n instead of \r\n so this would be
            * the second \n to denote the end of headers*/
           state = s_headers_almost_done;
@@ -1219,7 +1224,7 @@ size_t http_parser_execute (http_parser *parser,
           break;
         }
 
-        if (ch == LF) {
+        if (ACCEPT_LF(ch)) {
           CALLBACK(header_value);
           state = s_header_field_start;
           break;
@@ -1274,7 +1279,7 @@ size_t http_parser_execute (http_parser *parser,
           break;
         }
 
-        if (ch == LF) {
+        if (ACCEPT_LF(ch)) {
           CALLBACK(header_value);
           goto header_almost_done;
         }
