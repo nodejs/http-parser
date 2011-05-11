@@ -557,7 +557,7 @@ const struct message requests[] =
   ,.body= ""
   }
 
-#define MSEARCH_REQ 19
+#define MSEARCH_REQ 20
 , {.name= "m-search request"
   ,.type= HTTP_REQUEST
   ,.raw= "M-SEARCH * HTTP/1.1\r\n"
@@ -578,6 +578,27 @@ const struct message requests[] =
   ,.headers= { { "HOST", "239.255.255.250:1900" }
              , { "MAN", "\"ssdp:discover\"" }
              , { "ST", "\"ssdp:all\"" }
+             }
+  ,.body= ""
+  }
+
+#define UTF8_PATH_REQ 21
+, {.name= "utf-8 path request"
+  ,.type= HTTP_REQUEST
+  ,.raw= "GET /δ¶/δt/pope?q=1#narf HTTP/1.1\r\n"
+         "Host: github.com\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GET
+  ,.query_string= "q=1"
+  ,.fragment= "narf"
+  ,.request_path= "/δ¶/δt/pope"
+  ,.request_url= "/δ¶/δt/pope?q=1#narf"
+  ,.num_headers= 1
+  ,.headers= { {"Host", "github.com" }
              }
   ,.body= ""
   }
