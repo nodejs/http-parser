@@ -740,6 +740,9 @@ size_t http_parser_execute (http_parser *parser,
             CALLBACK(url);
             state = s_req_http_start;
             break;
+          case '?':
+            state = s_req_query_string_start;
+            break;
           default:
             goto error;
         }
@@ -761,6 +764,9 @@ size_t http_parser_execute (http_parser *parser,
              */
             CALLBACK(url);
             state = s_req_http_start;
+            break;
+          case '?':
+            state = s_req_query_string_start;
             break;
           default:
             goto error;

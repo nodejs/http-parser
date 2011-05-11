@@ -603,6 +603,63 @@ const struct message requests[] =
   ,.body= ""
   }
 
+#define QUERY_TERMINATED_HOST 22
+, {.name= "host terminated by a query string"
+  ,.type= HTTP_REQUEST
+  ,.raw= "GET http://hypnotoad.org?hail=all HTTP/1.1\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GET
+  ,.query_string= "hail=all"
+  ,.fragment= ""
+  ,.request_path= ""
+  ,.request_url= "http://hypnotoad.org?hail=all"
+  ,.num_headers= 0
+  ,.headers= { }
+  ,.body= ""
+  }
+
+#define QUERY_TERMINATED_HOSTPORT 23
+, {.name= "host:port terminated by a query string"
+  ,.type= HTTP_REQUEST
+  ,.raw= "GET http://hypnotoad.org:1234?hail=all HTTP/1.1\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GET
+  ,.query_string= "hail=all"
+  ,.fragment= ""
+  ,.request_path= ""
+  ,.request_url= "http://hypnotoad.org:1234?hail=all"
+  ,.num_headers= 0
+  ,.headers= { }
+  ,.body= ""
+  }
+
+#define SPACE_TERMINATED_HOSTPORT 24
+, {.name= "host:port terminated by a space"
+  ,.type= HTTP_REQUEST
+  ,.raw= "GET http://hypnotoad.org:1234 HTTP/1.1\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GET
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= ""
+  ,.request_url= "http://hypnotoad.org:1234"
+  ,.num_headers= 0
+  ,.headers= { }
+  ,.body= ""
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
