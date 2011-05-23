@@ -114,10 +114,21 @@ enum http_method
 enum http_parser_type { HTTP_REQUEST, HTTP_RESPONSE, HTTP_BOTH };
 
 
+/* Flag values for http_parser.flags field */
+enum flags
+  { F_CHUNKED               = 1 << 0
+  , F_CONNECTION_KEEP_ALIVE = 1 << 1
+  , F_CONNECTION_CLOSE      = 1 << 2
+  , F_TRAILING              = 1 << 3
+  , F_UPGRADE               = 1 << 4
+  , F_SKIPBODY              = 1 << 5
+  };
+
+
 struct http_parser {
   /** PRIVATE **/
   unsigned char type : 2;
-  unsigned char flags : 6;
+  unsigned char flags : 6; /* F_* values from 'flags' enum; semi-public */
   unsigned char state;
   unsigned char header_state;
   unsigned char index;
