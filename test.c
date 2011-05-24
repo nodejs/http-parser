@@ -582,6 +582,7 @@ const struct message requests[] =
   ,.body= ""
   }
 
+#if !HTTP_PARSER_STRICT
 #define UTF8_PATH_REQ 21
 , {.name= "utf-8 path request"
   ,.type= HTTP_REQUEST
@@ -602,6 +603,7 @@ const struct message requests[] =
              }
   ,.body= ""
   }
+#endif  /* !HTTP_PARSER_STRICT */
 
 #define QUERY_TERMINATED_HOST 22
 , {.name= "host terminated by a query string"

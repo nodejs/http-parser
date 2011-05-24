@@ -191,6 +191,9 @@ static const uint8_t normal_url_char[256] = {
 /* 120  x   121  y   122  z   123  {   124  |   125  }   126  ~   127 del */
         1,       1,       1,       1,       1,       1,       1,       0,
 
+#if HTTP_PARSER_STRICT
+        0
+#else
 /* Remainder of non-ASCII range are accepted as-is to support implicitly UTF-8
    encoded paths. This is out of spec, but clients generate this and most other
    HTTP servers support it. We should, too. */
@@ -210,7 +213,9 @@ static const uint8_t normal_url_char[256] = {
         1,       1,       1,       1,       1,       1,       1,       1,
         1,       1,       1,       1,       1,       1,       1,       1,
         1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1 };
+        1,       1,       1,       1,       1,       1,       1,       1
+#endif
+};  /* normal_url_char */
 
 
 enum state
