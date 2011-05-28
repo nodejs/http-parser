@@ -1,13 +1,14 @@
-CPPFLAGS?=-DHTTP_PARSER_STRICT=1
-OPT_DEBUG=-O0 -g -Wall -Wextra -Werror -I. $(CPPFLAGS)
-OPT_FAST=-O3 -DHTTP_PARSER_STRICT=0 -I. $(CPPFLAGS)
+CPPFLAGS?=-Wall -Wextra -Werror -I.
+OPT_DEBUG=$(CPPFLAGS) -O0 -g -DHTTP_PARSER_STRICT=1
+OPT_FAST=$(CPPFLAGS) -O3 -DHTTP_PARSER_STRICT=0
 
 CC?=gcc
 AR?=ar
 
 
-test: test_g
+test: test_g test_fast
 	./test_g
+	./test_fast
 
 test_g: http_parser_g.o test_g.o
 	$(CC) $(OPT_DEBUG) http_parser_g.o test_g.o -o $@
