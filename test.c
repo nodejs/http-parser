@@ -498,7 +498,7 @@ const struct message requests[] =
 #define CONNECT_REQUEST 17
 , {.name = "connect request"
   ,.type= HTTP_REQUEST
-  ,.raw= "CONNECT home0.netscape.com:443 HTTP/1.0\r\n"
+  ,.raw= "CONNECT 0-home0.netscape.com:443 HTTP/1.0\r\n"
          "User-agent: Mozilla/1.1N\r\n"
          "Proxy-authorization: basic aGVsbG86d29ybGQ=\r\n"
          "\r\n"
@@ -510,7 +510,7 @@ const struct message requests[] =
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= ""
-  ,.request_url= "home0.netscape.com:443"
+  ,.request_url= "0-home0.netscape.com:443"
   ,.num_headers= 2
   ,.upgrade=1
   ,.headers= { { "User-agent", "Mozilla/1.1N" }
@@ -582,8 +582,65 @@ const struct message requests[] =
   ,.body= ""
   }
 
+#define QUERY_TERMINATED_HOST 21
+, {.name= "host terminated by a query string"
+  ,.type= HTTP_REQUEST
+  ,.raw= "GET http://hypnotoad.org?hail=all HTTP/1.1\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GET
+  ,.query_string= "hail=all"
+  ,.fragment= ""
+  ,.request_path= ""
+  ,.request_url= "http://hypnotoad.org?hail=all"
+  ,.num_headers= 0
+  ,.headers= { }
+  ,.body= ""
+  }
+
+#define QUERY_TERMINATED_HOSTPORT 22
+, {.name= "host:port terminated by a query string"
+  ,.type= HTTP_REQUEST
+  ,.raw= "GET http://hypnotoad.org:1234?hail=all HTTP/1.1\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GET
+  ,.query_string= "hail=all"
+  ,.fragment= ""
+  ,.request_path= ""
+  ,.request_url= "http://hypnotoad.org:1234?hail=all"
+  ,.num_headers= 0
+  ,.headers= { }
+  ,.body= ""
+  }
+
+#define SPACE_TERMINATED_HOSTPORT 23
+, {.name= "host:port terminated by a space"
+  ,.type= HTTP_REQUEST
+  ,.raw= "GET http://hypnotoad.org:1234 HTTP/1.1\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GET
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= ""
+  ,.request_url= "http://hypnotoad.org:1234"
+  ,.num_headers= 0
+  ,.headers= { }
+  ,.body= ""
+  }
+
 #if !HTTP_PARSER_STRICT
-#define UTF8_PATH_REQ 21
+#define UTF8_PATH_REQ 24
 , {.name= "utf-8 path request"
   ,.type= HTTP_REQUEST
   ,.raw= "GET /δ¶/δt/pope?q=1#narf HTTP/1.1\r\n"
@@ -603,64 +660,31 @@ const struct message requests[] =
              }
   ,.body= ""
   }
-#endif  /* !HTTP_PARSER_STRICT */
 
-#define QUERY_TERMINATED_HOST 22
-, {.name= "host terminated by a query string"
+#define HOSTNAME_UNDERSCORE
+, {.name = "hostname underscore"
   ,.type= HTTP_REQUEST
-  ,.raw= "GET http://hypnotoad.org?hail=all HTTP/1.1\r\n"
+  ,.raw= "CONNECT home_0.netscape.com:443 HTTP/1.0\r\n"
+         "User-agent: Mozilla/1.1N\r\n"
+         "Proxy-authorization: basic aGVsbG86d29ybGQ=\r\n"
          "\r\n"
-  ,.should_keep_alive= TRUE
+  ,.should_keep_alive= FALSE
   ,.message_complete_on_eof= FALSE
   ,.http_major= 1
-  ,.http_minor= 1
-  ,.method= HTTP_GET
-  ,.query_string= "hail=all"
-  ,.fragment= ""
-  ,.request_path= ""
-  ,.request_url= "http://hypnotoad.org?hail=all"
-  ,.num_headers= 0
-  ,.headers= { }
-  ,.body= ""
-  }
-
-#define QUERY_TERMINATED_HOSTPORT 23
-, {.name= "host:port terminated by a query string"
-  ,.type= HTTP_REQUEST
-  ,.raw= "GET http://hypnotoad.org:1234?hail=all HTTP/1.1\r\n"
-         "\r\n"
-  ,.should_keep_alive= TRUE
-  ,.message_complete_on_eof= FALSE
-  ,.http_major= 1
-  ,.http_minor= 1
-  ,.method= HTTP_GET
-  ,.query_string= "hail=all"
-  ,.fragment= ""
-  ,.request_path= ""
-  ,.request_url= "http://hypnotoad.org:1234?hail=all"
-  ,.num_headers= 0
-  ,.headers= { }
-  ,.body= ""
-  }
-
-#define SPACE_TERMINATED_HOSTPORT 24
-, {.name= "host:port terminated by a space"
-  ,.type= HTTP_REQUEST
-  ,.raw= "GET http://hypnotoad.org:1234 HTTP/1.1\r\n"
-         "\r\n"
-  ,.should_keep_alive= TRUE
-  ,.message_complete_on_eof= FALSE
-  ,.http_major= 1
-  ,.http_minor= 1
-  ,.method= HTTP_GET
+  ,.http_minor= 0
+  ,.method= HTTP_CONNECT
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= ""
-  ,.request_url= "http://hypnotoad.org:1234"
-  ,.num_headers= 0
-  ,.headers= { }
+  ,.request_url= "home_0.netscape.com:443"
+  ,.num_headers= 2
+  ,.upgrade=1
+  ,.headers= { { "User-agent", "Mozilla/1.1N" }
+             , { "Proxy-authorization", "basic aGVsbG86d29ybGQ=" }
+             }
   ,.body= ""
   }
+#endif  /* !HTTP_PARSER_STRICT */
 
 , {.name= NULL } /* sentinel */
 };

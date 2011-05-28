@@ -189,33 +189,7 @@ static const uint8_t normal_url_char[256] = {
 /* 112  p   113  q   114  r   115  s   116  t   117  u   118  v   119  w  */
         1,       1,       1,       1,       1,       1,       1,       1,
 /* 120  x   121  y   122  z   123  {   124  |   125  }   126  ~   127 del */
-        1,       1,       1,       1,       1,       1,       1,       0,
-
-#if HTTP_PARSER_STRICT
-        0
-#else
-/* Remainder of non-ASCII range are accepted as-is to support implicitly UTF-8
-   encoded paths. This is out of spec, but clients generate this and most other
-   HTTP servers support it. We should, too. */
-
-        1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1,
-        1,       1,       1,       1,       1,       1,       1,       1
-#endif
-};  /* normal_url_char */
+        1,       1,       1,       1,       1,       1,       1,       0, };
 
 
 enum state
@@ -319,10 +293,24 @@ enum header_states
   };
 
 
-#define CR '\r'
-#define LF '\n'
-#define LOWER(c) (unsigned char)(c | 0x20)
-#define TOKEN(c) tokens[(unsigned char)c]
+/* Macros for character classes; depends on strict-mode  */
+#define CR                  '\r'
+#define LF                  '\n'
+#define LOWER(c)            (unsigned char)(c | 0x20)
+#define TOKEN(c)            (tokens[(unsigned char)c])
+#define IS_ALPHA(c)         ((c) >= 'a' && (c) <= 'z')
+#define IS_NUM(c)           ((c) >= '0' && (c) <= '9')
+#define IS_ALPHANUM(c)      (IS_ALPHA(c) || IS_NUM(c))
+
+#if HTTP_PARSER_STRICT
+#define IS_URL_CHAR(c)      (normal_url_char[(unsigned char) (c)])
+#define IS_HOST_CHAR(c)     (IS_ALPHANUM(c) || (c) == '.' || (c) == '-')
+#else
+#define IS_URL_CHAR(c)                                                         \
+  (normal_url_char[(unsigned char) (c)] || ((c) & 0x80))
+#define IS_HOST_CHAR(c)                                                        \
+  (IS_ALPHANUM(c) || (c) == '.' || (c) == '-' || (c) == '_')
+#endif
 
 
 #define start_state (parser->type == HTTP_REQUEST ? s_start_req : s_start_res)
@@ -499,7 +487,7 @@ size_t http_parser_execute (http_parser *parser,
           break;
         }
 
-        if (ch < '0' || ch > '9') goto error;
+        if (!IS_NUM(ch)) goto error;
 
         parser->http_major *= 10;
         parser->http_major += ch - '0';
@@ -510,7 +498,7 @@ size_t http_parser_execute (http_parser *parser,
 
       /* first digit of minor HTTP version */
       case s_res_first_http_minor:
-        if (ch < '0' || ch > '9') goto error;
+        if (!IS_NUM(ch)) goto error;
         parser->http_minor = ch - '0';
         state = s_res_http_minor;
         break;
@@ -523,7 +511,7 @@ size_t http_parser_execute (http_parser *parser,
           break;
         }
 
-        if (ch < '0' || ch > '9') goto error;
+        if (!IS_NUM(ch)) goto error;
 
         parser->http_minor *= 10;
         parser->http_minor += ch - '0';
@@ -534,7 +522,7 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_res_first_status_code:
       {
-        if (ch < '0' || ch > '9') {
+        if (!IS_NUM(ch)) {
           if (ch == ' ') {
             break;
           }
@@ -547,7 +535,7 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_res_status_code:
       {
-        if (ch < '0' || ch > '9') {
+        if (!IS_NUM(ch)) {
           switch (ch) {
             case ' ':
               state = s_res_status;
@@ -599,7 +587,7 @@ size_t http_parser_execute (http_parser *parser,
 
         CALLBACK2(message_begin);
 
-        if (ch < 'A' || 'Z' < ch) goto error;
+        if (!IS_ALPHA(LOWER(ch))) goto error;
 
       start_req_method_assign:
         parser->method = (enum http_method) 0;
@@ -678,9 +666,13 @@ size_t http_parser_execute (http_parser *parser,
 
         c = LOWER(ch);
 
-        if (c >= 'a' && c <= 'z') {
+        /* Proxied requests are followed by scheme of an absolute URI (alpha).
+         * CONNECT is followed by a hostname, which begins with alphanum.
+         * All other methods are followed by '/' or '*' (handled above).
+         */
+        if (IS_ALPHA(ch) || (parser->method == HTTP_CONNECT && IS_NUM(ch))) {
           MARK(url);
-          state = s_req_schema;
+          state = (parser->method == HTTP_CONNECT) ? s_req_host : s_req_schema;
           break;
         }
 
@@ -691,16 +683,10 @@ size_t http_parser_execute (http_parser *parser,
       {
         c = LOWER(ch);
 
-        if (c >= 'a' && c <= 'z') break;
+        if (IS_ALPHA(c)) break;
 
         if (ch == ':') {
           state = s_req_schema_slash;
-          break;
-        } else if (ch == '.') {
-          state = s_req_host;
-          break;
-        } else if ('0' <= ch && ch <= '9') {
-          state = s_req_host;
           break;
         }
 
@@ -720,8 +706,7 @@ size_t http_parser_execute (http_parser *parser,
       case s_req_host:
       {
         c = LOWER(ch);
-        if (c >= 'a' && c <= 'z') break;
-        if ((ch >= '0' && ch <= '9') || ch == '.' || ch == '-') break;
+        if (IS_HOST_CHAR(ch)) break;
         switch (ch) {
           case ':':
             state = s_req_port;
@@ -749,7 +734,7 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_req_port:
       {
-        if (ch >= '0' && ch <= '9') break;
+        if (IS_NUM(ch)) break;
         switch (ch) {
           case '/':
             MARK(path);
@@ -774,7 +759,7 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_req_path:
       {
-        if (normal_url_char[(unsigned char)ch]) break;
+        if (IS_URL_CHAR(ch)) break;
 
         switch (ch) {
           case ' ':
@@ -812,7 +797,7 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_req_query_string_start:
       {
-        if (normal_url_char[(unsigned char)ch]) {
+        if (IS_URL_CHAR(ch)) {
           MARK(query_string);
           state = s_req_query_string;
           break;
@@ -848,7 +833,7 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_req_query_string:
       {
-        if (normal_url_char[(unsigned char)ch]) break;
+        if (IS_URL_CHAR(ch)) break;
 
         switch (ch) {
           case '?':
@@ -885,7 +870,7 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_req_fragment_start:
       {
-        if (normal_url_char[(unsigned char)ch]) {
+        if (IS_URL_CHAR(ch)) {
           MARK(fragment);
           state = s_req_fragment;
           break;
@@ -922,7 +907,7 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_req_fragment:
       {
-        if (normal_url_char[(unsigned char)ch]) break;
+        if (IS_URL_CHAR(ch)) break;
 
         switch (ch) {
           case ' ':
@@ -1000,7 +985,7 @@ size_t http_parser_execute (http_parser *parser,
           break;
         }
 
-        if (ch < '0' || ch > '9') goto error;
+        if (!IS_NUM(ch)) goto error;
 
         parser->http_major *= 10;
         parser->http_major += ch - '0';
@@ -1011,7 +996,7 @@ size_t http_parser_execute (http_parser *parser,
 
       /* first digit of minor HTTP version */
       case s_req_first_http_minor:
-        if (ch < '0' || ch > '9') goto error;
+        if (!IS_NUM(ch)) goto error;
         parser->http_minor = ch - '0';
         state = s_req_http_minor;
         break;
@@ -1031,7 +1016,7 @@ size_t http_parser_execute (http_parser *parser,
 
         /* XXX allow spaces after digit? */
 
-        if (ch < '0' || ch > '9') goto error;
+        if (!IS_NUM(ch)) goto error;
 
         parser->http_minor *= 10;
         parser->http_minor += ch - '0';
@@ -1264,7 +1249,7 @@ size_t http_parser_execute (http_parser *parser,
             break;
 
           case h_content_length:
-            if (ch < '0' || ch > '9') goto error;
+            if (!IS_NUM(ch)) goto error;
             parser->content_length = ch - '0';
             break;
 
@@ -1313,7 +1298,7 @@ size_t http_parser_execute (http_parser *parser,
 
           case h_content_length:
             if (ch == ' ') break;
-            if (ch < '0' || ch > '9') goto error;
+            if (!IS_NUM(ch)) goto error;
             parser->content_length *= 10;
             parser->content_length += ch - '0';
             break;
