@@ -661,7 +661,7 @@ const struct message requests[] =
   ,.body= ""
   }
 
-#define HOSTNAME_UNDERSCORE
+#define HOSTNAME_UNDERSCORE 25
 , {.name = "hostname underscore"
   ,.type= HTTP_REQUEST
   ,.raw= "CONNECT home_0.netscape.com:443 HTTP/1.0\r\n"
