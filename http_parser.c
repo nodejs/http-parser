@@ -332,6 +332,7 @@ size_t http_parser_execute (http_parser *parser,
                             size_t len)
 {
   char c, ch;
+  int8_t unhex_val;
   const char *p = data, *pe;
   int64_t to_read;
 
@@ -1478,9 +1479,9 @@ size_t http_parser_execute (http_parser *parser,
         assert(nread == 1);
         assert(parser->flags & F_CHUNKED);
 
-        c = unhex[(unsigned char)ch];
-        if (c == -1) goto error;
-        parser->content_length = c;
+        unhex_val = unhex[(unsigned char)ch];
+        if (unhex_val == -1) goto error;
+        parser->content_length = unhex_val;
         state = s_chunk_size;
         break;
       }
@@ -1494,9 +1495,9 @@ size_t http_parser_execute (http_parser *parser,
           break;
         }
 
-        c = unhex[(unsigned char)ch];
+        unhex_val = unhex[(unsigned char)ch];
 
-        if (c == -1) {
+        if (unhex_val == -1) {
           if (ch == ';' || ch == ' ') {
             state = s_chunk_parameters;
             break;
@@ -1505,7 +1506,7 @@ size_t http_parser_execute (http_parser *parser,
         }
 
         parser->content_length *= 16;
-        parser->content_length += c;
+        parser->content_length += unhex_val;
         break;
       }
 
