@@ -106,6 +106,8 @@ enum http_method
   , HTTP_NOTIFY
   , HTTP_SUBSCRIBE
   , HTTP_UNSUBSCRIBE
+  /* RFC-5789 */
+  , HTTP_PATCH
   };
 
 

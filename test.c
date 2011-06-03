@@ -686,6 +686,35 @@ const struct message requests[] =
   }
 #endif  /* !HTTP_PARSER_STRICT */
 
+#define PATCH_REQ 26
+, {.name = "PATCH request"
+  ,.type= HTTP_REQUEST
+  ,.raw= "PATCH /file.txt HTTP/1.1\r\n"
+         "Host: www.example.com\r\n"
+         "Content-Type: application/example\r\n"
+         "If-Match: \"e0023aa4e\"\r\n"
+         "Content-Length: 10\r\n"
+         "\r\n"
+         "cccccccccc"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_PATCH
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/file.txt"
+  ,.request_url= "/file.txt"
+  ,.num_headers= 4
+  ,.upgrade=0
+  ,.headers= { { "Host", "www.example.com" }
+             , { "Content-Type", "application/example" }
+             , { "If-Match", "\"e0023aa4e\"" }
+             , { "Content-Length", "10" }
+             }
+  ,.body= "cccccccccc"
+  }
+
 , {.name= NULL } /* sentinel */
 };
 

@@ -100,6 +100,7 @@ static const char *method_strings[] =
   , "NOTIFY"
   , "SUBSCRIBE"
   , "UNSUBSCRIBE"
+  , "PATCH"
   };
 
 
@@ -601,7 +602,9 @@ size_t http_parser_execute (http_parser *parser,
           case 'M': parser->method = HTTP_MKCOL; /* or MOVE, MKACTIVITY, MERGE, M-SEARCH */ break;
           case 'N': parser->method = HTTP_NOTIFY; break;
           case 'O': parser->method = HTTP_OPTIONS; break;
-          case 'P': parser->method = HTTP_POST; /* or PROPFIND or PROPPATCH or PUT */ break;
+          case 'P': parser->method = HTTP_POST;
+            /* or PROPFIND or PROPPATCH or PUT or PATCH */
+            break;
           case 'R': parser->method = HTTP_REPORT; break;
           case 'S': parser->method = HTTP_SUBSCRIBE; break;
           case 'T': parser->method = HTTP_TRACE; break;
@@ -642,6 +645,8 @@ size_t http_parser_execute (http_parser *parser,
           parser->method = HTTP_PROPFIND; /* or HTTP_PROPPATCH */
         } else if (index == 1 && parser->method == HTTP_POST && ch == 'U') {
           parser->method = HTTP_PUT;
+        } else if (index == 1 && parser->method == HTTP_POST && ch == 'A') {
+          parser->method = HTTP_PATCH;
         } else if (index == 2 && parser->method == HTTP_UNLOCK && ch == 'S') {
           parser->method = HTTP_UNSUBSCRIBE;
         } else if (index == 4 && parser->method == HTTP_PROPFIND && ch == 'P') {
