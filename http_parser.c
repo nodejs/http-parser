@@ -241,6 +241,7 @@ enum state
   , s_header_field
   , s_header_value_start
   , s_header_value
+  , s_header_value_lws
 
   , s_header_almost_done
 
@@ -1040,6 +1041,7 @@ size_t http_parser_execute (http_parser *parser,
       }
 
       case s_header_field_start:
+      header_field_start:
       {
         if (ch == CR) {
           state = s_headers_almost_done;
@@ -1217,7 +1219,7 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_header_value_start:
       {
-        if (ch == ' ') break;
+        if (ch == ' ' || ch == '\t') break;
 
         MARK(header_value);
 
@@ -1360,7 +1362,7 @@ size_t http_parser_execute (http_parser *parser,
       {
         STRICT_CHECK(ch != LF);
 
-        state = s_header_field_start;
+        state = s_header_value_lws;
 
         switch (header_state) {
           case h_connection_keep_alive:
@@ -1374,6 +1376,18 @@ size_t http_parser_execute (http_parser *parser,
             break;
           default:
             break;
+        }
+        break;
+      }
+
+      case s_header_value_lws:
+      {
+        if (ch == ' ' || ch == '\t')
+          state = s_header_value_start;
+        else
+        {
+          state = s_header_field_start;
+          goto header_field_start;
         }
         break;
       }
