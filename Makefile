@@ -1,5 +1,6 @@
-OPT_DEBUG=-O0 -g -Wall -Wextra -Werror -I. -fPIC
-OPT_FAST=-O3 -Wall -DHTTP_PARSER_STRICT=0 -I. -fPIC
+CPPFLAGS?=-Wall -Wextra -Werror -I. -fPIC
+OPT_DEBUG=$(CPPFLAGS) -O0 -g -DHTTP_PARSER_STRICT=1
+OPT_FAST=$(CPPFLAGS) -O3 -DHTTP_PARSER_STRICT=0
 
 CC?=gcc
 AR?=ar
@@ -10,9 +11,10 @@ LIBPRE?=lib
 
 GIT_VERSION:=$(shell $(GIT) log -1 --format=%H || echo Unknown)$(shell $(GIT) status --porcelain |grep "^[ MARCDU][ MDAU] " > /dev/null && echo "-Modified")
 
-test: ltest_g test_g
+test: ltest_g test_g test_fast
 	./ltest_g
 	./test_g
+	./test_fast
 
 ltest: test.o $(LIBPRE)http_parser.$(LIBEXT)
 	$(CC) $(OPT_FAST) -o $@ -Wl,-rpath=. -L. -lhttp_parser $<
@@ -64,6 +66,9 @@ version.o: version-$(GIT_VERSION).c
 
 version_g.o: version-$(GIT_VERSION).c
 	$(CC) $(OPT_DEBUG) -c $< -o $@
+
+package: http_parser.o
+	$(AR) rcs libhttp_parser.a http_parser.o
 
 tags: http_parser.c http_parser.h test.c
 	ctags $^
