@@ -1937,6 +1937,16 @@ main (void)
     test_simple(buf, 1);
   }
 
+  static const char *bad_methods[] = {
+      "C******",
+      "M****",
+      0 };
+  for (this_method = bad_methods; *this_method; this_method++) {
+    char buf[200];
+    sprintf(buf, "%s / HTTP/1.1\r\n\r\n", *this_method);
+    test_simple(buf, 0);
+  }
+
   const char *dumbfuck2 =
     "GET / HTTP/1.1\r\n"
     "X-SSL-Bullshit:   -----BEGIN CERTIFICATE-----\r\n"
