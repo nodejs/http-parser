@@ -632,6 +632,8 @@ size_t http_parser_execute (http_parser *parser,
             parser->method = HTTP_CHECKOUT;
           } else if (index == 2  && ch == 'P') {
             parser->method = HTTP_COPY;
+          } else {
+            goto error;
           }
         } else if (parser->method == HTTP_MKCOL) {
           if (index == 1 && ch == 'O') {
@@ -642,6 +644,8 @@ size_t http_parser_execute (http_parser *parser,
             parser->method = HTTP_MSEARCH;
           } else if (index == 2 && ch == 'A') {
             parser->method = HTTP_MKACTIVITY;
+          } else {
+            goto error;
           }
         } else if (index == 1 && parser->method == HTTP_POST && ch == 'R') {
           parser->method = HTTP_PROPFIND; /* or HTTP_PROPPATCH */
