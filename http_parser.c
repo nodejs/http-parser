@@ -1230,8 +1230,6 @@ size_t http_parser_execute (http_parser *parser,
         state = s_header_value;
         index = 0;
 
-        c = LOWER(ch);
-
         if (ch == CR) {
           CALLBACK(header_value);
           header_state = h_general;
@@ -1244,6 +1242,8 @@ size_t http_parser_execute (http_parser *parser,
           state = s_header_field_start;
           break;
         }
+
+        c = LOWER(ch);
 
         switch (header_state) {
           case h_upgrade:
@@ -1286,7 +1286,6 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_header_value:
       {
-        c = LOWER(ch);
 
         if (ch == CR) {
           CALLBACK(header_value);
@@ -1298,6 +1297,8 @@ size_t http_parser_execute (http_parser *parser,
           CALLBACK(header_value);
           goto header_almost_done;
         }
+
+        c = LOWER(ch);
 
         switch (header_state) {
           case h_general:
