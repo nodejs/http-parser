@@ -582,7 +582,7 @@ const struct message requests[] =
   ,.body= ""
   }
 
-#define LINE_FOLDING_IN_HEADER 20
+#define LINE_FOLDING_IN_HEADER 21
 , {.name= "line folding in header value"
   ,.type= HTTP_REQUEST
   ,.raw= "GET / HTTP/1.1\r\n"
@@ -611,7 +611,7 @@ const struct message requests[] =
   }
 
 
-#define QUERY_TERMINATED_HOST 21
+#define QUERY_TERMINATED_HOST 22
 , {.name= "host terminated by a query string"
   ,.type= HTTP_REQUEST
   ,.raw= "GET http://hypnotoad.org?hail=all HTTP/1.1\r\n"
@@ -630,7 +630,7 @@ const struct message requests[] =
   ,.body= ""
   }
 
-#define QUERY_TERMINATED_HOSTPORT 22
+#define QUERY_TERMINATED_HOSTPORT 23
 , {.name= "host:port terminated by a query string"
   ,.type= HTTP_REQUEST
   ,.raw= "GET http://hypnotoad.org:1234?hail=all HTTP/1.1\r\n"
@@ -649,7 +649,7 @@ const struct message requests[] =
   ,.body= ""
   }
 
-#define SPACE_TERMINATED_HOSTPORT 23
+#define SPACE_TERMINATED_HOSTPORT 24
 , {.name= "host:port terminated by a space"
   ,.type= HTTP_REQUEST
   ,.raw= "GET http://hypnotoad.org:1234 HTTP/1.1\r\n"
@@ -668,54 +668,7 @@ const struct message requests[] =
   ,.body= ""
   }
 
-#if !HTTP_PARSER_STRICT
-#define UTF8_PATH_REQ 24
-, {.name= "utf-8 path request"
-  ,.type= HTTP_REQUEST
-  ,.raw= "GET /δ¶/δt/pope?q=1#narf HTTP/1.1\r\n"
-         "Host: github.com\r\n"
-         "\r\n"
-  ,.should_keep_alive= TRUE
-  ,.message_complete_on_eof= FALSE
-  ,.http_major= 1
-  ,.http_minor= 1
-  ,.method= HTTP_GET
-  ,.query_string= "q=1"
-  ,.fragment= "narf"
-  ,.request_path= "/δ¶/δt/pope"
-  ,.request_url= "/δ¶/δt/pope?q=1#narf"
-  ,.num_headers= 1
-  ,.headers= { {"Host", "github.com" }
-             }
-  ,.body= ""
-  }
-
-#define HOSTNAME_UNDERSCORE 25
-, {.name = "hostname underscore"
-  ,.type= HTTP_REQUEST
-  ,.raw= "CONNECT home_0.netscape.com:443 HTTP/1.0\r\n"
-         "User-agent: Mozilla/1.1N\r\n"
-         "Proxy-authorization: basic aGVsbG86d29ybGQ=\r\n"
-         "\r\n"
-  ,.should_keep_alive= FALSE
-  ,.message_complete_on_eof= FALSE
-  ,.http_major= 1
-  ,.http_minor= 0
-  ,.method= HTTP_CONNECT
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= ""
-  ,.request_url= "home_0.netscape.com:443"
-  ,.num_headers= 2
-  ,.upgrade=1
-  ,.headers= { { "User-agent", "Mozilla/1.1N" }
-             , { "Proxy-authorization", "basic aGVsbG86d29ybGQ=" }
-             }
-  ,.body= ""
-  }
-#endif  /* !HTTP_PARSER_STRICT */
-
-#define PATCH_REQ 26
+#define PATCH_REQ 25
 , {.name = "PATCH request"
   ,.type= HTTP_REQUEST
   ,.raw= "PATCH /file.txt HTTP/1.1\r\n"
@@ -743,6 +696,77 @@ const struct message requests[] =
              }
   ,.body= "cccccccccc"
   }
+
+#define CONNECT_REQUEST_IP 26
+, {.name = "connect request with ip address"
+  ,.type= HTTP_REQUEST
+  ,.raw= "CONNECT 192.168.0.1:443 HTTP/1.0\r\n"
+         "User-agent: Mozilla/1.1N\r\n"
+         "Proxy-authorization: basic aGVsbG86d29ybGQ=\r\n"
+         "\r\n"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 0
+  ,.method= HTTP_CONNECT
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= ""
+  ,.request_url= "192.168.0.1:443"
+  ,.num_headers= 2
+  ,.upgrade=1
+  ,.headers= { { "User-agent", "Mozilla/1.1N" }
+             , { "Proxy-authorization", "basic aGVsbG86d29ybGQ=" }
+             }
+  ,.body= ""
+  }
+
+#if !HTTP_PARSER_STRICT
+#define UTF8_PATH_REQ 27
+, {.name= "utf-8 path request"
+  ,.type= HTTP_REQUEST
+  ,.raw= "GET /δ¶/δt/pope?q=1#narf HTTP/1.1\r\n"
+         "Host: github.com\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GET
+  ,.query_string= "q=1"
+  ,.fragment= "narf"
+  ,.request_path= "/δ¶/δt/pope"
+  ,.request_url= "/δ¶/δt/pope?q=1#narf"
+  ,.num_headers= 1
+  ,.headers= { {"Host", "github.com" }
+             }
+  ,.body= ""
+  }
+
+#define HOSTNAME_UNDERSCORE 28
+, {.name = "hostname underscore"
+  ,.type= HTTP_REQUEST
+  ,.raw= "CONNECT home_0.netscape.com:443 HTTP/1.0\r\n"
+         "User-agent: Mozilla/1.1N\r\n"
+         "Proxy-authorization: basic aGVsbG86d29ybGQ=\r\n"
+         "\r\n"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 0
+  ,.method= HTTP_CONNECT
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= ""
+  ,.request_url= "home_0.netscape.com:443"
+  ,.num_headers= 2
+  ,.upgrade=1
+  ,.headers= { { "User-agent", "Mozilla/1.1N" }
+             , { "Proxy-authorization", "basic aGVsbG86d29ybGQ=" }
+             }
+  ,.body= ""
+  }
+#endif  /* !HTTP_PARSER_STRICT */
 
 , {.name= NULL } /* sentinel */
 };
@@ -1575,7 +1599,7 @@ test_no_overflow_long_body (int req, size_t length)
   size_t parsed;
   size_t i;
   char buf1[3000];
-  size_t buf1len = sprintf(buf1, "%s\r\nConnection: Keep-Alive\r\nContent-Length: %zu\r\n\r\n",
+  size_t buf1len = sprintf(buf1, "%s\r\nConnection: Keep-Alive\r\nContent-Length: %u\r\n\r\n",
       req ? "POST / HTTP/1.0" : "HTTP/1.0 200 OK", length);
   parsed = http_parser_execute(&parser, &settings_null, buf1, buf1len);
   if (parsed != buf1len)
@@ -1594,7 +1618,7 @@ test_no_overflow_long_body (int req, size_t length)
 
  err:
   fprintf(stderr,
-          "\n*** error in test_no_overflow_long_body %s of length %zu ***\n",
+          "\n*** error in test_no_overflow_long_body %s of length %u ***\n",
           req ? "REQUEST" : "RESPONSE",
           length);
   exit(1);
@@ -1817,6 +1841,7 @@ main (void)
   int request_count;
   int response_count;
 
+  printf("This is http_parser git version : %s\n", http_git_version());
   printf("sizeof(http_parser) = %u\n", (unsigned int)sizeof(http_parser));
 
   for (request_count = 0; requests[request_count].name; request_count++);
@@ -2016,29 +2041,34 @@ main (void)
     }
   }
 
-  printf("request scan 1/4      ");
+  printf("request scan 1/5      ");
   test_scan( &requests[GET_NO_HEADERS_NO_BODY]
            , &requests[GET_ONE_HEADER_NO_BODY]
            , &requests[GET_NO_HEADERS_NO_BODY]
            );
 
-  printf("request scan 2/4      ");
+  printf("request scan 2/5      ");
   test_scan( &requests[POST_CHUNKED_ALL_YOUR_BASE]
            , &requests[POST_IDENTITY_BODY_WORLD]
            , &requests[GET_FUNKY_CONTENT_LENGTH]
            );
 
-  printf("request scan 3/4      ");
+  printf("request scan 3/5      ");
   test_scan( &requests[TWO_CHUNKS_MULT_ZERO_END]
            , &requests[CHUNKED_W_TRAILING_HEADERS]
            , &requests[CHUNKED_W_BULLSHIT_AFTER_LENGTH]
            );
 
-  printf("request scan 4/4      ");
+  printf("request scan 4/5      ");
   test_scan( &requests[QUERY_URL_WITH_QUESTION_MARK_GET]
            , &requests[PREFIX_NEWLINE_GET ]
            , &requests[CONNECT_REQUEST]
            );
+
+  printf("request scan 5/5      ");
+  test_scan( &requests[LINE_FOLDING_IN_HEADER]
+      , &requests[QUERY_TERMINATED_HOSTPORT]
+      , &requests[CONNECT_REQUEST_IP]);
 
   puts("requests okay");
 

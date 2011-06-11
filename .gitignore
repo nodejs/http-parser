@@ -2,4 +2,6 @@ tags
 *.o
 test
 test_g
+*.a
+version-*.c
 test_fast
