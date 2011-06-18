@@ -302,7 +302,7 @@ enum header_states
 #define TOKEN(c)            (tokens[(unsigned char)c])
 #define IS_ALPHA(c)         ((c) >= 'a' && (c) <= 'z')
 #define IS_NUM(c)           ((c) >= '0' && (c) <= '9')
-#define IS_ALPHANUM(c)      (IS_ALPHA(c) || IS_NUM(c))
+#define IS_ALPHANUM(c)      (IS_ALPHA(LOWER(c)) || IS_NUM(c))
 
 #if HTTP_PARSER_STRICT
 #define IS_URL_CHAR(c)      (normal_url_char[(unsigned char) (c)])

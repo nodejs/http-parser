@@ -744,6 +744,30 @@ const struct message requests[] =
   ,.body= "cccccccccc"
   }
 
+#define CONNECT_CAPS_REQUEST 27
+, {.name = "connect caps request"
+  ,.type= HTTP_REQUEST
+  ,.raw= "CONNECT 0-HOME0.NETSCAPE.COM:443 HTTP/1.0\r\n"
+         "User-agent: Mozilla/1.1N\r\n"
+         "Proxy-authorization: basic aGVsbG86d29ybGQ=\r\n"
+         "\r\n"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 0
+  ,.method= HTTP_CONNECT
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= ""
+  ,.request_url= "0-HOME0.NETSCAPE.COM:443"
+  ,.num_headers= 2
+  ,.upgrade=1
+  ,.headers= { { "User-agent", "Mozilla/1.1N" }
+             , { "Proxy-authorization", "basic aGVsbG86d29ybGQ=" }
+             }
+  ,.body= ""
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
