@@ -716,7 +716,6 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_req_host:
       {
-        c = LOWER(ch);
         if (IS_HOST_CHAR(ch)) break;
         switch (ch) {
           case ':':
