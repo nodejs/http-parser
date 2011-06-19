@@ -1490,7 +1490,9 @@ upgrade_message_fix(char *body, const size_t nread, const size_t nmsgs, ...) {
 static void
 print_error (const char *raw, size_t error_location)
 {
-  fprintf(stderr, "\n*** parse error ***\n\n");
+  fprintf(stderr, "\n*** %s:%d -- %s ***\n\n",
+          "http_parser.c", HTTP_PARSER_ERRNO_LINE(parser),
+          http_errno_description(HTTP_PARSER_ERRNO(parser)));
 
   int this_line = 0, char_len = 0;
   size_t i, j, len = strlen(raw), error_location_line = 0;
@@ -1626,21 +1628,32 @@ test_message_count_body (const struct message *message)
 }
 
 void
-test_simple (const char *buf, int should_pass)
+test_simple (const char *buf, enum http_errno err_expected)
 {
   parser_init(HTTP_REQUEST);
 
   size_t parsed;
   int pass;
+  enum http_errno err;
+
   parsed = parse(buf, strlen(buf));
   pass = (parsed == strlen(buf));
+  err = HTTP_PARSER_ERRNO(parser);
   parsed = parse(NULL, 0);
   pass &= (parsed == 0);
 
   parser_free();
 
-  if (pass != should_pass) {
-    fprintf(stderr, "\n*** test_simple expected %s ***\n\n%s", should_pass ? "success" : "error", buf);
+  /* In strict mode, allow us to pass with an unexpected HPE_STRICT as
+   * long as the caller isn't expecting success.
+   */
+#if HTTP_PARSER_STRICT
+  if (err_expected != err && err_expected != HPE_OK && err != HPE_STRICT) {
+#else
+  if (err_expected != err) {
+#endif
+    fprintf(stderr, "\n*** test_simple expected %s, but saw %s ***\n\n%s\n",
+        http_errno_name(err_expected), http_errno_name(err), buf);
     exit(1);
   }
 }
@@ -1657,10 +1670,14 @@ test_header_overflow_error (int req)
   assert(parsed == strlen(buf));
 
   buf = "header-key: header-value\r\n";
+  size_t buflen = strlen(buf);
+
   int i;
   for (i = 0; i < 10000; i++) {
-    if (http_parser_execute(&parser, &settings_null, buf, strlen(buf)) != strlen(buf)) {
+    parsed = http_parser_execute(&parser, &settings_null, buf, buflen);
+    if (parsed != buflen) {
       //fprintf(stderr, "error found on iter %d\n", i);
+      assert(HTTP_PARSER_ERRNO(&parser) == HPE_HEADER_OVERFLOW);
       return;
     }
   }
@@ -1996,13 +2013,13 @@ main (void)
 
   /// REQUESTS
 
-  test_simple("hello world", 0);
-  test_simple("GET / HTP/1.1\r\n\r\n", 0);
+  test_simple("hello world", HPE_INVALID_METHOD);
+  test_simple("GET / HTP/1.1\r\n\r\n", HPE_INVALID_VERSION);
 
 
-  test_simple("ASDF / HTTP/1.1\r\n\r\n", 0);
-  test_simple("PROPPATCHA / HTTP/1.1\r\n\r\n", 0);
-  test_simple("GETA / HTTP/1.1\r\n\r\n", 0);
+  test_simple("ASDF / HTTP/1.1\r\n\r\n", HPE_INVALID_METHOD);
+  test_simple("PROPPATCHA / HTTP/1.1\r\n\r\n", HPE_INVALID_METHOD);
+  test_simple("GETA / HTTP/1.1\r\n\r\n", HPE_INVALID_METHOD);
 
   // Well-formed but incomplete
   test_simple("GET / HTTP/1.1\r\n"
@@ -2010,7 +2027,7 @@ main (void)
               "Content-Length: 6\r\n"
               "\r\n"
               "fooba",
-              0);
+              HPE_OK);
 
   static const char *all_methods[] = {
     "DELETE",
@@ -2033,7 +2050,7 @@ main (void)
   for (this_method = all_methods; *this_method; this_method++) {
     char buf[200];
     sprintf(buf, "%s / HTTP/1.1\r\n\r\n", *this_method);
-    test_simple(buf, 1);
+    test_simple(buf, HPE_OK);
   }
 
   static const char *bad_methods[] = {
@@ -2043,7 +2060,7 @@ main (void)
   for (this_method = bad_methods; *this_method; this_method++) {
     char buf[200];
     sprintf(buf, "%s / HTTP/1.1\r\n\r\n", *this_method);
-    test_simple(buf, 0);
+    test_simple(buf, HPE_UNKNOWN);
   }
 
   const char *dumbfuck2 =
@@ -2081,7 +2098,7 @@ main (void)
     "\tRA==\r\n"
     "\t-----END CERTIFICATE-----\r\n"
     "\r\n";
-  test_simple(dumbfuck2, 1);
+  test_simple(dumbfuck2, HPE_OK);
 
 #if 0
   // NOTE(Wed Nov 18 11:57:27 CET 2009) this seems okay. we just read body
