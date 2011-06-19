@@ -763,7 +763,7 @@ const struct message requests[] =
   ,.request_path= ""
   ,.request_url= "0-HOME0.NETSCAPE.COM:443"
   ,.num_headers= 2
-  ,.upgrade=1
+  ,.upgrade=""
   ,.headers= { { "User-agent", "Mozilla/1.1N" }
              , { "Proxy-authorization", "basic aGVsbG86d29ybGQ=" }
              }
