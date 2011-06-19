@@ -1438,7 +1438,7 @@ size_t http_parser_execute (http_parser *parser,
         /* Exit, the rest of the connect is in a different protocol. */
         if (parser->upgrade) {
           CALLBACK2(message_complete);
-          return (p - data);
+          return (p - data) + 1;
         }
 
         if (parser->flags & F_SKIPBODY) {
