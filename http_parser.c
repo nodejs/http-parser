@@ -734,12 +734,16 @@ size_t http_parser_execute (http_parser *parser,
           } else {
             goto error;
           }
-        } else if (index == 1 && parser->method == HTTP_POST && ch == 'R') {
-          parser->method = HTTP_PROPFIND; /* or HTTP_PROPPATCH */
-        } else if (index == 1 && parser->method == HTTP_POST && ch == 'U') {
-          parser->method = HTTP_PUT;
-        } else if (index == 1 && parser->method == HTTP_POST && ch == 'A') {
-          parser->method = HTTP_PATCH;
+        } else if (index == 1 && parser->method == HTTP_POST) {
+          if (ch == 'R') {
+            parser->method = HTTP_PROPFIND; /* or HTTP_PROPPATCH */
+          } else if (ch == 'U') {
+            parser->method = HTTP_PUT;
+          } else if (ch == 'A') {
+            parser->method = HTTP_PATCH;
+          } else {
+            goto error;
+          }
         } else if (index == 2 && parser->method == HTTP_UNLOCK && ch == 'S') {
           parser->method = HTTP_UNSUBSCRIBE;
         } else if (index == 4 && parser->method == HTTP_PROPFIND && ch == 'P') {
@@ -762,8 +766,6 @@ size_t http_parser_execute (http_parser *parser,
           state = s_req_path;
           break;
         }
-
-        c = LOWER(ch);
 
         /* Proxied requests are followed by scheme of an absolute URI (alpha).
          * CONNECT is followed by a hostname, which begins with alphanum.
