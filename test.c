@@ -749,7 +749,7 @@ const struct message requests[] =
 #define CONNECT_CAPS_REQUEST 27
 , {.name = "connect caps request"
   ,.type= HTTP_REQUEST
-  ,.raw= "CONNECT 0-HOME0.NETSCAPE.COM:443 HTTP/1.0\r\n"
+  ,.raw= "CONNECT HOME0.NETSCAPE.COM:443 HTTP/1.0\r\n"
          "User-agent: Mozilla/1.1N\r\n"
          "Proxy-authorization: basic aGVsbG86d29ybGQ=\r\n"
          "\r\n"
@@ -761,7 +761,7 @@ const struct message requests[] =
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= ""
-  ,.request_url= "0-HOME0.NETSCAPE.COM:443"
+  ,.request_url= "HOME0.NETSCAPE.COM:443"
   ,.num_headers= 2
   ,.upgrade=""
   ,.headers= { { "User-agent", "Mozilla/1.1N" }
@@ -2045,6 +2045,15 @@ main (void)
     "PROPFIND",
     "PROPPATCH",
     "UNLOCK",
+    "REPORT",
+    "MKACTIVITY",
+    "CHECKOUT",
+    "MERGE",
+    "M-SEARCH",
+    "NOTIFY",
+    "SUBSCRIBE",
+    "UNSUBSCRIBE",
+    "PATCH",
     0 };
   const char **this_method;
   for (this_method = all_methods; *this_method; this_method++) {

@@ -315,9 +315,9 @@ enum header_states
 #define LF                  '\n'
 #define LOWER(c)            (unsigned char)(c | 0x20)
 #define TOKEN(c)            (tokens[(unsigned char)c])
-#define IS_ALPHA(c)         ((c) >= 'a' && (c) <= 'z')
+#define IS_ALPHA(c)         (LOWER(c) >= 'a' && LOWER(c) <= 'z')
 #define IS_NUM(c)           ((c) >= '0' && (c) <= '9')
-#define IS_ALPHANUM(c)      (IS_ALPHA(LOWER(c)) || IS_NUM(c))
+#define IS_ALPHANUM(c)      (IS_ALPHA(c) || IS_NUM(c))
 
 #if HTTP_PARSER_STRICT
 #define IS_URL_CHAR(c)      (normal_url_char[(unsigned char) (c)])
@@ -670,7 +670,7 @@ size_t http_parser_execute (http_parser *parser,
 
         CALLBACK2(message_begin);
 
-        if (!IS_ALPHA(LOWER(ch))) {
+        if (!IS_ALPHA(ch)) {
           SET_ERRNO(HPE_INVALID_METHOD);
           goto error;
         }
@@ -734,12 +734,16 @@ size_t http_parser_execute (http_parser *parser,
           } else {
             goto error;
           }
-        } else if (index == 1 && parser->method == HTTP_POST && ch == 'R') {
-          parser->method = HTTP_PROPFIND; /* or HTTP_PROPPATCH */
-        } else if (index == 1 && parser->method == HTTP_POST && ch == 'U') {
-          parser->method = HTTP_PUT;
-        } else if (index == 1 && parser->method == HTTP_POST && ch == 'A') {
-          parser->method = HTTP_PATCH;
+        } else if (index == 1 && parser->method == HTTP_POST) {
+          if (ch == 'R') {
+            parser->method = HTTP_PROPFIND; /* or HTTP_PROPPATCH */
+          } else if (ch == 'U') {
+            parser->method = HTTP_PUT;
+          } else if (ch == 'A') {
+            parser->method = HTTP_PATCH;
+          } else {
+            goto error;
+          }
         } else if (index == 2 && parser->method == HTTP_UNLOCK && ch == 'S') {
           parser->method = HTTP_UNSUBSCRIBE;
         } else if (index == 4 && parser->method == HTTP_PROPFIND && ch == 'P') {
@@ -763,8 +767,6 @@ size_t http_parser_execute (http_parser *parser,
           break;
         }
 
-        c = LOWER(ch);
-
         /* Proxied requests are followed by scheme of an absolute URI (alpha).
          * CONNECT is followed by a hostname, which begins with alphanum.
          * All other methods are followed by '/' or '*' (handled above).
@@ -781,9 +783,7 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_req_schema:
       {
-        c = LOWER(ch);
-
-        if (IS_ALPHA(c)) break;
+        if (IS_ALPHA(ch)) break;
 
         if (ch == ':') {
           state = s_req_schema_slash;
