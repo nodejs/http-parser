@@ -767,11 +767,13 @@ size_t http_parser_execute (http_parser *parser,
           break;
         }
 
+        c = LOWER(ch);
+
         /* Proxied requests are followed by scheme of an absolute URI (alpha).
          * CONNECT is followed by a hostname, which begins with alphanum.
          * All other methods are followed by '/' or '*' (handled above).
          */
-        if (IS_ALPHA(ch) || (parser->method == HTTP_CONNECT && IS_NUM(ch))) {
+        if (IS_ALPHA(c) || (parser->method == HTTP_CONNECT && IS_NUM(ch))) {
           MARK(url);
           state = (parser->method == HTTP_CONNECT) ? s_req_host : s_req_schema;
           break;
