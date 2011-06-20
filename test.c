@@ -2045,6 +2045,15 @@ main (void)
     "PROPFIND",
     "PROPPATCH",
     "UNLOCK",
+    "REPORT",
+    "MKACTIVITY",
+    "CHECKOUT",
+    "MERGE",
+    "M-SEARCH",
+    "NOTIFY",
+    "SUBSCRIBE",
+    "UNSUBSCRIBE",
+    "PATCH",
     0 };
   const char **this_method;
   for (this_method = all_methods; *this_method; this_method++) {
