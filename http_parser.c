@@ -34,11 +34,14 @@
 #if HTTP_PARSER_DEBUG
 #define SET_ERRNO(e)                                                 \
 do {                                                                 \
-  parser->state = 0x80 | (e);                                        \
+  parser->errno = (e);                                               \
   parser->error_lineno = __LINE__;                                   \
 } while (0)
 #else
-#define SET_ERRNO(e) do { parser->state = 0x80 | (e); } while(0)
+#define SET_ERRNO(e)                                                 \
+do {                                                                 \
+  parser->errno = (e);                                               \
+} while(0)
 #endif
 
 
@@ -373,9 +376,7 @@ size_t http_parser_execute (http_parser *parser,
   uint64_t index = parser->index;
   uint64_t nread = parser->nread;
 
-  /* We're in an error state. Don't attempt to do anything lest we overwrite
-   * the error information that landed us here.
-   */
+  /* We're in an error state. Don't bother doing anything. */
   if (HTTP_PARSER_ERRNO(parser) != HPE_OK) {
     return 0;
   }
@@ -1795,6 +1796,7 @@ http_parser_init (http_parser *parser, enum http_parser_type t)
   parser->upgrade = 0;
   parser->flags = 0;
   parser->method = 0;
+  parser->errno = 0;
 }
 
 const char *

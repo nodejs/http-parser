@@ -150,7 +150,7 @@ enum flags
   XX(CB_header_field, "the on_header_field callback failed")         \
   XX(CB_header_value, "the on_header_value callback failed")         \
   XX(CB_headers_complete, "the on_headers_complete callback failed") \
-  XX(CB_body, "th on_body callback failed")                          \
+  XX(CB_body, "the on_body callback failed")                         \
   XX(CB_message_complete, "the on_message_complete callback failed") \
                                                                      \
   /* Parsing-related errors */                                       \
@@ -189,9 +189,7 @@ enum http_errno {
 
 
 /* Get an http_errno value from an http_parser */
-#define HTTP_PARSER_ERRNO(p)                                         \
-    ((enum http_errno) (((p)->state & 0x80) ? (p)->state & ~0x80 : 0))
-
+#define HTTP_PARSER_ERRNO(p)            ((enum http_errno) (p)->errno)
 
 /* Get the line number that generated the current error */
 #if HTTP_PARSER_DEBUG
@@ -217,13 +215,14 @@ struct http_parser {
   unsigned short http_minor;
   unsigned short status_code; /* responses only */
   unsigned char method;    /* requests only */
+  unsigned char errno : 7;
 
   /* 1 = Upgrade header was present and the parser has exited because of that.
    * 0 = No upgrade header present.
    * Should be checked when http_parser_execute() returns in addition to
    * error checking.
    */
-  char upgrade;
+  char upgrade : 1;
 
 #if HTTP_PARSER_DEBUG
   uint32_t error_lineno;
