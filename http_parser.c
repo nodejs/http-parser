@@ -401,21 +401,12 @@ size_t http_parser_execute (http_parser *parser,
      separated. */
   const char *header_field_mark = 0;
   const char *header_value_mark = 0;
-  const char *fragment_mark = 0;
-  const char *query_string_mark = 0;
-  const char *path_mark = 0;
   const char *url_mark = 0;
 
   if (state == s_header_field)
     header_field_mark = data;
   if (state == s_header_value)
     header_value_mark = data;
-  if (state == s_req_fragment)
-    fragment_mark = data;
-  if (state == s_req_query_string)
-    query_string_mark = data;
-  if (state == s_req_path)
-    path_mark = data;
   if (state == s_req_path || state == s_req_schema || state == s_req_schema_slash
       || state == s_req_schema_slash_slash || state == s_req_port
       || state == s_req_query_string_start || state == s_req_query_string
@@ -757,7 +748,6 @@ size_t http_parser_execute (http_parser *parser,
 
         if (ch == '/' || ch == '*') {
           MARK(url);
-          MARK(path);
           state = s_req_path;
           break;
         }
@@ -807,7 +797,6 @@ size_t http_parser_execute (http_parser *parser,
             state = s_req_port;
             break;
           case '/':
-            MARK(path);
             state = s_req_path;
             break;
           case ' ':
@@ -833,7 +822,6 @@ size_t http_parser_execute (http_parser *parser,
         if (IS_NUM(ch)) break;
         switch (ch) {
           case '/':
-            MARK(path);
             state = s_req_path;
             break;
           case ' ':
@@ -861,29 +849,24 @@ size_t http_parser_execute (http_parser *parser,
         switch (ch) {
           case ' ':
             CALLBACK(url);
-            CALLBACK(path);
             state = s_req_http_start;
             break;
           case CR:
             CALLBACK(url);
-            CALLBACK(path);
             parser->http_major = 0;
             parser->http_minor = 9;
             state = s_req_line_almost_done;
             break;
           case LF:
             CALLBACK(url);
-            CALLBACK(path);
             parser->http_major = 0;
             parser->http_minor = 9;
             state = s_header_field_start;
             break;
           case '?':
-            CALLBACK(path);
             state = s_req_query_string_start;
             break;
           case '#':
-            CALLBACK(path);
             state = s_req_fragment_start;
             break;
           default:
@@ -896,7 +879,6 @@ size_t http_parser_execute (http_parser *parser,
       case s_req_query_string_start:
       {
         if (IS_URL_CHAR(ch)) {
-          MARK(query_string);
           state = s_req_query_string;
           break;
         }
@@ -940,25 +922,21 @@ size_t http_parser_execute (http_parser *parser,
             break;
           case ' ':
             CALLBACK(url);
-            CALLBACK(query_string);
             state = s_req_http_start;
             break;
           case CR:
             CALLBACK(url);
-            CALLBACK(query_string);
             parser->http_major = 0;
             parser->http_minor = 9;
             state = s_req_line_almost_done;
             break;
           case LF:
             CALLBACK(url);
-            CALLBACK(query_string);
             parser->http_major = 0;
             parser->http_minor = 9;
             state = s_header_field_start;
             break;
           case '#':
-            CALLBACK(query_string);
             state = s_req_fragment_start;
             break;
           default:
@@ -971,7 +949,6 @@ size_t http_parser_execute (http_parser *parser,
       case s_req_fragment_start:
       {
         if (IS_URL_CHAR(ch)) {
-          MARK(fragment);
           state = s_req_fragment;
           break;
         }
@@ -994,7 +971,6 @@ size_t http_parser_execute (http_parser *parser,
             state = s_header_field_start;
             break;
           case '?':
-            MARK(fragment);
             state = s_req_fragment;
             break;
           case '#':
@@ -1013,19 +989,16 @@ size_t http_parser_execute (http_parser *parser,
         switch (ch) {
           case ' ':
             CALLBACK(url);
-            CALLBACK(fragment);
             state = s_req_http_start;
             break;
           case CR:
             CALLBACK(url);
-            CALLBACK(fragment);
             parser->http_major = 0;
             parser->http_minor = 9;
             state = s_req_line_almost_done;
             break;
           case LF:
             CALLBACK(url);
-            CALLBACK(fragment);
             parser->http_major = 0;
             parser->http_minor = 9;
             state = s_header_field_start;
@@ -1733,9 +1706,6 @@ size_t http_parser_execute (http_parser *parser,
 
   CALLBACK(header_field);
   CALLBACK(header_value);
-  CALLBACK(fragment);
-  CALLBACK(query_string);
-  CALLBACK(path);
   CALLBACK(url);
 
   parser->state = state;
