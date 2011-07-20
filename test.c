@@ -44,10 +44,7 @@ struct message {
   enum http_parser_type type;
   enum http_method method;
   int status_code;
-  char request_path[MAX_ELEMENT_SIZE];
   char request_url[MAX_ELEMENT_SIZE];
-  char fragment[MAX_ELEMENT_SIZE];
-  char query_string[MAX_ELEMENT_SIZE];
   char body[MAX_ELEMENT_SIZE];
   size_t body_size;
   int num_headers;
@@ -86,9 +83,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/test"
   ,.request_url= "/test"
   ,.num_headers= 3
   ,.headers=
@@ -117,9 +111,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/favicon.ico"
   ,.request_url= "/favicon.ico"
   ,.num_headers= 8
   ,.headers=
@@ -146,9 +137,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/dumbfuck"
   ,.request_url= "/dumbfuck"
   ,.num_headers= 1
   ,.headers=
@@ -167,9 +155,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
-  ,.query_string= "page=1"
-  ,.fragment= "posts-17408"
-  ,.request_path= "/forums/1/topics/2375"
   /* XXX request url does include fragment? */
   ,.request_url= "/forums/1/topics/2375?page=1#posts-17408"
   ,.num_headers= 0
@@ -186,9 +171,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/get_no_headers_no_body/world"
   ,.request_url= "/get_no_headers_no_body/world"
   ,.num_headers= 0
   ,.body= ""
@@ -205,9 +187,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/get_one_header_no_body"
   ,.request_url= "/get_one_header_no_body"
   ,.num_headers= 1
   ,.headers=
@@ -228,9 +207,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 0
   ,.method= HTTP_GET
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/get_funky_content_length_body_hello"
   ,.request_url= "/get_funky_content_length_body_hello"
   ,.num_headers= 1
   ,.headers=
@@ -253,9 +229,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
-  ,.query_string= "q=search"
-  ,.fragment= "hey"
-  ,.request_path= "/post_identity_body_world"
   ,.request_url= "/post_identity_body_world?q=search#hey"
   ,.num_headers= 3
   ,.headers=
@@ -280,9 +253,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/post_chunked_all_your_base"
   ,.request_url= "/post_chunked_all_your_base"
   ,.num_headers= 1
   ,.headers=
@@ -306,9 +276,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/two_chunks_mult_zero_end"
   ,.request_url= "/two_chunks_mult_zero_end"
   ,.num_headers= 1
   ,.headers=
@@ -334,9 +301,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/chunked_w_trailing_headers"
   ,.request_url= "/chunked_w_trailing_headers"
   ,.num_headers= 3
   ,.headers=
@@ -362,9 +326,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/chunked_w_bullshit_after_length"
   ,.request_url= "/chunked_w_bullshit_after_length"
   ,.num_headers= 1
   ,.headers=
@@ -382,9 +343,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
-  ,.query_string= "foo=\"bar\""
-  ,.fragment= ""
-  ,.request_path= "/with_\"stupid\"_quotes"
   ,.request_url= "/with_\"stupid\"_quotes?foo=\"bar\""
   ,.num_headers= 0
   ,.headers= { }
@@ -408,9 +366,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 0
   ,.method= HTTP_GET
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/test"
   ,.request_url= "/test"
   ,.num_headers= 3
   ,.headers= { { "Host", "0.0.0.0:5000" }
@@ -431,9 +386,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
-  ,.query_string= "foo=bar?baz"
-  ,.fragment= ""
-  ,.request_path= "/test.cgi"
   ,.request_url= "/test.cgi?foo=bar?baz"
   ,.num_headers= 0
   ,.headers= {}
@@ -452,9 +404,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/test"
   ,.request_url= "/test"
   ,.num_headers= 0
   ,.headers= { }
@@ -479,9 +428,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/demo"
   ,.request_url= "/demo"
   ,.num_headers= 7
   ,.upgrade="Hot diggity dogg"
@@ -510,9 +456,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 0
   ,.method= HTTP_CONNECT
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= ""
   ,.request_url= "0-home0.netscape.com:443"
   ,.num_headers= 2
   ,.upgrade="some data\r\nand yet even more data"
@@ -532,9 +475,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_REPORT
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/test"
   ,.request_url= "/test"
   ,.num_headers= 0
   ,.headers= {}
@@ -551,9 +491,6 @@ const struct message requests[] =
   ,.http_major= 0
   ,.http_minor= 9
   ,.method= HTTP_GET
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/"
   ,.request_url= "/"
   ,.num_headers= 0
   ,.headers= {}
@@ -573,9 +510,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_MSEARCH
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "*"
   ,.request_url= "*"
   ,.num_headers= 3
   ,.headers= { { "HOST", "239.255.255.250:1900" }
@@ -602,9 +536,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/"
   ,.request_url= "/"
   ,.num_headers= 2
   ,.headers= { { "Line1", "abcdefghijklmno qrs" }
@@ -624,9 +555,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
-  ,.query_string= "hail=all"
-  ,.fragment= ""
-  ,.request_path= ""
   ,.request_url= "http://hypnotoad.org?hail=all"
   ,.num_headers= 0
   ,.headers= { }
@@ -643,9 +571,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
-  ,.query_string= "hail=all"
-  ,.fragment= ""
-  ,.request_path= ""
   ,.request_url= "http://hypnotoad.org:1234?hail=all"
   ,.num_headers= 0
   ,.headers= { }
@@ -662,9 +587,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= ""
   ,.request_url= "http://hypnotoad.org:1234"
   ,.num_headers= 0
   ,.headers= { }
@@ -683,9 +605,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
-  ,.query_string= "q=1"
-  ,.fragment= "narf"
-  ,.request_path= "/δ¶/δt/pope"
   ,.request_url= "/δ¶/δt/pope?q=1#narf"
   ,.num_headers= 1
   ,.headers= { {"Host", "github.com" }
@@ -705,9 +624,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 0
   ,.method= HTTP_CONNECT
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= ""
   ,.request_url= "home_0.netscape.com:443"
   ,.num_headers= 2
   ,.upgrade=""
@@ -733,9 +649,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_PATCH
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= "/file.txt"
   ,.request_url= "/file.txt"
   ,.num_headers= 4
   ,.headers= { { "Host", "www.example.com" }
@@ -758,9 +671,6 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 0
   ,.method= HTTP_CONNECT
-  ,.query_string= ""
-  ,.fragment= ""
-  ,.request_path= ""
   ,.request_url= "HOME0.NETSCAPE.COM:443"
   ,.num_headers= 2
   ,.upgrade=""
@@ -1136,34 +1046,10 @@ const struct message responses[] =
 };
 
 int
-request_path_cb (http_parser *p, const char *buf, size_t len)
-{
-  assert(p == parser);
-  strncat(messages[num_messages].request_path, buf, len);
-  return 0;
-}
-
-int
 request_url_cb (http_parser *p, const char *buf, size_t len)
 {
   assert(p == parser);
   strncat(messages[num_messages].request_url, buf, len);
-  return 0;
-}
-
-int
-query_string_cb (http_parser *p, const char *buf, size_t len)
-{
-  assert(p == parser);
-  strncat(messages[num_messages].query_string, buf, len);
-  return 0;
-}
-
-int
-fragment_cb (http_parser *p, const char *buf, size_t len)
-{
-  assert(p == parser);
-  strncat(messages[num_messages].fragment, buf, len);
   return 0;
 }
 
@@ -1260,10 +1146,7 @@ static http_parser_settings settings =
   {.on_message_begin = message_begin_cb
   ,.on_header_field = header_field_cb
   ,.on_header_value = header_value_cb
-  ,.on_path = request_path_cb
   ,.on_url = request_url_cb
-  ,.on_fragment = fragment_cb
-  ,.on_query_string = query_string_cb
   ,.on_body = body_cb
   ,.on_headers_complete = headers_complete_cb
   ,.on_message_complete = message_complete_cb
@@ -1273,10 +1156,7 @@ static http_parser_settings settings_count_body =
   {.on_message_begin = message_begin_cb
   ,.on_header_field = header_field_cb
   ,.on_header_value = header_value_cb
-  ,.on_path = request_path_cb
   ,.on_url = request_url_cb
-  ,.on_fragment = fragment_cb
-  ,.on_query_string = query_string_cb
   ,.on_body = count_body_cb
   ,.on_headers_complete = headers_complete_cb
   ,.on_message_complete = message_complete_cb
@@ -1286,10 +1166,7 @@ static http_parser_settings settings_null =
   {.on_message_begin = 0
   ,.on_header_field = 0
   ,.on_header_value = 0
-  ,.on_path = 0
   ,.on_url = 0
-  ,.on_fragment = 0
-  ,.on_query_string = 0
   ,.on_body = 0
   ,.on_headers_complete = 0
   ,.on_message_complete = 0
@@ -1398,9 +1275,6 @@ message_eq (int index, const struct message *expected)
   assert(m->message_complete_cb_called);
 
 
-  MESSAGE_CHECK_STR_EQ(expected, m, request_path);
-  MESSAGE_CHECK_STR_EQ(expected, m, query_string);
-  MESSAGE_CHECK_STR_EQ(expected, m, fragment);
   MESSAGE_CHECK_STR_EQ(expected, m, request_url);
   if (expected->body_size) {
     MESSAGE_CHECK_NUM_EQ(expected, m, body_size);
