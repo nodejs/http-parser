@@ -61,7 +61,7 @@ do {                                                                 \
   FOR##_mark = p;                                                    \
 } while (0)
 
-#define CALLBACK_NOCLEAR(FOR)                                        \
+#define CALLBACK(FOR)                                                \
 do {                                                                 \
   if (FOR##_mark) {                                                  \
     if (settings->on_##FOR) {                                        \
@@ -73,14 +73,8 @@ do {                                                                 \
         return (p - data);                                           \
       }                                                              \
     }                                                                \
+    FOR##_mark = NULL;                                               \
   }                                                                  \
-} while (0)
-
-
-#define CALLBACK(FOR)                                                \
-do {                                                                 \
-  CALLBACK_NOCLEAR(FOR);                                             \
-  FOR##_mark = NULL;                                                 \
 } while (0)
 
 
@@ -1737,12 +1731,12 @@ size_t http_parser_execute (http_parser *parser,
     }
   }
 
-  CALLBACK_NOCLEAR(header_field);
-  CALLBACK_NOCLEAR(header_value);
-  CALLBACK_NOCLEAR(fragment);
-  CALLBACK_NOCLEAR(query_string);
-  CALLBACK_NOCLEAR(path);
-  CALLBACK_NOCLEAR(url);
+  CALLBACK(header_field);
+  CALLBACK(header_value);
+  CALLBACK(fragment);
+  CALLBACK(query_string);
+  CALLBACK(path);
+  CALLBACK(url);
 
   parser->state = state;
   parser->header_state = header_state;
