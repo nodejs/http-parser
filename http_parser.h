@@ -189,7 +189,7 @@ enum http_errno {
 
 
 /* Get an http_errno value from an http_parser */
-#define HTTP_PARSER_ERRNO(p)            ((enum http_errno) (p)->errno)
+#define HTTP_PARSER_ERRNO(p)            ((enum http_errno) (p)->http_errno)
 
 /* Get the line number that generated the current error */
 #if HTTP_PARSER_DEBUG
@@ -215,7 +215,7 @@ struct http_parser {
   unsigned short http_minor;
   unsigned short status_code; /* responses only */
   unsigned char method;    /* requests only */
-  unsigned char errno : 7;
+  unsigned char http_errno : 7;
 
   /* 1 = Upgrade header was present and the parser has exited because of that.
    * 0 = No upgrade header present.
