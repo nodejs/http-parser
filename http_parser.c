@@ -34,13 +34,13 @@
 #if HTTP_PARSER_DEBUG
 #define SET_ERRNO(e)                                                 \
 do {                                                                 \
-  parser->errno = (e);                                               \
+  parser->http_errno = (e);                                          \
   parser->error_lineno = __LINE__;                                   \
 } while (0)
 #else
 #define SET_ERRNO(e)                                                 \
 do {                                                                 \
-  parser->errno = (e);                                               \
+  parser->http_errno = (e);                                          \
 } while(0)
 #endif
 
@@ -1760,7 +1760,7 @@ http_parser_init (http_parser *parser, enum http_parser_type t)
   parser->upgrade = 0;
   parser->flags = 0;
   parser->method = 0;
-  parser->errno = 0;
+  parser->http_errno = 0;
 }
 
 const char *
