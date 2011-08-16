@@ -402,6 +402,7 @@ size_t http_parser_execute (http_parser *parser,
   const char *header_field_mark = 0;
   const char *header_value_mark = 0;
   const char *url_mark = 0;
+  const char *reason_mark = 0;
 
   if (state == s_header_field)
     header_field_mark = data;
@@ -629,16 +630,16 @@ size_t http_parser_execute (http_parser *parser,
       }
 
       case s_res_status:
-        /* the human readable status. e.g. "NOT FOUND"
-         * we are not humans so just ignore this */
-        if (ch == CR) {
-          state = s_res_line_almost_done;
-          break;
-        }
-
-        if (ch == LF) {
-          state = s_header_field_start;
-          break;
+        switch (ch) {
+          case CR:
+            state = s_res_line_almost_done;
+            break;
+          case LF:
+            state = s_header_field_start;
+            break;
+          default:
+            CALLBACK(reason);
+            break;
         }
         break;
 

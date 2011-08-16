@@ -146,6 +146,7 @@ enum flags
   XX(CB_path, "the on_path callback failed")                         \
   XX(CB_query_string, "the on_query_string callback failed")         \
   XX(CB_url, "the on_url callback failed")                           \
+  XX(CB_reason, "the on_reason callback failed")                     \
   XX(CB_fragment, "the on_fragment callback failed")                 \
   XX(CB_header_field, "the on_header_field callback failed")         \
   XX(CB_header_value, "the on_header_value callback failed")         \
@@ -236,6 +237,7 @@ struct http_parser {
 struct http_parser_settings {
   http_cb      on_message_begin;
   http_data_cb on_url;
+  http_data_cb on_reason;
   http_data_cb on_header_field;
   http_data_cb on_header_value;
   http_cb      on_headers_complete;
