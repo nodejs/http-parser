@@ -632,13 +632,17 @@ size_t http_parser_execute (http_parser *parser,
       case s_res_status:
         switch (ch) {
           case CR:
+            CALLBACK(reason);
             state = s_res_line_almost_done;
             break;
           case LF:
+            CALLBACK(reason);
             state = s_header_field_start;
             break;
           default:
-            CALLBACK(reason);
+            if (reason_mark == 0 && IS_ALPHA(ch)) {
+              MARK(reason);
+            }
             break;
         }
         break;
@@ -1708,6 +1712,7 @@ size_t http_parser_execute (http_parser *parser,
   CALLBACK(header_field);
   CALLBACK(header_value);
   CALLBACK(url);
+  CALLBACK(reason);
 
   parser->state = state;
   parser->header_state = header_state;
