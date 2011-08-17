@@ -640,7 +640,7 @@ size_t http_parser_execute (http_parser *parser,
             state = s_header_field_start;
             break;
           default:
-            if (reason_mark == 0 && IS_ALPHA(ch)) {
+            if (reason_mark == 0) {
               MARK(reason);
             }
             break;

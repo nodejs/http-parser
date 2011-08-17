@@ -44,6 +44,7 @@ struct message {
   enum http_parser_type type;
   enum http_method method;
   int status_code;
+  char reason[MAX_ELEMENT_SIZE];
   char request_url[MAX_ELEMENT_SIZE];
   char body[MAX_ELEMENT_SIZE];
   size_t body_size;
@@ -709,6 +710,7 @@ const struct message responses[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 301
+  ,.reason= "Moved Permanently"
   ,.num_headers= 8
   ,.headers=
     { { "Location", "http://www.google.com/" }
@@ -757,6 +759,7 @@ const struct message responses[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 200
+  ,.reason= "OK"
   ,.num_headers= 5
   ,.headers=
     { { "Date", "Tue, 04 Aug 2009 07:59:32 GMT" }
@@ -785,6 +788,7 @@ const struct message responses[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 404
+  ,.reason= "Not Found"
   ,.num_headers= 0
   ,.headers= {}
   ,.body_size= 0
@@ -800,6 +804,7 @@ const struct message responses[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 301
+  ,.reason= ""
   ,.num_headers= 0
   ,.headers= {}
   ,.body= ""
@@ -825,6 +830,7 @@ const struct message responses[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 200
+  ,.reason= "OK"
   ,.num_headers= 2
   ,.headers=
     { {"Content-Type", "text/plain" }
@@ -850,6 +856,7 @@ const struct message responses[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 200
+  ,.reason= "OK"
   ,.num_headers= 2
   ,.headers=
     { {"Content-Type", "text/html; charset=utf-8" }
@@ -873,6 +880,7 @@ const struct message responses[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 200
+  ,.reason= "OK"
   ,.num_headers= 4
   ,.headers=
     { {"Content-Type", "text/html; charset=UTF-8" }
@@ -898,6 +906,7 @@ const struct message responses[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 200
+  ,.reason= "OK"
   ,.num_headers= 4
   ,.headers=
     { {"Server", "DCLK-AdSvr" }
@@ -930,6 +939,7 @@ const struct message responses[] =
   ,.http_major= 1
   ,.http_minor= 0
   ,.status_code= 301
+  ,.reason= "Moved Permanently"
   ,.num_headers= 9
   ,.headers=
     { { "Date", "Thu, 03 Jun 2010 09:56:32 GMT" }
@@ -964,6 +974,7 @@ const struct message responses[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 200
+  ,.reason= "OK"
   ,.num_headers= 7
   ,.headers=
     { { "Server",  "Microsoft-IIS/6.0" }
@@ -1001,6 +1012,7 @@ const struct message responses[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 200
+  ,.reason= "OK"
   ,.num_headers= 11
   ,.headers=
     { { "Date", "Tue, 28 Sep 2010 01:14:13 GMT" }
@@ -1032,6 +1044,7 @@ const struct message responses[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 500
+  ,.reason= "Oriëntatieprobleem"
   ,.num_headers= 3
   ,.headers=
     { { "Date", "Fri, 5 Nov 2010 23:07:12 GMT+2" }
@@ -1050,6 +1063,14 @@ request_url_cb (http_parser *p, const char *buf, size_t len)
 {
   assert(p == parser);
   strncat(messages[num_messages].request_url, buf, len);
+  return 0;
+}
+
+int
+reason_cb (http_parser *p, const char *buf, size_t len)
+{
+  assert(p == parser);
+  strncat(messages[num_messages].reason, buf, len);
   return 0;
 }
 
@@ -1147,6 +1168,7 @@ static http_parser_settings settings =
   ,.on_header_field = header_field_cb
   ,.on_header_value = header_value_cb
   ,.on_url = request_url_cb
+  ,.on_reason = reason_cb
   ,.on_body = body_cb
   ,.on_headers_complete = headers_complete_cb
   ,.on_message_complete = message_complete_cb
@@ -1157,6 +1179,7 @@ static http_parser_settings settings_count_body =
   ,.on_header_field = header_field_cb
   ,.on_header_value = header_value_cb
   ,.on_url = request_url_cb
+  ,.on_reason = reason_cb
   ,.on_body = count_body_cb
   ,.on_headers_complete = headers_complete_cb
   ,.on_message_complete = message_complete_cb
@@ -1265,6 +1288,7 @@ message_eq (int index, const struct message *expected)
     MESSAGE_CHECK_NUM_EQ(expected, m, method);
   } else {
     MESSAGE_CHECK_NUM_EQ(expected, m, status_code);
+    MESSAGE_CHECK_STR_EQ(expected, m, reason);
   }
 
   MESSAGE_CHECK_NUM_EQ(expected, m, should_keep_alive);
@@ -1857,6 +1881,7 @@ main (void)
       ,.http_major= 1
       ,.http_minor= 0
       ,.status_code= 200
+      ,.reason= "OK"
       ,.num_headers= 2
       ,.headers=
         { { "Transfer-Encoding", "chunked" }
