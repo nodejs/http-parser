@@ -27,8 +27,12 @@ extern "C" {
 #define HTTP_PARSER_VERSION_MAJOR 1
 #define HTTP_PARSER_VERSION_MINOR 0
 
+#if RUBY_VERSION >= 190
+#include <ruby/config.h>
+#endif
+
 #include <sys/types.h>
-#if defined(_WIN32) && !defined(__MINGW32__) && !defined(_MSC_VER)
+#if !defined(HAVE_STDINT_H)
 typedef __int8 int8_t;
 typedef unsigned __int8 uint8_t;
 typedef __int16 int16_t;
