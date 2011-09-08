@@ -593,48 +593,7 @@ const struct message requests[] =
   ,.body= ""
   }
 
-#if !HTTP_PARSER_STRICT
-#define UTF8_PATH_REQ 24
-, {.name= "utf-8 path request"
-  ,.type= HTTP_REQUEST
-  ,.raw= "GET /δ¶/δt/pope?q=1#narf HTTP/1.1\r\n"
-         "Host: github.com\r\n"
-         "\r\n"
-  ,.should_keep_alive= TRUE
-  ,.message_complete_on_eof= FALSE
-  ,.http_major= 1
-  ,.http_minor= 1
-  ,.method= HTTP_GET
-  ,.request_url= "/δ¶/δt/pope?q=1#narf"
-  ,.num_headers= 1
-  ,.headers= { {"Host", "github.com" }
-             }
-  ,.body= ""
-  }
-
-#define HOSTNAME_UNDERSCORE 25
-, {.name = "hostname underscore"
-  ,.type= HTTP_REQUEST
-  ,.raw= "CONNECT home_0.netscape.com:443 HTTP/1.0\r\n"
-         "User-agent: Mozilla/1.1N\r\n"
-         "Proxy-authorization: basic aGVsbG86d29ybGQ=\r\n"
-         "\r\n"
-  ,.should_keep_alive= FALSE
-  ,.message_complete_on_eof= FALSE
-  ,.http_major= 1
-  ,.http_minor= 0
-  ,.method= HTTP_CONNECT
-  ,.request_url= "home_0.netscape.com:443"
-  ,.num_headers= 2
-  ,.upgrade=""
-  ,.headers= { { "User-agent", "Mozilla/1.1N" }
-             , { "Proxy-authorization", "basic aGVsbG86d29ybGQ=" }
-             }
-  ,.body= ""
-  }
-#endif  /* !HTTP_PARSER_STRICT */
-
-#define PATCH_REQ 26
+#define PATCH_REQ 24
 , {.name = "PATCH request"
   ,.type= HTTP_REQUEST
   ,.raw= "PATCH /file.txt HTTP/1.1\r\n"
@@ -659,7 +618,7 @@ const struct message requests[] =
   ,.body= "cccccccccc"
   }
 
-#define CONNECT_CAPS_REQUEST 27
+#define CONNECT_CAPS_REQUEST 25
 , {.name = "connect caps request"
   ,.type= HTTP_REQUEST
   ,.raw= "CONNECT HOME0.NETSCAPE.COM:443 HTTP/1.0\r\n"
@@ -679,6 +638,47 @@ const struct message requests[] =
              }
   ,.body= ""
   }
+
+#if !HTTP_PARSER_STRICT
+#define UTF8_PATH_REQ 26
+, {.name= "utf-8 path request"
+  ,.type= HTTP_REQUEST
+  ,.raw= "GET /δ¶/δt/pope?q=1#narf HTTP/1.1\r\n"
+         "Host: github.com\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GET
+  ,.request_url= "/δ¶/δt/pope?q=1#narf"
+  ,.num_headers= 1
+  ,.headers= { {"Host", "github.com" }
+             }
+  ,.body= ""
+  }
+
+#define HOSTNAME_UNDERSCORE 27
+, {.name = "hostname underscore"
+  ,.type= HTTP_REQUEST
+  ,.raw= "CONNECT home_0.netscape.com:443 HTTP/1.0\r\n"
+         "User-agent: Mozilla/1.1N\r\n"
+         "Proxy-authorization: basic aGVsbG86d29ybGQ=\r\n"
+         "\r\n"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 0
+  ,.method= HTTP_CONNECT
+  ,.request_url= "home_0.netscape.com:443"
+  ,.num_headers= 2
+  ,.upgrade=""
+  ,.headers= { { "User-agent", "Mozilla/1.1N" }
+             , { "Proxy-authorization", "basic aGVsbG86d29ybGQ=" }
+             }
+  ,.body= ""
+  }
+#endif  /* !HTTP_PARSER_STRICT */
 
 , {.name= NULL } /* sentinel */
 };
@@ -945,40 +945,7 @@ const struct message responses[] =
   ,.body= ""
   }
 
-#define SPACE_IN_FIELD_RES 9
-/* Should handle spaces in header fields */
-, {.name= "field space"
-  ,.type= HTTP_RESPONSE
-  ,.raw= "HTTP/1.1 200 OK\r\n"
-         "Server: Microsoft-IIS/6.0\r\n"
-         "X-Powered-By: ASP.NET\r\n"
-         "en-US Content-Type: text/xml\r\n" /* this is the problem */
-         "Content-Type: text/xml\r\n"
-         "Content-Length: 16\r\n"
-         "Date: Fri, 23 Jul 2010 18:45:38 GMT\r\n"
-         "Connection: keep-alive\r\n"
-         "\r\n"
-         "<xml>hello</xml>" /* fake body */
-  ,.should_keep_alive= TRUE
-  ,.message_complete_on_eof= FALSE
-  ,.http_major= 1
-  ,.http_minor= 1
-  ,.status_code= 200
-  ,.num_headers= 7
-  ,.headers=
-    { { "Server",  "Microsoft-IIS/6.0" }
-    , { "X-Powered-By", "ASP.NET" }
-    , { "en-US Content-Type", "text/xml" }
-    , { "Content-Type", "text/xml" }
-    , { "Content-Length", "16" }
-    , { "Date", "Fri, 23 Jul 2010 18:45:38 GMT" }
-    , { "Connection", "keep-alive" }
-    }
-  ,.body= "<xml>hello</xml>"
-  }
-
-
-#define RES_FIELD_UNDERSCORE 10
+#define RES_FIELD_UNDERSCORE 9
 /* Should handle spaces in header fields */
 , {.name= "field underscore"
   ,.type= HTTP_RESPONSE
@@ -1018,7 +985,7 @@ const struct message responses[] =
   ,.body= ""
   }
 
-#define NON_ASCII_IN_STATUS_LINE 11
+#define NON_ASCII_IN_STATUS_LINE 10
 /* Should handle non-ASCII in status line */
 , {.name= "non-ASCII in status line"
   ,.type= HTTP_RESPONSE
@@ -1041,7 +1008,7 @@ const struct message responses[] =
   ,.body= ""
   }
 
-#define HTTP_VERSION_0_9 12
+#define HTTP_VERSION_0_9 11
 /* Should handle HTTP/0.9 */
 , {.name= "http version 0.9"
   ,.type= HTTP_RESPONSE
@@ -1058,7 +1025,7 @@ const struct message responses[] =
   ,.body= ""
   }
 
-#define NO_CONTENT_LENGTH_NO_TRANSFER_ENCODING_RESPONSE 13
+#define NO_CONTENT_LENGTH_NO_TRANSFER_ENCODING_RESPONSE 12
 /* The client should wait for the server's EOF. That is, when neither
  * content-length nor transfer-encoding is specified, the end of body
  * is specified by the EOF.
@@ -1081,7 +1048,7 @@ const struct message responses[] =
   ,.body= "hello world"
   }
 
-#define NO_HEADERS_NO_BODY_204 14
+#define NO_HEADERS_NO_BODY_204 13
 , {.name= "204 no headers no body"
   ,.type= HTTP_RESPONSE
   ,.raw= "HTTP/1.1 204 No Content\r\n\r\n"
@@ -1095,6 +1062,40 @@ const struct message responses[] =
   ,.body_size= 0
   ,.body= ""
   }
+
+#if !HTTP_PARSER_STRICT
+#define SPACE_IN_FIELD_RES 14
+/* Should handle spaces in header fields */
+, {.name= "field space"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 200 OK\r\n"
+         "Server: Microsoft-IIS/6.0\r\n"
+         "X-Powered-By: ASP.NET\r\n"
+         "en-US Content-Type: text/xml\r\n" /* this is the problem */
+         "Content-Type: text/xml\r\n"
+         "Content-Length: 16\r\n"
+         "Date: Fri, 23 Jul 2010 18:45:38 GMT\r\n"
+         "Connection: keep-alive\r\n"
+         "\r\n"
+         "<xml>hello</xml>" /* fake body */
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 200
+  ,.num_headers= 7
+  ,.headers=
+    { { "Server",  "Microsoft-IIS/6.0" }
+    , { "X-Powered-By", "ASP.NET" }
+    , { "en-US Content-Type", "text/xml" }
+    , { "Content-Type", "text/xml" }
+    , { "Content-Length", "16" }
+    , { "Date", "Fri, 23 Jul 2010 18:45:38 GMT" }
+    , { "Connection", "keep-alive" }
+    }
+  ,.body= "<xml>hello</xml>"
+  }
+#endif /* !HTTP_PARSER_STRICT */
 
 , {.name= NULL } /* sentinel */
 };
