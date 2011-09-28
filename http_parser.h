@@ -207,7 +207,7 @@ struct http_parser {
   unsigned char header_state;
   unsigned char index;
 
-  uint32_t nread;
+  size_t nread;
   int64_t content_length;
 
   /** READ-ONLY **/
