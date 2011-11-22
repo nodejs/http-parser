@@ -515,7 +515,7 @@ size_t http_parser_execute (http_parser *parser,
         break;
 
       case s_res_first_http_major:
-        if (ch < '1' || ch > '9') {
+        if (ch < '0' || ch > '9') {
           SET_ERRNO(HPE_INVALID_VERSION);
           goto error;
         }
