@@ -133,9 +133,9 @@ static const char tokens[256] = {
 /*  24 can   25 em    26 sub   27 esc   28 fs    29 gs    30 rs    31 us  */
         0,       0,       0,       0,       0,       0,       0,       0,
 /*  32 sp    33  !    34  "    35  #    36  $    37  %    38  &    39  '  */
-       ' ',      '!',     '"',     '#',     '$',     '%',     '&',    '\'',
+        0,      '!',      0,      '#',     '$',     '%',     '&',    '\'',
 /*  40  (    41  )    42  *    43  +    44  ,    45  -    46  .    47  /  */
-        0,       0,      '*',     '+',      0,      '-',     '.',     '/',
+        0,       0,      '*',     '+',      0,      '-',     '.',      0,
 /*  48  0    49  1    50  2    51  3    52  4    53  5    54  6    55  7  */
        '0',     '1',     '2',     '3',     '4',     '5',     '6',     '7',
 /*  56  8    57  9    58  :    59  ;    60  <    61  =    62  >    63  ?  */
@@ -155,7 +155,7 @@ static const char tokens[256] = {
 /* 112  p   113  q   114  r   115  s   116  t   117  u   118  v   119  w  */
        'p',     'q',     'r',     's',     't',     'u',     'v',     'w',
 /* 120  x   121  y   122  z   123  {   124  |   125  }   126  ~   127 del */
-       'x',     'y',     'z',      0,      '|',     '}',     '~',       0 };
+       'x',     'y',     'z',      0,      '|',      0,      '~',       0 };
 
 
 static const int8_t unhex[256] =
@@ -311,15 +311,16 @@ enum header_states
 #define CR                  '\r'
 #define LF                  '\n'
 #define LOWER(c)            (unsigned char)(c | 0x20)
-#define TOKEN(c)            (tokens[(unsigned char)c])
 #define IS_ALPHA(c)         (LOWER(c) >= 'a' && LOWER(c) <= 'z')
 #define IS_NUM(c)           ((c) >= '0' && (c) <= '9')
 #define IS_ALPHANUM(c)      (IS_ALPHA(c) || IS_NUM(c))
 
 #if HTTP_PARSER_STRICT
+#define TOKEN(c)            (tokens[(unsigned char)c])
 #define IS_URL_CHAR(c)      (normal_url_char[(unsigned char) (c)])
 #define IS_HOST_CHAR(c)     (IS_ALPHANUM(c) || (c) == '.' || (c) == '-')
 #else
+#define TOKEN(c)            ((c == ' ') ? ' ' : tokens[(unsigned char)c])
 #define IS_URL_CHAR(c)                                                         \
   (normal_url_char[(unsigned char) (c)] || ((c) & 0x80))
 #define IS_HOST_CHAR(c)                                                        \
