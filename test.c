@@ -1218,7 +1218,7 @@ const struct message responses[] =
          "Connection: close\r\n"
          "\r\n"
   ,.should_keep_alive= FALSE
-  ,.message_complete_on_eof= TRUE
+  ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 204

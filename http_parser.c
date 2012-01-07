@@ -358,6 +358,8 @@ static struct {
 };
 #undef HTTP_STRERROR_GEN
 
+int http_message_needs_eof(http_parser *parser);
+
 /* Our URL parser.
  *
  * This is designed to be shared by http_parser_execute() for URL validation,
@@ -1541,7 +1543,8 @@ size_t http_parser_execute (http_parser *parser,
             /* Content-Length header given and non-zero */
             state = s_body_identity;
           } else {
-            if (parser->type == HTTP_REQUEST || http_should_keep_alive(parser)) {
+            if (parser->type == HTTP_REQUEST ||
+                !http_message_needs_eof(parser)) {
               /* Assume content-length 0 - read the next */
               CALLBACK2(message_complete);
               state = NEW_MESSAGE();
@@ -1704,6 +1707,30 @@ error:
 }
 
 
+/* Does the parser need to see an EOF to find the end of the message? */
+int
+http_message_needs_eof (http_parser *parser)
+{
+  if (parser->type == HTTP_REQUEST) {
+    return 0;
+  }
+
+  /* See RFC 2616 section 4.4 */
+  if (parser->status_code / 100 == 1 || /* 1xx e.g. Continue */
+      parser->status_code == 204 ||     /* No Content */
+      parser->status_code == 304 ||     /* Not Modified */
+      parser->flags & F_SKIPBODY) {     /* response to a HEAD request */
+    return 0;
+  }
+
+  if ((parser->flags & F_CHUNKED) || parser->content_length >= 0) {
+    return 0;
+  }
+
+  return 1;
+}
+
+
 int
 http_should_keep_alive (http_parser *parser)
 {
@@ -1719,23 +1746,7 @@ http_should_keep_alive (http_parser *parser)
     }
   }
 
-  if (parser->type == HTTP_REQUEST) {
-    return 1;
-  }
-
-  /* See RFC 2616 section 4.4 */
-  if (parser->status_code / 100 == 1 || /* 1xx e.g. Continue */
-      parser->status_code == 204 ||     /* No Content */
-      parser->status_code == 304 ||     /* Not Modified */
-      parser->flags & F_SKIPBODY) {     /* response to a HEAD request */
-    return 1;
-  }
-
-  if (parser->flags & F_CHUNKED || parser->content_length >= 0) {
-    return 1;
-  }
-
-  return 0;
+  return !http_message_needs_eof(parser);
 }
 
 
