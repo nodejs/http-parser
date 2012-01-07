@@ -24,6 +24,8 @@
 #include <http_parser.h>
 #include <assert.h>
 #include <stddef.h>
+#include <ctype.h>
+#include <stdlib.h>
 
 
 #ifndef MIN
@@ -261,7 +263,7 @@ enum state
   , s_chunk_size
   , s_chunk_parameters
   , s_chunk_size_almost_done
-  
+
   , s_headers_almost_done
   /* Important: 's_headers_almost_done' must be the last 'header' state. All
    * states beyond this must be 'body' states. It is used for overflow
@@ -356,6 +358,178 @@ static struct {
 };
 #undef HTTP_STRERROR_GEN
 
+/* Our URL parser.
+ *
+ * This is designed to be shared by http_parser_execute() for URL validation,
+ * hence it has a state transition + byte-for-byte interface. In addition, it
+ * is meant to be embedded in http_parser_parse_url(), which does the dirty
+ * work of turning state transitions URL components for its API.
+ *
+ * This function should only be invoked with non-space characters. It is
+ * assumed that the caller cares about (and can detect) the transition between
+ * URL and non-URL states by looking for these.
+ */
+static inline enum state
+parse_url_char(enum state s, const char ch, int is_connect)
+{
+  assert(!isspace(ch));
+
+  switch (s) {
+    case s_req_spaces_before_url:
+      if (ch == '/' || ch == '*') {
+        return s_req_path;
+      }
+
+      /* Proxied requests are followed by scheme of an absolute URI (alpha).
+       * CONNECT is followed by a hostname, which begins with alphanum.
+       * All other methods are followed by '/' or '*' (handled above).
+       */
+      if (IS_ALPHA(ch) || (is_connect && IS_NUM(ch))) {
+        return (is_connect) ? s_req_host : s_req_schema;
+      }
+
+      break;
+
+    case s_req_schema:
+      if (IS_ALPHA(ch)) {
+        return s;
+      }
+
+      if (ch == ':') {
+        return s_req_schema_slash;
+      }
+
+      break;
+
+    case s_req_schema_slash:
+      if (ch == '/') {
+        return s_req_schema_slash_slash;
+      }
+
+      break;
+
+    case s_req_schema_slash_slash:
+      if (ch == '/') {
+        return s_req_host;
+      }
+
+      break;
+
+    case s_req_host:
+      if (IS_HOST_CHAR(ch)) {
+        return s;
+      }
+
+      switch (ch) {
+        case ':':
+          return s_req_port;
+
+        case '/':
+          return s_req_path;
+
+        case '?':
+          return s_req_query_string_start;
+      }
+
+      break;
+
+    case s_req_port:
+      if (IS_NUM(ch)) {
+        return s;
+      }
+
+      switch (ch) {
+        case '/':
+          return s_req_path;
+
+        case '?':
+          return s_req_query_string_start;
+      }
+
+      break;
+
+    case s_req_path:
+      if (IS_URL_CHAR(ch)) {
+        return s;
+      }
+
+      switch (ch) {
+        case '?':
+          return s_req_query_string_start;
+
+        case '#':
+          return s_req_fragment_start;
+      }
+
+      break;
+
+    case s_req_query_string_start:
+      if (IS_URL_CHAR(ch)) {
+        return s_req_query_string;
+      }
+
+      switch (ch) {
+        case '?':
+          /* XXX ignore extra '?' ... is this right? */
+          return s;
+
+        case '#':
+          return s_req_fragment_start;
+      }
+
+      break;
+
+    case s_req_query_string:
+      if (IS_URL_CHAR(ch)) {
+        return s;
+      }
+
+      switch (ch) {
+        case '?':
+          /* allow extra '?' in query string */
+          return s;
+
+        case '#':
+          return s_req_fragment_start;
+      }
+
+      break;
+
+    case s_req_fragment_start:
+      if (IS_URL_CHAR(ch)) {
+        return s_req_fragment;
+      }
+
+      switch (ch) {
+        case '?':
+          return s_req_fragment;
+
+        case '#':
+          return s;
+      }
+
+      break;
+
+    case s_req_fragment:
+      if (IS_URL_CHAR(ch)) {
+        return s;
+      }
+
+      switch (ch) {
+        case '?':
+        case '#':
+          return s;
+      }
+
+      break;
+
+    default:
+      break;
+  }
+
+  /* We should never fall out of the switch above unless there's an error */
+  return s_dead;
+}
 
 size_t http_parser_execute (http_parser *parser,
                             const http_parser_settings *settings,
@@ -749,269 +923,72 @@ size_t http_parser_execute (http_parser *parser,
       {
         if (ch == ' ') break;
 
-        if (ch == '/' || ch == '*') {
-          MARK(url);
-          state = s_req_path;
-          break;
+        MARK(url);
+
+        state = parse_url_char(state, ch, parser->method == HTTP_CONNECT);
+        if (state == s_dead) {
+          SET_ERRNO(HPE_INVALID_URL);
+          goto error;
         }
 
-        /* Proxied requests are followed by scheme of an absolute URI (alpha).
-         * CONNECT is followed by a hostname, which begins with alphanum.
-         * All other methods are followed by '/' or '*' (handled above).
-         */
-        if (IS_ALPHA(ch) || (parser->method == HTTP_CONNECT && IS_NUM(ch))) {
-          MARK(url);
-          state = (parser->method == HTTP_CONNECT) ? s_req_host : s_req_schema;
-          break;
-        }
-
-        SET_ERRNO(HPE_INVALID_URL);
-        goto error;
+        break;
       }
 
       case s_req_schema:
+      case s_req_schema_slash:
+      case s_req_schema_slash_slash:
       {
-        if (IS_ALPHA(ch)) break;
-
-        if (ch == ':') {
-          state = s_req_schema_slash;
-          break;
+        switch (ch) {
+          /* No whitespace allowed here */
+          case ' ':
+          case CR:
+          case LF:
+            SET_ERRNO(HPE_INVALID_URL);
+            goto error;
+          default:
+            state = parse_url_char(state, ch, parser->method == HTTP_CONNECT);
+            if (state == s_dead) {
+              SET_ERRNO(HPE_INVALID_URL);
+              goto error;
+            }
         }
 
-        SET_ERRNO(HPE_INVALID_URL);
-        goto error;
+        break;
       }
-
-      case s_req_schema_slash:
-        STRICT_CHECK(ch != '/');
-        state = s_req_schema_slash_slash;
-        break;
-
-      case s_req_schema_slash_slash:
-        STRICT_CHECK(ch != '/');
-        state = s_req_host;
-        break;
 
       case s_req_host:
-      {
-        if (IS_HOST_CHAR(ch)) break;
-        switch (ch) {
-          case ':':
-            state = s_req_port;
-            break;
-          case '/':
-            state = s_req_path;
-            break;
-          case ' ':
-            /* The request line looks like:
-             *   "GET http://foo.bar.com HTTP/1.1"
-             * That is, there is no path.
-             */
-            CALLBACK(url);
-            state = s_req_http_start;
-            break;
-          case '?':
-            state = s_req_query_string_start;
-            break;
-          default:
-            SET_ERRNO(HPE_INVALID_HOST);
-            goto error;
-        }
-        break;
-      }
-
       case s_req_port:
-      {
-        if (IS_NUM(ch)) break;
-        switch (ch) {
-          case '/':
-            state = s_req_path;
-            break;
-          case ' ':
-            /* The request line looks like:
-             *   "GET http://foo.bar.com:1234 HTTP/1.1"
-             * That is, there is no path.
-             */
-            CALLBACK(url);
-            state = s_req_http_start;
-            break;
-          case '?':
-            state = s_req_query_string_start;
-            break;
-          default:
-            SET_ERRNO(HPE_INVALID_PORT);
-            goto error;
-        }
-        break;
-      }
-
       case s_req_path:
-      {
-        if (IS_URL_CHAR(ch)) break;
-
-        switch (ch) {
-          case ' ':
-            CALLBACK(url);
-            state = s_req_http_start;
-            break;
-          case CR:
-            CALLBACK(url);
-            parser->http_major = 0;
-            parser->http_minor = 9;
-            state = s_req_line_almost_done;
-            break;
-          case LF:
-            CALLBACK(url);
-            parser->http_major = 0;
-            parser->http_minor = 9;
-            state = s_header_field_start;
-            break;
-          case '?':
-            state = s_req_query_string_start;
-            break;
-          case '#':
-            state = s_req_fragment_start;
-            break;
-          default:
-            SET_ERRNO(HPE_INVALID_PATH);
-            goto error;
-        }
-        break;
-      }
-
       case s_req_query_string_start:
-      {
-        if (IS_URL_CHAR(ch)) {
-          state = s_req_query_string;
-          break;
-        }
-
-        switch (ch) {
-          case '?':
-            break; /* XXX ignore extra '?' ... is this right? */
-          case ' ':
-            CALLBACK(url);
-            state = s_req_http_start;
-            break;
-          case CR:
-            CALLBACK(url);
-            parser->http_major = 0;
-            parser->http_minor = 9;
-            state = s_req_line_almost_done;
-            break;
-          case LF:
-            CALLBACK(url);
-            parser->http_major = 0;
-            parser->http_minor = 9;
-            state = s_header_field_start;
-            break;
-          case '#':
-            state = s_req_fragment_start;
-            break;
-          default:
-            SET_ERRNO(HPE_INVALID_QUERY_STRING);
-            goto error;
-        }
-        break;
-      }
-
       case s_req_query_string:
-      {
-        if (IS_URL_CHAR(ch)) break;
-
-        switch (ch) {
-          case '?':
-            /* allow extra '?' in query string */
-            break;
-          case ' ':
-            CALLBACK(url);
-            state = s_req_http_start;
-            break;
-          case CR:
-            CALLBACK(url);
-            parser->http_major = 0;
-            parser->http_minor = 9;
-            state = s_req_line_almost_done;
-            break;
-          case LF:
-            CALLBACK(url);
-            parser->http_major = 0;
-            parser->http_minor = 9;
-            state = s_header_field_start;
-            break;
-          case '#':
-            state = s_req_fragment_start;
-            break;
-          default:
-            SET_ERRNO(HPE_INVALID_QUERY_STRING);
-            goto error;
-        }
-        break;
-      }
-
       case s_req_fragment_start:
-      {
-        if (IS_URL_CHAR(ch)) {
-          state = s_req_fragment;
-          break;
-        }
-
-        switch (ch) {
-          case ' ':
-            CALLBACK(url);
-            state = s_req_http_start;
-            break;
-          case CR:
-            CALLBACK(url);
-            parser->http_major = 0;
-            parser->http_minor = 9;
-            state = s_req_line_almost_done;
-            break;
-          case LF:
-            CALLBACK(url);
-            parser->http_major = 0;
-            parser->http_minor = 9;
-            state = s_header_field_start;
-            break;
-          case '?':
-            state = s_req_fragment;
-            break;
-          case '#':
-            break;
-          default:
-            SET_ERRNO(HPE_INVALID_FRAGMENT);
-            goto error;
-        }
-        break;
-      }
-
       case s_req_fragment:
       {
-        if (IS_URL_CHAR(ch)) break;
-
+        /* XXX: There is a bug here where if we're on the first character
+         *      of s_req_host (e.g. our URL is 'http://' and we see a whitespace
+         *      character, we'll consider this a valid URL. This seems incorrect,
+         *      but at least it's bug-compatible with what we had before.
+         */
         switch (ch) {
           case ' ':
             CALLBACK(url);
             state = s_req_http_start;
             break;
           case CR:
-            CALLBACK(url);
-            parser->http_major = 0;
-            parser->http_minor = 9;
-            state = s_req_line_almost_done;
-            break;
           case LF:
             CALLBACK(url);
             parser->http_major = 0;
             parser->http_minor = 9;
-            state = s_header_field_start;
-            break;
-          case '?':
-          case '#':
+            state = (ch == CR) ?
+              s_req_line_almost_done :
+              s_header_field_start;
             break;
           default:
-            SET_ERRNO(HPE_INVALID_FRAGMENT);
-            goto error;
+            state = parse_url_char(state, ch, parser->method == HTTP_CONNECT);
+            if (state == s_dead) {
+              SET_ERRNO(HPE_INVALID_URL);
+              goto error;
+            }
         }
         break;
       }
@@ -1787,4 +1764,99 @@ const char *
 http_errno_description(enum http_errno err) {
   assert(err < (sizeof(http_strerror_tab)/sizeof(http_strerror_tab[0])));
   return http_strerror_tab[err].description;
+}
+
+int
+http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
+                      struct http_parser_url *u)
+{
+  enum state s;
+  const char *p;
+  enum http_parser_url_fields uf, old_uf;
+
+  u->port = u->field_set = 0;
+  s = s_req_spaces_before_url;
+  uf = old_uf = UF_MAX;
+
+  for (p = buf; p < buf + buflen; p++) {
+    if ((s = parse_url_char(s, *p, is_connect)) == s_dead) {
+      return 1;
+    }
+
+    /* Figure out the next field that we're operating on */
+    switch (s) {
+      case s_req_schema:
+      case s_req_schema_slash:
+      case s_req_schema_slash_slash:
+        uf = UF_SCHEMA;
+        break;
+
+      case s_req_host:
+        uf = UF_HOST;
+        break;
+
+      case s_req_port:
+        uf = UF_PORT;
+        break;
+
+      case s_req_path:
+        uf = UF_PATH;
+        break;
+
+      case s_req_query_string_start:
+      case s_req_query_string:
+        uf = UF_QUERY;
+        break;
+
+      case s_req_fragment_start:
+      case s_req_fragment:
+        uf = UF_FRAGMENT;
+        break;
+
+      default:
+        assert(!"Unexpected state");
+        return 1;
+    }
+
+    /* Nothing's changed; soldier on */
+    if (uf == old_uf) {
+      u->field_data[uf].len++;
+      continue;
+    }
+
+    /* We ignore the first character in some fields; without this, we end up
+     * with the query being "?foo=bar" rather than "foo=bar". Callers probably
+     * don't want this.
+     */
+    switch (uf) {
+    case UF_QUERY:
+    case UF_FRAGMENT:
+    case UF_PORT:
+        u->field_data[uf].off = p - buf + 1;
+        u->field_data[uf].len = 0;
+        break;
+
+    default:
+        u->field_data[uf].off = p - buf;
+        u->field_data[uf].len = 1;
+        break;
+    }
+
+    u->field_set |= (1 << uf);
+    old_uf = uf;
+  }
+
+  if (u->field_set & (1 << UF_PORT)) {
+    /* Don't bother with endp; we've already validated the string */
+    unsigned long v = strtoul(buf + u->field_data[UF_PORT].off, NULL, 10);
+
+    /* Ports have a max value of 2^16 */
+    if (v > 0xffff) {
+      return 1;
+    }
+
+    u->port = (uint16_t) v;
+  }
+
+  return 0;
 }
