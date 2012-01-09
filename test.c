@@ -71,6 +71,7 @@ static int currently_parsing_eof;
 
 static struct message messages[5];
 static int num_messages;
+static http_parser_settings *current_pause_parser;
 
 /* * R E Q U E S T S * */
 const struct message requests[] =
@@ -1290,6 +1291,146 @@ message_complete_cb (http_parser *p)
   return 0;
 }
 
+/* These dontcall_* callbacks exist so that we can verify that when we're
+ * paused, no additional callbacks are invoked */
+int
+dontcall_message_begin_cb (http_parser *p)
+{
+  if (p) { } // gcc
+  fprintf(stderr, "\n\n*** on_message_begin() called on paused parser ***\n\n");
+  exit(1);
+}
+
+int
+dontcall_header_field_cb (http_parser *p, const char *buf, size_t len)
+{
+  if (p || buf || len) { } // gcc
+  fprintf(stderr, "\n\n*** on_header_field() called on paused parser ***\n\n");
+  exit(1);
+}
+
+int
+dontcall_header_value_cb (http_parser *p, const char *buf, size_t len)
+{
+  if (p || buf || len) { } // gcc
+  fprintf(stderr, "\n\n*** on_header_value() called on paused parser ***\n\n");
+  exit(1);
+}
+
+int
+dontcall_request_url_cb (http_parser *p, const char *buf, size_t len)
+{
+  if (p || buf || len) { } // gcc
+  fprintf(stderr, "\n\n*** on_request_url() called on paused parser ***\n\n");
+  exit(1);
+}
+
+int
+dontcall_body_cb (http_parser *p, const char *buf, size_t len)
+{
+  if (p || buf || len) { } // gcc
+  fprintf(stderr, "\n\n*** on_body_cb() called on paused parser ***\n\n");
+  exit(1);
+}
+
+int
+dontcall_headers_complete_cb (http_parser *p)
+{
+  if (p) { } // gcc
+  fprintf(stderr, "\n\n*** on_headers_complete() called on paused "
+                  "parser ***\n\n");
+  exit(1);
+}
+
+int
+dontcall_message_complete_cb (http_parser *p)
+{
+  if (p) { } // gcc
+  fprintf(stderr, "\n\n*** on_message_complete() called on paused "
+                  "parser ***\n\n");
+  exit(1);
+}
+
+static http_parser_settings settings_dontcall =
+  {.on_message_begin = dontcall_message_begin_cb
+  ,.on_header_field = dontcall_header_field_cb
+  ,.on_header_value = dontcall_header_value_cb
+  ,.on_url = dontcall_request_url_cb
+  ,.on_body = dontcall_body_cb
+  ,.on_headers_complete = dontcall_headers_complete_cb
+  ,.on_message_complete = dontcall_message_complete_cb
+  };
+
+/* These pause_* callbacks always pause the parser and just invoke the regular
+ * callback that tracks content. Before returning, we overwrite the parser
+ * settings to point to the _dontcall variety so that we can verify that
+ * the pause actually did, you know, pause. */
+int
+pause_message_begin_cb (http_parser *p)
+{
+  http_parser_pause(p, 1);
+  *current_pause_parser = settings_dontcall;
+  return message_begin_cb(p);
+}
+
+int
+pause_header_field_cb (http_parser *p, const char *buf, size_t len)
+{
+  http_parser_pause(p, 1);
+  *current_pause_parser = settings_dontcall;
+  return header_field_cb(p, buf, len);
+}
+
+int
+pause_header_value_cb (http_parser *p, const char *buf, size_t len)
+{
+  http_parser_pause(p, 1);
+  *current_pause_parser = settings_dontcall;
+  return header_value_cb(p, buf, len);
+}
+
+int
+pause_request_url_cb (http_parser *p, const char *buf, size_t len)
+{
+  http_parser_pause(p, 1);
+  *current_pause_parser = settings_dontcall;
+  return request_url_cb(p, buf, len);
+}
+
+int
+pause_body_cb (http_parser *p, const char *buf, size_t len)
+{
+  http_parser_pause(p, 1);
+  *current_pause_parser = settings_dontcall;
+  return body_cb(p, buf, len);
+}
+
+int
+pause_headers_complete_cb (http_parser *p)
+{
+  http_parser_pause(p, 1);
+  *current_pause_parser = settings_dontcall;
+  return headers_complete_cb(p);
+}
+
+int
+pause_message_complete_cb (http_parser *p)
+{
+  http_parser_pause(p, 1);
+  *current_pause_parser = settings_dontcall;
+  return message_complete_cb(p);
+}
+
+static http_parser_settings settings_pause =
+  {.on_message_begin = pause_message_begin_cb
+  ,.on_header_field = pause_header_field_cb
+  ,.on_header_value = pause_header_value_cb
+  ,.on_url = pause_request_url_cb
+  ,.on_body = pause_body_cb
+  ,.on_headers_complete = pause_headers_complete_cb
+  ,.on_message_complete = pause_message_complete_cb
+  };
+
 static http_parser_settings settings =
   {.on_message_begin = message_begin_cb
   ,.on_header_field = header_field_cb
@@ -1356,6 +1497,17 @@ size_t parse_count_body (const char *buf, size_t len)
   size_t nparsed;
   currently_parsing_eof = (len == 0);
   nparsed = http_parser_execute(parser, &settings_count_body, buf, len);
+  return nparsed;
+}
+
+size_t parse_pause (const char *buf, size_t len)
+{
+  size_t nparsed;
+  http_parser_settings s = settings_pause;
+
+  currently_parsing_eof = (len == 0);
+  current_pause_parser = &s;
+  nparsed = http_parser_execute(parser, current_pause_parser, buf, len);
   return nparsed;
 }
 
@@ -1982,6 +2134,58 @@ create_large_chunked_message (int body_size_in_kb, const char* headers)
   return buf;
 }
 
+/* Verify that we can pause parsing at any of the bytes in the
+ * message and still get the result that we're expecting. */
+void
+test_message_pause (const struct message *msg)
+{
+  char *buf = (char*) msg->raw;
+  size_t buflen = strlen(msg->raw);
+  size_t nread;
+
+  parser_init(msg->type);
+
+  do {
+    nread = parse_pause(buf, buflen);
+
+    // We can only set the upgrade buffer once we've gotten our message
+    // completion callback.
+    if (messages[0].message_complete_cb_called &&
+        msg->upgrade &&
+        parser->upgrade) {
+      messages[0].upgrade = buf + nread;
+      goto test;
+    }
+
+    if (nread < buflen) {
+
+      // Not much do to if we failed a strict-mode check
+      if (HTTP_PARSER_ERRNO(parser) == HPE_STRICT) {
+        parser_free();
+        return;
+      }
+
+      assert (HTTP_PARSER_ERRNO(parser) == HPE_PAUSED);
+    }
+
+    buf += nread;
+    buflen -= nread;
+    http_parser_pause(parser, 0);
+  } while (buflen > 0);
+
+  nread = parse_pause(NULL, 0);
+  assert (nread == 0);
+
+test:
+  if (num_messages != 1) {
+    printf("\n*** num_messages != 1 after testing '%s' ***\n\n", msg->name);
+    exit(1);
+  }
+
+  if(!message_eq(0, msg)) exit(1);
+
+  parser_free();
+}
 
 int
 main (void)
@@ -2010,6 +2214,10 @@ main (void)
 
   for (i = 0; i < response_count; i++) {
     test_message(&responses[i]);
+  }
+
+  for (i = 0; i < response_count; i++) {
+    test_message_pause(&responses[i]);
   }
 
   for (i = 0; i < response_count; i++) {
@@ -2187,7 +2395,9 @@ main (void)
     test_message(&requests[i]);
   }
 
-
+  for (i = 0; i < request_count; i++) {
+    test_message_pause(&requests[i]);
+  }
 
   for (i = 0; i < request_count; i++) {
     if (!requests[i].should_keep_alive) continue;
