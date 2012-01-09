@@ -177,6 +177,7 @@ enum flags
   XX(INVALID_CONSTANT, "invalid constant string")                    \
   XX(INVALID_INTERNAL_STATE, "encountered unexpected internal state")\
   XX(STRICT, "strict mode assertion failed")                         \
+  XX(PAUSED, "parser is paused")                                     \
   XX(UNKNOWN, "an unknown error occurred")
 
 
@@ -201,20 +202,20 @@ enum http_errno {
 
 struct http_parser {
   /** PRIVATE **/
-  unsigned char type : 2;
-  unsigned char flags : 6; /* F_* values from 'flags' enum; semi-public */
-  unsigned char state;
-  unsigned char header_state;
-  unsigned char index;
+  unsigned char type : 2;     /* enum http_parser_type */
+  unsigned char flags : 6;    /* F_* values from 'flags' enum; semi-public */
+  unsigned char state;        /* enum state from http_parser.c */
+  unsigned char header_state; /* enum header_state from http_parser.c */
+  unsigned char index;        /* index into current matcher */
 
-  uint32_t nread;
-  int64_t content_length;
+  uint32_t nread;          /* # bytes read in various scenarios */
+  int64_t content_length;  /* # bytes in body (0 if no Content-Length header) */
 
   /** READ-ONLY **/
   unsigned short http_major;
   unsigned short http_minor;
   unsigned short status_code; /* responses only */
-  unsigned char method;    /* requests only */
+  unsigned char method;       /* requests only */
   unsigned char http_errno : 7;
 
   /* 1 = Upgrade header was present and the parser has exited because of that.
@@ -303,6 +304,9 @@ const char *http_errno_description(enum http_errno err);
 int http_parser_parse_url(const char *buf, size_t buflen,
                           int is_connect,
                           struct http_parser_url *u);
+
+/* Pause or un-pause the parser; a nonzero value pauses */
+void http_parser_pause(http_parser *parser, int paused);
 
 #ifdef __cplusplus
 }
