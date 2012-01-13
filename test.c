@@ -1142,23 +1142,118 @@ const struct message responses[] =
   ,.body= "hello world"
   }
 
-#define NO_HEADERS_NO_BODY_204 13
-, {.name= "204 no headers no body"
+#define NO_BODY_HTTP10_KA_200 13
+, {.name= "HTTP/1.0 with keep-alive and EOF-terminated 200 status"
   ,.type= HTTP_RESPONSE
-  ,.raw= "HTTP/1.1 204 No Content\r\n\r\n"
+  ,.raw= "HTTP/1.0 200 OK\r\n"
+         "Connection: keep-alive\r\n"
+         "\r\n"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= TRUE
+  ,.http_major= 1
+  ,.http_minor= 0
+  ,.status_code= 200
+  ,.num_headers= 1
+  ,.headers=
+    { { "Connection", "keep-alive" }
+    }
+  ,.body_size= 0
+  ,.body= ""
+  }
+
+#define NO_BODY_HTTP10_KA_204 14
+, {.name= "HTTP/1.0 with keep-alive and a 204 status"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.0 204 No content\r\n"
+         "Connection: keep-alive\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 0
+  ,.status_code= 204
+  ,.num_headers= 1
+  ,.headers=
+    { { "Connection", "keep-alive" }
+    }
+  ,.body_size= 0
+  ,.body= ""
+  }
+
+#define NO_BODY_HTTP11_KA_200 15
+, {.name= "HTTP/1.1 with an EOF-terminated 200 status"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 200 OK\r\n"
+         "\r\n"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 200
+  ,.num_headers= 0
+  ,.headers={}
+  ,.body_size= 0
+  ,.body= ""
+  }
+
+#define NO_BODY_HTTP11_KA_204 16
+, {.name= "HTTP/1.1 with a 204 status"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 204 No content\r\n"
+         "\r\n"
   ,.should_keep_alive= TRUE
   ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 204
   ,.num_headers= 0
-  ,.headers= {}
+  ,.headers={}
+  ,.body_size= 0
+  ,.body= ""
+  }
+
+#define NO_BODY_HTTP11_NOKA_204 17
+, {.name= "HTTP/1.1 with a 204 status and keep-alive disabled"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 204 No content\r\n"
+         "Connection: close\r\n"
+         "\r\n"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 204
+  ,.num_headers= 1
+  ,.headers=
+    { { "Connection", "close" }
+    }
+  ,.body_size= 0
+  ,.body= ""
+  }
+
+#define NO_BODY_HTTP11_KA_CHUNKED_200 18
+, {.name= "HTTP/1.1 with chunked endocing and a 200 response"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 200 OK\r\n"
+         "Transfer-Encoding: chunked\r\n"
+         "\r\n"
+         "0\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 200
+  ,.num_headers= 1
+  ,.headers=
+    { { "Transfer-Encoding", "chunked" }
+    }
   ,.body_size= 0
   ,.body= ""
   }
 
 #if !HTTP_PARSER_STRICT
-#define SPACE_IN_FIELD_RES 14
+#define SPACE_IN_FIELD_RES 19
 /* Should handle spaces in header fields */
 , {.name= "field space"
   ,.type= HTTP_RESPONSE
@@ -2264,7 +2359,7 @@ main (void)
 
   printf("response scan 1/2      ");
   test_scan( &responses[TRAILING_SPACE_ON_CHUNKED_BODY]
-           , &responses[NO_HEADERS_NO_BODY_204]
+           , &responses[NO_BODY_HTTP10_KA_204]
            , &responses[NO_REASON_PHRASE]
            );
 
