@@ -1434,6 +1434,12 @@ size_t http_parser_execute (http_parser *parser,
 
             parser->content_length *= 10;
             parser->content_length += ch - '0';
+            
+            if (parser->content_length < 0) {
+              SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
+              goto error;
+            }
+            
             break;
 
           /* Transfer-Encoding: chunked */
@@ -1693,6 +1699,12 @@ size_t http_parser_execute (http_parser *parser,
 
         parser->content_length *= 16;
         parser->content_length += unhex_val;
+        
+        if (parser->content_length < 0) {
+          SET_ERRNO(HPE_INVALID_CHUNK_SIZE);
+          goto error;
+        }
+            
         break;
       }
 
