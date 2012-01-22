@@ -960,7 +960,7 @@ size_t http_parser_execute (http_parser *parser,
         MARK(url);
 
         parser->state = parse_url_char(
-            parser->state, ch, parser->method == HTTP_CONNECT);
+            (enum state)parser->state, ch, parser->method == HTTP_CONNECT);
         if (parser->state == s_dead) {
           SET_ERRNO(HPE_INVALID_URL);
           goto error;
@@ -982,7 +982,7 @@ size_t http_parser_execute (http_parser *parser,
             goto error;
           default:
             parser->state = parse_url_char(
-                parser->state, ch, parser->method == HTTP_CONNECT);
+                (enum state)parser->state, ch, parser->method == HTTP_CONNECT);
             if (parser->state == s_dead) {
               SET_ERRNO(HPE_INVALID_URL);
               goto error;
@@ -1021,7 +1021,7 @@ size_t http_parser_execute (http_parser *parser,
             break;
           default:
             parser->state = parse_url_char(
-                parser->state, ch, parser->method == HTTP_CONNECT);
+                (enum state)parser->state, ch, parser->method == HTTP_CONNECT);
             if (parser->state == s_dead) {
               SET_ERRNO(HPE_INVALID_URL);
               goto error;
