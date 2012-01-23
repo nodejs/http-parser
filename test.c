@@ -874,8 +874,8 @@ const struct message responses[] =
 , {.name= "404 no headers no body"
   ,.type= HTTP_RESPONSE
   ,.raw= "HTTP/1.1 404 Not Found\r\n\r\n"
-  ,.should_keep_alive= FALSE
-  ,.message_complete_on_eof= TRUE
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 404
@@ -889,8 +889,8 @@ const struct message responses[] =
 , {.name= "301 no response phrase"
   ,.type= HTTP_RESPONSE
   ,.raw= "HTTP/1.1 301\r\n\r\n"
-  ,.should_keep_alive = FALSE
-  ,.message_complete_on_eof= TRUE
+  ,.should_keep_alive = TRUE
+  ,.message_complete_on_eof= FALSE
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 301
@@ -1121,13 +1121,16 @@ const struct message responses[] =
 
 #define NO_CONTENT_LENGTH_NO_TRANSFER_ENCODING_RESPONSE 12
 /* The client should wait for the server's EOF. That is, when neither
- * content-length nor transfer-encoding is specified, the end of body
+ * content-length nor transfer-encoding is specified, and connection will close
+ * the end of body
  * is specified by the EOF.
  */
-, {.name= "neither content-length nor transfer-encoding response"
+, {.name= "neither content-length nor transfer-encoding response "
+    "connection close header in HTTP 1.1"
   ,.type= HTTP_RESPONSE
   ,.raw= "HTTP/1.1 200 OK\r\n"
          "Content-Type: text/plain\r\n"
+         "Connection: close\r\n"
          "\r\n"
          "hello world"
   ,.should_keep_alive= FALSE
@@ -1135,9 +1138,10 @@ const struct message responses[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 200
-  ,.num_headers= 1
+  ,.num_headers= 2
   ,.headers=
-    { { "Content-Type", "text/plain" }
+    { { "Content-Type", "text/plain" },
+      { "Connection", "close" }
     }
   ,.body= "hello world"
   }
@@ -1184,14 +1188,17 @@ const struct message responses[] =
 , {.name= "HTTP/1.1 with an EOF-terminated 200 status"
   ,.type= HTTP_RESPONSE
   ,.raw= "HTTP/1.1 200 OK\r\n"
+         "Connection: close\r\n"
          "\r\n"
   ,.should_keep_alive= FALSE
   ,.message_complete_on_eof= TRUE
   ,.http_major= 1
   ,.http_minor= 1
   ,.status_code= 200
-  ,.num_headers= 0
-  ,.headers={}
+  ,.num_headers= 1
+  ,.headers=
+    { { "Connection", "close"}
+    }
   ,.body_size= 0
   ,.body= ""
   }
@@ -1285,6 +1292,26 @@ const struct message responses[] =
   ,.body= "<xml>hello</xml>"
   }
 #endif /* !HTTP_PARSER_STRICT */
+
+#define NO_CONTENT_LENGTH_NO_TRANSFER_ENCODING_RESPONSE_NO_CONNECTION_CLOSE 20
+/* The client should wait for the server's EOF. That is, when neither
+ * content-length nor transfer-encoding is specified, and connection will close
+ * the end of body
+ * is specified by the EOF.
+ */
+, {.name= "neither content-length nor transfer-encoding response"
+    " and no connection close header with protocol 1.1"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 200 OK\r\n\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 200
+  ,.num_headers= 0
+  ,.headers = {}
+  ,.body= ""
+  }
 
 , {.name= NULL } /* sentinel */
 };
