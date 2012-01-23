@@ -1294,11 +1294,9 @@ const struct message responses[] =
 #endif /* !HTTP_PARSER_STRICT */
 
 #define NO_CONTENT_LENGTH_NO_TRANSFER_ENCODING_RESPONSE_NO_CONNECTION_CLOSE 20
-/* The client should wait for the server's EOF. That is, when neither
- * content-length nor transfer-encoding is specified, and connection will close
- * the end of body
- * is specified by the EOF.
- */
+/* The client should not try to read a body until eof since the Connection:
+    close header is not set.
+*/
 , {.name= "neither content-length nor transfer-encoding response"
     " and no connection close header with protocol 1.1"
   ,.type= HTTP_RESPONSE
