@@ -1817,6 +1817,14 @@ http_message_needs_eof (http_parser *parser)
     return 0;
   }
 
+  /* do not read until EOF if protocol is 1.1 and connection header
+   is not 'close' */
+  if (parser->http_major > 0 &&
+      parser->http_minor > 0 &&
+      !(parser->flags & F_CONNECTION_CLOSE)) {
+    return 0;
+  }
+
   return 1;
 }
 
