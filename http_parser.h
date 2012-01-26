@@ -308,6 +308,11 @@ int http_parser_parse_url(const char *buf, size_t buflen,
 /* Pause or un-pause the parser; a nonzero value pauses */
 void http_parser_pause(http_parser *parser, int paused);
 
+/* True if currently parsing headers (i.e. read complete
+ * lines to avoid a partial URL/header field/header value)
+ */
+int http_parser_parsing_headers(http_parser *parser);
+
 #ifdef __cplusplus
 }
 #endif

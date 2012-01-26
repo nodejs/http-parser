@@ -1978,3 +1978,9 @@ http_parser_pause(http_parser *parser, int paused) {
     assert(0 && "Attempting to pause parser in error state");
   }
 }
+
+int http_parser_parsing_headers(http_parser *parser) {
+  return PARSING_HEADER(parser->state);
+}
+
+
