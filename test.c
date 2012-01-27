@@ -2037,6 +2037,86 @@ test_no_overflow_long_body (int req, size_t length)
 }
 
 void
+test_overflow_attack_body (uint64_t length, enum http_errno err)
+{
+  http_parser parser;
+  http_parser_init(&parser, HTTP_REQUEST);
+  size_t parsed;
+	
+  char buf1[3000];
+  size_t buf1len = sprintf(buf1, "%s\r\nConnection: Keep-Alive\r\nContent-Length: %llu\r\n\r\n",
+      "POST / HTTP/1.0", length);
+  parsed = http_parser_execute(&parser, &settings_null, buf1, buf1len);
+
+/*
+  uint64_t i;
+  for ( i = 0; i < length; i++) {
+    char foo = 'a';
+    parsed = http_parser_execute(&parser, &settings_null, &foo, 1);
+    if (parsed != 1)
+      goto err;
+  }
+*/
+
+  if (err)
+  {
+    if (parsed == buf1len || HTTP_PARSER_ERRNO(&parser) != err)
+      goto err;
+  }
+  else if (parsed != buf1len || parser.content_length < 0 || parser.content_length != (int64_t) length)
+    goto err;
+
+  return;
+
+ err:
+  fprintf(stderr,
+          "\n*** error in test_overflow_attack_body %s of length %llu ***\n",
+          "REQUEST",
+          length);
+  exit(1);
+}
+
+void
+test_overflow_attack_chunk (uint64_t length, enum http_errno err)
+{
+  http_parser parser;
+  http_parser_init(&parser, HTTP_REQUEST);
+  size_t parsed;
+	
+  char buf1[3000];
+  size_t buf1len = sprintf(buf1, "%s\r\nConnection: Keep-Alive\r\nTransfer-Encoding: chunked\r\n\r\n%llX\r\n",
+      "POST / HTTP/1.0", length);
+  parsed = http_parser_execute(&parser, &settings_null, buf1, buf1len);
+
+/*
+  uint64_t i;
+  for ( i = 0; i < length; i++) {
+    char foo = 'a';
+    parsed = http_parser_execute(&parser, &settings_null, &foo, 1);
+    if (parsed != 1)
+      goto err;
+  }
+*/
+
+  if (err)
+  {
+    if (parsed == buf1len || HTTP_PARSER_ERRNO(&parser) != err)
+      goto err;
+  }
+  else if (parsed != buf1len || parser.content_length < 0 || parser.content_length != (int64_t) length)
+    goto err;
+
+  return;
+
+ err:
+  fprintf(stderr,
+          "\n*** error in test_overflow_attack_chunk %s of length %llu ***\n",
+          "REQUEST",
+          length);
+  exit(1);
+}
+
+void
 test_multiple3 (const struct message *r1, const struct message *r2, const struct message *r3)
 {
   int message_count = count_parsed_messages(3, r1, r2, r3);
@@ -2319,7 +2399,17 @@ main (void)
   test_header_overflow_error(HTTP_RESPONSE);
   test_no_overflow_long_body(HTTP_RESPONSE, 1000);
   test_no_overflow_long_body(HTTP_RESPONSE, 100000);
-
+  
+  test_overflow_attack_body(9223372036854775807, HPE_OK);
+  test_overflow_attack_body(9223372036854775808ULL, HPE_INVALID_CONTENT_LENGTH);
+  test_overflow_attack_body(9223372036854775809ULL, HPE_INVALID_CONTENT_LENGTH);
+  test_overflow_attack_body(18446744073709551615ULL, HPE_INVALID_CONTENT_LENGTH);
+  
+  test_overflow_attack_chunk(9223372036854775807, HPE_OK);
+  test_overflow_attack_chunk(9223372036854775808ULL, HPE_INVALID_CHUNK_SIZE);
+  test_overflow_attack_chunk(9223372036854775809ULL, HPE_INVALID_CHUNK_SIZE);
+  test_overflow_attack_chunk(18446744073709551615ULL, HPE_INVALID_CHUNK_SIZE);
+  
   //// RESPONSES
 
   for (i = 0; i < response_count; i++) {
