@@ -27,6 +27,11 @@
 #include <ctype.h>
 #include <stdlib.h>
 
+#ifdef _MSC_VER
+# define INLINE __inline
+#else
+# define INLINE inline
+#endif
 
 #ifndef MIN
 # define MIN(a,b) ((a) < (b) ? (a) : (b))
@@ -402,7 +407,7 @@ int http_message_needs_eof(http_parser *parser);
  * assumed that the caller cares about (and can detect) the transition between
  * URL and non-URL states by looking for these.
  */
-static inline enum state
+static INLINE enum state
 parse_url_char(enum state s, const char ch, int is_connect)
 {
   assert(!isspace(ch));
