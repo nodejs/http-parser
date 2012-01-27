@@ -26,6 +26,7 @@
 #include <stddef.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 #ifndef MIN
@@ -1849,12 +1850,9 @@ const char * http_method_str (enum http_method m)
 void
 http_parser_init (http_parser *parser, enum http_parser_type t)
 {
+  memset(parser, 0, sizeof(*parser));
   parser->type = t;
   parser->state = (t == HTTP_REQUEST ? s_start_req : (t == HTTP_RESPONSE ? s_start_res : s_start_req_or_res));
-  parser->nread = 0;
-  parser->upgrade = 0;
-  parser->flags = 0;
-  parser->method = 0;
   parser->http_errno = HPE_OK;
 }
 
