@@ -1835,6 +1835,18 @@ print_error (const char *raw, size_t error_location)
   fprintf(stderr, "^\n\nerror location: %u\n", (unsigned int)error_location);
 }
 
+void
+test_preserve_data (void)
+{
+  char my_data[] = "application-specific data";
+  http_parser parser;
+  parser.data = my_data;
+  http_parser_init(&parser, HTTP_REQUEST);
+  if (parser.data != my_data) {
+    printf("\n*** parser.data not preserved accross http_parser_init ***\n\n");
+    exit(1);
+  }
+}
 
 void
 test_message (const struct message *message)
@@ -2294,6 +2306,9 @@ main (void)
 
   for (request_count = 0; requests[request_count].name; request_count++);
   for (response_count = 0; responses[response_count].name; response_count++);
+
+  //// API
+  test_preserve_data();
 
   //// OVERFLOW CONDITIONS
 
