@@ -209,7 +209,7 @@ struct http_parser {
   unsigned char index;        /* index into current matcher */
 
   uint32_t nread;          /* # bytes read in various scenarios */
-  int64_t content_length;  /* # bytes in body (0 if no Content-Length header) */
+  uint64_t content_length; /* # bytes in body (0 if no Content-Length header) */
 
   /** READ-ONLY **/
   unsigned short http_major;

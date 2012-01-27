@@ -2003,6 +2003,53 @@ test_header_overflow_error (int req)
   exit(1);
 }
 
+static void
+test_content_length_overflow (const char *buf, size_t buflen, int expect_ok)
+{
+  http_parser parser;
+  http_parser_init(&parser, HTTP_RESPONSE);
+  http_parser_execute(&parser, &settings_null, buf, buflen);
+
+  if (expect_ok)
+    assert(HTTP_PARSER_ERRNO(&parser) == HPE_OK);
+  else
+    assert(HTTP_PARSER_ERRNO(&parser) == HPE_INVALID_CONTENT_LENGTH);
+}
+
+void
+test_header_content_length_overflow_error (void)
+{
+#define X(size)                                                               \
+  "HTTP/1.1 200 OK\r\n"                                                       \
+  "Content-Length: " #size "\r\n"                                             \
+  "\r\n"
+  const char a[] = X(18446744073709551614); /* 2^64-2 */
+  const char b[] = X(18446744073709551615); /* 2^64-1 */
+  const char c[] = X(18446744073709551616); /* 2^64   */
+#undef X
+  test_content_length_overflow(a, sizeof(a) - 1, 1); /* expect ok      */
+  test_content_length_overflow(b, sizeof(b) - 1, 0); /* expect failure */
+  test_content_length_overflow(c, sizeof(c) - 1, 0); /* expect failure */
+}
+
+void
+test_chunk_content_length_overflow_error (void)
+{
+#define X(size)                                                               \
+    "HTTP/1.1 200 OK\r\n"                                                     \
+    "Transfer-Encoding: chunked\r\n"                                          \
+    "\r\n"                                                                    \
+    #size "\r\n"                                                              \
+    "..."
+  const char a[] = X(FFFFFFFFFFFFFFFE);  /* 2^64-2 */
+  const char b[] = X(FFFFFFFFFFFFFFFF);  /* 2^64-1 */
+  const char c[] = X(10000000000000000); /* 2^64   */
+#undef X
+  test_content_length_overflow(a, sizeof(a) - 1, 1); /* expect ok      */
+  test_content_length_overflow(b, sizeof(b) - 1, 0); /* expect failure */
+  test_content_length_overflow(c, sizeof(c) - 1, 0); /* expect failure */
+}
+
 void
 test_no_overflow_long_body (int req, size_t length)
 {
@@ -2319,6 +2366,9 @@ main (void)
   test_header_overflow_error(HTTP_RESPONSE);
   test_no_overflow_long_body(HTTP_RESPONSE, 1000);
   test_no_overflow_long_body(HTTP_RESPONSE, 100000);
+
+  test_header_content_length_overflow_error();
+  test_chunk_content_length_overflow_error();
 
   //// RESPONSES
 
