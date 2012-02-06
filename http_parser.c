@@ -265,7 +265,9 @@ enum state
   , s_req_schema
   , s_req_schema_slash
   , s_req_schema_slash_slash
+  , s_req_schema_slash_slash_end
   , s_req_host
+  , s_req_port_start
   , s_req_port
   , s_req_path
   , s_req_query_string_start
@@ -448,19 +450,20 @@ parse_url_char(enum state s, const char ch, int is_connect)
 
     case s_req_schema_slash_slash:
       if (ch == '/') {
-        return s_req_host;
+        return s_req_schema_slash_slash_end;
       }
 
       break;
 
+    case s_req_schema_slash_slash_end:
     case s_req_host:
       if (IS_HOST_CHAR(ch)) {
-        return s;
+        return s_req_host;
       }
 
       switch (ch) {
         case ':':
-          return s_req_port;
+          return s_req_port_start;
 
         case '/':
           return s_req_path;
@@ -471,9 +474,10 @@ parse_url_char(enum state s, const char ch, int is_connect)
 
       break;
 
+    case s_req_port_start:
     case s_req_port:
       if (IS_NUM(ch)) {
-        return s;
+        return s_req_port;
       }
 
       switch (ch) {
@@ -613,17 +617,22 @@ size_t http_parser_execute (http_parser *parser,
     header_field_mark = data;
   if (parser->state == s_header_value)
     header_value_mark = data;
-  if (parser->state == s_req_path ||
-      parser->state == s_req_schema ||
-      parser->state == s_req_schema_slash ||
-      parser->state == s_req_schema_slash_slash ||
-      parser->state == s_req_port ||
-      parser->state == s_req_query_string_start ||
-      parser->state == s_req_query_string ||
-      parser->state == s_req_host ||
-      parser->state == s_req_fragment_start ||
-      parser->state == s_req_fragment)
+  switch (parser->state) {
+  case s_req_path:
+  case s_req_schema:
+  case s_req_schema_slash:
+  case s_req_schema_slash_slash:
+  case s_req_schema_slash_slash_end:
+  case s_req_port_start:
+  case s_req_port:
+  case s_req_query_string_start:
+  case s_req_query_string:
+  case s_req_host:
+  case s_req_fragment_start:
+  case s_req_fragment:
     url_mark = data;
+    break;
+  }
 
   for (p=data; p != data + len; p++) {
     ch = *p;
@@ -1000,7 +1009,9 @@ size_t http_parser_execute (http_parser *parser,
         break;
       }
 
+      case s_req_schema_slash_slash_end:
       case s_req_host:
+      case s_req_port_start:
       case s_req_port:
       case s_req_path:
       case s_req_query_string_start:
@@ -1919,15 +1930,23 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   uf = old_uf = UF_MAX;
 
   for (p = buf; p < buf + buflen; p++) {
-    if ((s = parse_url_char(s, *p, is_connect)) == s_dead) {
-      return 1;
-    }
+    s = parse_url_char(s, *p, is_connect);
 
     /* Figure out the next field that we're operating on */
     switch (s) {
-      case s_req_schema:
+      case s_dead:
+        return 1;
+
+      /* Skip delimeters */
       case s_req_schema_slash:
       case s_req_schema_slash_slash:
+      case s_req_schema_slash_slash_end:
+      case s_req_port_start:
+      case s_req_query_string_start:
+      case s_req_fragment_start:
+        continue;
+
+      case s_req_schema:
         uf = UF_SCHEMA;
         break;
 
@@ -1943,12 +1962,10 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
         uf = UF_PATH;
         break;
 
-      case s_req_query_string_start:
       case s_req_query_string:
         uf = UF_QUERY;
         break;
 
-      case s_req_fragment_start:
       case s_req_fragment:
         uf = UF_FRAGMENT;
         break;
@@ -1964,23 +1981,8 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
       continue;
     }
 
-    /* We ignore the first character in some fields; without this, we end up
-     * with the query being "?foo=bar" rather than "foo=bar". Callers probably
-     * don't want this.
-     */
-    switch (uf) {
-    case UF_QUERY:
-    case UF_FRAGMENT:
-    case UF_PORT:
-        u->field_data[uf].off = p - buf + 1;
-        u->field_data[uf].len = 0;
-        break;
-
-    default:
-        u->field_data[uf].off = p - buf;
-        u->field_data[uf].len = 1;
-        break;
-    }
+    u->field_data[uf].off = p - buf;
+    u->field_data[uf].len = 1;
 
     u->field_set |= (1 << uf);
     old_uf = uf;
