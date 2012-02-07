@@ -1848,6 +1848,117 @@ test_preserve_data (void)
   }
 }
 
+struct url_test {
+  const char *name;
+  const char *url;
+  int is_connect;
+  struct http_parser_url u;
+  int rv;
+};
+
+const struct url_test url_tests[] =
+{ {.name="proxy request"
+  ,.url="http://hostname/"
+  ,.is_connect=0
+  ,.u=
+    {.field_set=(1 << UF_SCHEMA) | (1 << UF_HOST) | (1 << UF_PATH)
+    ,.port=0
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{  7,  8 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{ 15,  1 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      }
+    }
+  ,.rv=0
+  }
+
+, {.name="CONNECT request"
+  ,.url="hostname:443"
+  ,.is_connect=1
+  ,.u=
+    {.field_set=(1 << UF_HOST) | (1 << UF_PORT)
+    ,.port=443
+    ,.field_data=
+      {{  0,  0 } /* UF_SCHEMA */
+      ,{  0,  8 } /* UF_HOST */
+      ,{  9,  3 } /* UF_PORT */
+      ,{  0,  0 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      }
+    }
+  ,.rv=0
+  }
+};
+
+void
+dump_url (const char *url, const struct http_parser_url *u)
+{
+  char part[512];
+  u_int i;
+
+  printf("\tfield_set: 0x%x, port: %u\n", u->field_set, u->port);
+  for (i = 0; i < UF_MAX; i++) {
+    if ((u->field_set & (1 << i)) == 0) {
+      printf("\tfield_data[%u]: unset\n", i);
+      continue;
+    }
+
+    memcpy(part, url + u->field_data[i].off, u->field_data[i].len);
+    part[u->field_data[i].len] = '\0';
+
+    printf("\tfield_data[%u]: off: %u len: %u part: \"%s\"\n", i,
+     u->field_data[i].off, u->field_data[i].len, part);
+  }
+}
+
+void
+test_parse_url (void)
+{
+  struct http_parser_url u;
+  const struct url_test *test;
+  u_int i;
+  int rv;
+
+  for (i = 0; i < (sizeof(url_tests) / sizeof(url_tests[0])); i++) {
+    test = &url_tests[i];
+    memset(&u, 0, sizeof(u));
+
+    rv = http_parser_parse_url(test->url, strlen(test->url),
+     test->is_connect, &u);
+
+    if (test->rv == 0) {
+      if (rv != 0) {
+        printf("\n*** http_parser_parse_url() \"%s\" test failed, "
+         "unexpected rv %d ***\n\n", test->name, rv);
+        exit(1);
+      }
+
+      if (memcmp(&u, &test->u, sizeof(u)) != 0) {
+        printf("\n*** http_parser_parse_url(\"%s\") \"%s\" failed ***\n",
+         test->url, test->name);
+
+        printf("target http_parser_url:\n");
+        dump_url(test->url, &test->u);
+        printf("result http_parser_url:\n");
+        dump_url(test->url, &u);
+
+        exit(1);
+      }
+    } else {
+      /* test->rv != 0 */
+      if (rv == 0) {
+        printf("\n*** http_parser_parse_url() \"%s\" test failed, "
+         "unexpected rv %d ***\n\n", test->name, rv);
+        exit(1);
+      }
+    }
+  }
+}
+
 void
 test_message (const struct message *message)
 {
@@ -2356,6 +2467,7 @@ main (void)
 
   //// API
   test_preserve_data();
+  test_parse_url();
 
   //// OVERFLOW CONDITIONS
 
