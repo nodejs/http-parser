@@ -1898,7 +1898,7 @@ void
 dump_url (const char *url, const struct http_parser_url *u)
 {
   char part[512];
-  u_int i;
+  unsigned int i;
 
   printf("\tfield_set: 0x%x, port: %u\n", u->field_set, u->port);
   for (i = 0; i < UF_MAX; i++) {
@@ -1923,7 +1923,7 @@ test_parse_url (void)
 {
   struct http_parser_url u;
   const struct url_test *test;
-  u_int i;
+  unsigned int i;
   int rv;
 
   for (i = 0; i < (sizeof(url_tests) / sizeof(url_tests[0])); i++) {
