@@ -1910,8 +1910,11 @@ dump_url (const char *url, const struct http_parser_url *u)
     memcpy(part, url + u->field_data[i].off, u->field_data[i].len);
     part[u->field_data[i].len] = '\0';
 
-    printf("\tfield_data[%u]: off: %u len: %u part: \"%s\"\n", i,
-     u->field_data[i].off, u->field_data[i].len, part);
+    printf("\tfield_data[%u]: off: %u len: %u part: \"%s\"\n",
+           i,
+           u->field_data[i].off,
+           u->field_data[i].len,
+           part);
   }
 }
 
@@ -1927,19 +1930,21 @@ test_parse_url (void)
     test = &url_tests[i];
     memset(&u, 0, sizeof(u));
 
-    rv = http_parser_parse_url(test->url, strlen(test->url),
-     test->is_connect, &u);
+    rv = http_parser_parse_url(test->url,
+                               strlen(test->url),
+                               test->is_connect,
+                               &u);
 
     if (test->rv == 0) {
       if (rv != 0) {
         printf("\n*** http_parser_parse_url() \"%s\" test failed, "
-         "unexpected rv %d ***\n\n", test->name, rv);
+               "unexpected rv %d ***\n\n", test->name, rv);
         exit(1);
       }
 
       if (memcmp(&u, &test->u, sizeof(u)) != 0) {
         printf("\n*** http_parser_parse_url(\"%s\") \"%s\" failed ***\n",
-         test->url, test->name);
+               test->url, test->name);
 
         printf("target http_parser_url:\n");
         dump_url(test->url, &test->u);
@@ -1952,7 +1957,7 @@ test_parse_url (void)
       /* test->rv != 0 */
       if (rv == 0) {
         printf("\n*** http_parser_parse_url() \"%s\" test failed, "
-         "unexpected rv %d ***\n\n", test->name, rv);
+               "unexpected rv %d ***\n\n", test->name, rv);
         exit(1);
       }
     }
