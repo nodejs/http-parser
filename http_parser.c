@@ -265,7 +265,10 @@ enum state
   , s_req_schema
   , s_req_schema_slash
   , s_req_schema_slash_slash
-  , s_req_schema_slash_slash_end
+  , s_req_host_start
+  , s_req_host_v6_start
+  , s_req_host_v6
+  , s_req_host_v6_end
   , s_req_host
   , s_req_port_start
   , s_req_port
@@ -354,6 +357,7 @@ enum header_states
 #define IS_ALPHA(c)         (LOWER(c) >= 'a' && LOWER(c) <= 'z')
 #define IS_NUM(c)           ((c) >= '0' && (c) <= '9')
 #define IS_ALPHANUM(c)      (IS_ALPHA(c) || IS_NUM(c))
+#define IS_HEX(c)           (IS_NUM(c) || (LOWER(c) >= 'a' && LOWER(c) <= 'f'))
 
 #if HTTP_PARSER_STRICT
 #define TOKEN(c)            (tokens[(unsigned char)c])
@@ -410,22 +414,22 @@ int http_message_needs_eof(http_parser *parser);
  * URL and non-URL states by looking for these.
  */
 static enum state
-parse_url_char(enum state s, const char ch, int is_connect)
+parse_url_char(enum state s, const char ch)
 {
   assert(!isspace(ch));
 
   switch (s) {
     case s_req_spaces_before_url:
+      /* Proxied requests are followed by scheme of an absolute URI (alpha).
+       * All methods except CONNECT are followed by '/' or '*'.
+       */
+
       if (ch == '/' || ch == '*') {
         return s_req_path;
       }
 
-      /* Proxied requests are followed by scheme of an absolute URI (alpha).
-       * CONNECT is followed by a hostname, which begins with alphanum.
-       * All other methods are followed by '/' or '*' (handled above).
-       */
-      if (IS_ALPHA(ch) || (is_connect && IS_NUM(ch))) {
-        return (is_connect) ? s_req_host : s_req_schema;
+      if (IS_ALPHA(ch)) {
+        return s_req_schema;
       }
 
       break;
@@ -450,17 +454,29 @@ parse_url_char(enum state s, const char ch, int is_connect)
 
     case s_req_schema_slash_slash:
       if (ch == '/') {
-        return s_req_schema_slash_slash_end;
+        return s_req_host_start;
       }
 
       break;
 
-    case s_req_schema_slash_slash_end:
+    case s_req_host_start:
+      if (ch == '[') {
+        return s_req_host_v6_start;
+      }
+
+      if (IS_HOST_CHAR(ch)) {
+        return s_req_host;
+      }
+
+      break;
+
     case s_req_host:
       if (IS_HOST_CHAR(ch)) {
         return s_req_host;
       }
 
+      /* FALLTHROUGH */
+    case s_req_host_v6_end:
       switch (ch) {
         case ':':
           return s_req_port_start;
@@ -474,18 +490,31 @@ parse_url_char(enum state s, const char ch, int is_connect)
 
       break;
 
-    case s_req_port_start:
-    case s_req_port:
-      if (IS_NUM(ch)) {
-        return s_req_port;
+    case s_req_host_v6:
+      if (ch == ']') {
+        return s_req_host_v6_end;
       }
 
+      /* FALLTHROUGH */
+    case s_req_host_v6_start:
+      if (IS_HEX(ch) || ch == ':') {
+        return s_req_host_v6;
+      }
+      break;
+
+    case s_req_port:
       switch (ch) {
         case '/':
           return s_req_path;
 
         case '?':
           return s_req_query_string_start;
+      }
+
+      /* FALLTHROUGH */
+    case s_req_port_start:
+      if (IS_NUM(ch)) {
+        return s_req_port;
       }
 
       break;
@@ -622,12 +651,15 @@ size_t http_parser_execute (http_parser *parser,
   case s_req_schema:
   case s_req_schema_slash:
   case s_req_schema_slash_slash:
-  case s_req_schema_slash_slash_end:
+  case s_req_host_start:
+  case s_req_host_v6_start:
+  case s_req_host_v6:
+  case s_req_host_v6_end:
+  case s_req_host:
   case s_req_port_start:
   case s_req_port:
   case s_req_query_string_start:
   case s_req_query_string:
-  case s_req_host:
   case s_req_fragment_start:
   case s_req_fragment:
     url_mark = data;
@@ -975,9 +1007,11 @@ size_t http_parser_execute (http_parser *parser,
         if (ch == ' ') break;
 
         MARK(url);
+        if (parser->method == HTTP_CONNECT) {
+          parser->state = s_req_host_start;
+        }
 
-        parser->state = parse_url_char(
-            (enum state)parser->state, ch, parser->method == HTTP_CONNECT);
+        parser->state = parse_url_char((enum state)parser->state, ch);
         if (parser->state == s_dead) {
           SET_ERRNO(HPE_INVALID_URL);
           goto error;
@@ -989,6 +1023,10 @@ size_t http_parser_execute (http_parser *parser,
       case s_req_schema:
       case s_req_schema_slash:
       case s_req_schema_slash_slash:
+      case s_req_host_start:
+      case s_req_host_v6_start:
+      case s_req_host_v6:
+      case s_req_port_start:
       {
         switch (ch) {
           /* No whitespace allowed here */
@@ -998,8 +1036,7 @@ size_t http_parser_execute (http_parser *parser,
             SET_ERRNO(HPE_INVALID_URL);
             goto error;
           default:
-            parser->state = parse_url_char(
-                (enum state)parser->state, ch, parser->method == HTTP_CONNECT);
+            parser->state = parse_url_char((enum state)parser->state, ch);
             if (parser->state == s_dead) {
               SET_ERRNO(HPE_INVALID_URL);
               goto error;
@@ -1009,9 +1046,8 @@ size_t http_parser_execute (http_parser *parser,
         break;
       }
 
-      case s_req_schema_slash_slash_end:
       case s_req_host:
-      case s_req_port_start:
+      case s_req_host_v6_end:
       case s_req_port:
       case s_req_path:
       case s_req_query_string_start:
@@ -1019,11 +1055,6 @@ size_t http_parser_execute (http_parser *parser,
       case s_req_fragment_start:
       case s_req_fragment:
       {
-        /* XXX: There is a bug here where if we're on the first character
-         *      of s_req_host (e.g. our URL is 'http://' and we see a whitespace
-         *      character, we'll consider this a valid URL. This seems incorrect,
-         *      but at least it's bug-compatible with what we had before.
-         */
         switch (ch) {
           case ' ':
             parser->state = s_req_http_start;
@@ -1039,8 +1070,7 @@ size_t http_parser_execute (http_parser *parser,
             CALLBACK_DATA(url);
             break;
           default:
-            parser->state = parse_url_char(
-                (enum state)parser->state, ch, parser->method == HTTP_CONNECT);
+            parser->state = parse_url_char((enum state)parser->state, ch);
             if (parser->state == s_dead) {
               SET_ERRNO(HPE_INVALID_URL);
               goto error;
@@ -1926,11 +1956,11 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   enum http_parser_url_fields uf, old_uf;
 
   u->port = u->field_set = 0;
-  s = s_req_spaces_before_url;
+  s = is_connect ? s_req_host_start : s_req_spaces_before_url;
   uf = old_uf = UF_MAX;
 
   for (p = buf; p < buf + buflen; p++) {
-    s = parse_url_char(s, *p, is_connect);
+    s = parse_url_char(s, *p);
 
     /* Figure out the next field that we're operating on */
     switch (s) {
@@ -1940,7 +1970,9 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
       /* Skip delimeters */
       case s_req_schema_slash:
       case s_req_schema_slash_slash:
-      case s_req_schema_slash_slash_end:
+      case s_req_host_start:
+      case s_req_host_v6_start:
+      case s_req_host_v6_end:
       case s_req_port_start:
       case s_req_query_string_start:
       case s_req_fragment_start:
@@ -1951,6 +1983,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
         break;
 
       case s_req_host:
+      case s_req_host_v6:
         uf = UF_HOST;
         break;
 
@@ -1986,6 +2019,23 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
 
     u->field_set |= (1 << uf);
     old_uf = uf;
+  }
+
+  /* CONNECT requests can only contain "hostname:port" */
+  if (is_connect && u->field_set != ((1 << UF_HOST)|(1 << UF_PORT))) {
+    return 1;
+  }
+
+  /* Make sure we don't end somewhere unexpected */
+  switch (s) {
+  case s_req_host_v6_start:
+  case s_req_host_v6:
+  case s_req_host_v6_end:
+  case s_req_host:
+  case s_req_port_start:
+    return 1;
+  default:
+    break;
   }
 
   if (u->field_set & (1 << UF_PORT)) {
