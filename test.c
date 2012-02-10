@@ -1948,6 +1948,72 @@ const struct url_test url_tests[] =
     }
   ,.rv=0
   }
+
+, {.name="proxy ipv6 request"
+  ,.url="http://[1:2::3:4]/"
+  ,.is_connect=0
+  ,.u=
+    {.field_set=(1 << UF_SCHEMA) | (1 << UF_HOST) | (1 << UF_PATH)
+    ,.port=0
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{  8,  8 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{ 17,  1 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      }
+    }
+  ,.rv=0
+  }
+
+, {.name="CONNECT ipv6 address"
+  ,.url="[1:2::3:4]:443"
+  ,.is_connect=1
+  ,.u=
+    {.field_set=(1 << UF_HOST) | (1 << UF_PORT)
+    ,.port=443
+    ,.field_data=
+      {{  0,  0 } /* UF_SCHEMA */
+      ,{  1,  8 } /* UF_HOST */
+      ,{ 11,  3 } /* UF_PORT */
+      ,{  0,  0 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      }
+    }
+  ,.rv=0
+  }
+
+, {.name="proxy empty host"
+  ,.url="http://:443/"
+  ,.is_connect=1
+  ,.rv=1
+  }
+
+, {.name="proxy empty port"
+  ,.url="http://hostname:/"
+  ,.is_connect=1
+  ,.rv=1
+  }
+
+, {.name="CONNECT empty host"
+  ,.url=":443"
+  ,.is_connect=1
+  ,.rv=1
+  }
+
+, {.name="CONNECT empty port"
+  ,.url="hostname:"
+  ,.is_connect=1
+  ,.rv=1
+  }
+
+, {.name="CONNECT with extra bits"
+  ,.url="hostname:443/"
+  ,.is_connect=1
+  ,.rv=1
+  }
 };
 
 void
@@ -1993,8 +2059,8 @@ test_parse_url (void)
 
     if (test->rv == 0) {
       if (rv != 0) {
-        printf("\n*** http_parser_parse_url() \"%s\" test failed, "
-               "unexpected rv %d ***\n\n", test->name, rv);
+        printf("\n*** http_parser_parse_url(\"%s\") \"%s\" test failed, "
+               "unexpected rv %d ***\n\n", test->url, test->name, rv);
         exit(1);
       }
 
@@ -2012,8 +2078,8 @@ test_parse_url (void)
     } else {
       /* test->rv != 0 */
       if (rv == 0) {
-        printf("\n*** http_parser_parse_url() \"%s\" test failed, "
-               "unexpected rv %d ***\n\n", test->name, rv);
+        printf("\n*** http_parser_parse_url(\"%s\") \"%s\" test failed, "
+               "unexpected rv %d ***\n\n", test->url, test->name, rv);
         exit(1);
       }
     }
