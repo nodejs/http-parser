@@ -53,6 +53,6 @@ tags: http_parser.c http_parser.h test.c
 	ctags $^
 
 clean:
-	rm -f *.o *.a test test_fast test_g http_parser.tar tags libhttp_parser.so
+	rm -f *.o *.a test test_fast test_g http_parser.tar tags libhttp_parser.so libhttp_parser.o
 
 .PHONY: clean package test-run test-run-timed test-valgrind
