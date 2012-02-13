@@ -212,6 +212,7 @@ struct http_parser {
   uint64_t content_length; /* # bytes in body (0 if no Content-Length header) */
 
   /** READ-ONLY **/
+  uint32_t boundary;
   unsigned short http_major;
   unsigned short http_minor;
   unsigned short status_code; /* responses only */
