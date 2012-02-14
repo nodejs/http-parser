@@ -143,10 +143,7 @@ enum flags
                                                                      \
   /* Callback-related errors */                                      \
   XX(CB_message_begin, "the on_message_begin callback failed")       \
-  XX(CB_path, "the on_path callback failed")                         \
-  XX(CB_query_string, "the on_query_string callback failed")         \
   XX(CB_url, "the on_url callback failed")                           \
-  XX(CB_fragment, "the on_fragment callback failed")                 \
   XX(CB_header_field, "the on_header_field callback failed")         \
   XX(CB_header_value, "the on_header_value callback failed")         \
   XX(CB_headers_complete, "the on_headers_complete callback failed") \
