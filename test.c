@@ -830,6 +830,26 @@ const struct message requests[] =
   ,.body= "q=42"
   }
 
+#define PURGE_REQ 30
+, {.name = "PURGE request"
+  ,.type= HTTP_REQUEST
+  ,.raw= "PURGE /file.txt HTTP/1.1\r\n"
+         "Host: www.example.com\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_PURGE
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/file.txt"
+  ,.request_url= "/file.txt"
+  ,.num_headers= 1
+  ,.headers= { { "Host", "www.example.com" } }
+  ,.body= ""
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
