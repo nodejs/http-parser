@@ -2005,13 +2005,13 @@ const struct url_test url_tests[] =
 
 , {.name="proxy empty host"
   ,.url="http://:443/"
-  ,.is_connect=1
+  ,.is_connect=0
   ,.rv=1
   }
 
 , {.name="proxy empty port"
   ,.url="http://hostname:/"
-  ,.is_connect=1
+  ,.is_connect=0
   ,.rv=1
   }
 
