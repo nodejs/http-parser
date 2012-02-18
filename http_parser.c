@@ -535,30 +535,15 @@ parse_url_char(enum state s, const char ch)
       break;
 
     case s_req_query_string_start:
+    case s_req_query_string:
       if (IS_URL_CHAR(ch)) {
         return s_req_query_string;
       }
 
       switch (ch) {
         case '?':
-          /* XXX ignore extra '?' ... is this right? */
-          return s;
-
-        case '#':
-          return s_req_fragment_start;
-      }
-
-      break;
-
-    case s_req_query_string:
-      if (IS_URL_CHAR(ch)) {
-        return s;
-      }
-
-      switch (ch) {
-        case '?':
           /* allow extra '?' in query string */
-          return s;
+          return s_req_query_string;
 
         case '#':
           return s_req_fragment_start;
