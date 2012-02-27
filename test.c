@@ -1452,7 +1452,7 @@ message_complete_cb (http_parser *p)
                     "value in both on_message_complete and on_headers_complete "
                     "but it doesn't! ***\n\n");
     assert(0);
-    exit(1);
+    abort();
   }
   messages[num_messages].message_complete_cb_called = TRUE;
 
@@ -1469,7 +1469,7 @@ dontcall_message_begin_cb (http_parser *p)
 {
   if (p) { } // gcc
   fprintf(stderr, "\n\n*** on_message_begin() called on paused parser ***\n\n");
-  exit(1);
+  abort();
 }
 
 int
@@ -1477,7 +1477,7 @@ dontcall_header_field_cb (http_parser *p, const char *buf, size_t len)
 {
   if (p || buf || len) { } // gcc
   fprintf(stderr, "\n\n*** on_header_field() called on paused parser ***\n\n");
-  exit(1);
+  abort();
 }
 
 int
@@ -1485,7 +1485,7 @@ dontcall_header_value_cb (http_parser *p, const char *buf, size_t len)
 {
   if (p || buf || len) { } // gcc
   fprintf(stderr, "\n\n*** on_header_value() called on paused parser ***\n\n");
-  exit(1);
+  abort();
 }
 
 int
@@ -1493,7 +1493,7 @@ dontcall_request_url_cb (http_parser *p, const char *buf, size_t len)
 {
   if (p || buf || len) { } // gcc
   fprintf(stderr, "\n\n*** on_request_url() called on paused parser ***\n\n");
-  exit(1);
+  abort();
 }
 
 int
@@ -1501,7 +1501,7 @@ dontcall_body_cb (http_parser *p, const char *buf, size_t len)
 {
   if (p || buf || len) { } // gcc
   fprintf(stderr, "\n\n*** on_body_cb() called on paused parser ***\n\n");
-  exit(1);
+  abort();
 }
 
 int
@@ -1510,7 +1510,7 @@ dontcall_headers_complete_cb (http_parser *p)
   if (p) { } // gcc
   fprintf(stderr, "\n\n*** on_headers_complete() called on paused "
                   "parser ***\n\n");
-  exit(1);
+  abort();
 }
 
 int
@@ -1519,7 +1519,7 @@ dontcall_message_complete_cb (http_parser *p)
   if (p) { } // gcc
   fprintf(stderr, "\n\n*** on_message_complete() called on paused "
                   "parser ***\n\n");
-  exit(1);
+  abort();
 }
 
 static http_parser_settings settings_dontcall =
@@ -1771,7 +1771,7 @@ message_eq (int index, const struct message *expected)
     if (http_parser_parse_url(m->request_url, strlen(m->request_url), 0, &u)) {
       fprintf(stderr, "\n\n*** failed to parse URL %s ***\n\n",
         m->request_url);
-      exit(1);
+      abort();
     }
 
     m->port = (u.field_set & (1 << UF_PORT)) ?
@@ -1849,7 +1849,7 @@ upgrade_message_fix(char *body, const size_t nread, const size_t nmsgs, ...) {
 
       /* Check the portion of the response after its specified upgrade */
       if (!check_str_eq(m, "upgrade", body + off, body + nread)) {
-        exit(1);
+        abort();
       }
 
       /* Fix up the response so that message_eq() will verify the beginning
@@ -1865,7 +1865,7 @@ upgrade_message_fix(char *body, const size_t nread, const size_t nmsgs, ...) {
   va_end(ap);
   printf("\n\n*** Error: expected a message with upgrade ***\n");
 
-  exit(1);
+  abort();
 }
 
 static void
@@ -1920,7 +1920,7 @@ test_preserve_data (void)
   http_parser_init(&parser, HTTP_REQUEST);
   if (parser.data != my_data) {
     printf("\n*** parser.data not preserved accross http_parser_init ***\n\n");
-    exit(1);
+    abort();
   }
 }
 
@@ -2099,7 +2099,7 @@ test_parse_url (void)
       if (rv != 0) {
         printf("\n*** http_parser_parse_url(\"%s\") \"%s\" test failed, "
                "unexpected rv %d ***\n\n", test->url, test->name, rv);
-        exit(1);
+        abort();
       }
 
       if (memcmp(&u, &test->u, sizeof(u)) != 0) {
@@ -2111,14 +2111,14 @@ test_parse_url (void)
         printf("result http_parser_url:\n");
         dump_url(test->url, &u);
 
-        exit(1);
+        abort();
       }
     } else {
       /* test->rv != 0 */
       if (rv == 0) {
         printf("\n*** http_parser_parse_url(\"%s\") \"%s\" test failed, "
                "unexpected rv %d ***\n\n", test->url, test->name, rv);
-        exit(1);
+        abort();
       }
     }
   }
@@ -2147,7 +2147,7 @@ test_message (const struct message *message)
 
       if (read != msg1len) {
         print_error(msg1, read);
-        exit(1);
+        abort();
       }
     }
 
@@ -2161,24 +2161,24 @@ test_message (const struct message *message)
 
     if (read != msg2len) {
       print_error(msg2, read);
-      exit(1);
+      abort();
     }
 
     read = parse(NULL, 0);
 
     if (read != 0) {
       print_error(message->raw, read);
-      exit(1);
+      abort();
     }
 
   test:
 
     if (num_messages != 1) {
       printf("\n*** num_messages != 1 after testing '%s' ***\n\n", message->name);
-      exit(1);
+      abort();
     }
 
-    if(!message_eq(0, message)) exit(1);
+    if(!message_eq(0, message)) abort();
 
     parser_free();
   }
@@ -2199,7 +2199,7 @@ test_message_count_body (const struct message *message)
     read = parse_count_body(message->raw + i, toread);
     if (read != toread) {
       print_error(message->raw, read);
-      exit(1);
+      abort();
     }
   }
 
@@ -2207,15 +2207,15 @@ test_message_count_body (const struct message *message)
   read = parse_count_body(NULL, 0);
   if (read != 0) {
     print_error(message->raw, read);
-    exit(1);
+    abort();
   }
 
   if (num_messages != 1) {
     printf("\n*** num_messages != 1 after testing '%s' ***\n\n", message->name);
-    exit(1);
+    abort();
   }
 
-  if(!message_eq(0, message)) exit(1);
+  if(!message_eq(0, message)) abort();
 
   parser_free();
 }
@@ -2247,7 +2247,7 @@ test_simple (const char *buf, enum http_errno err_expected)
 #endif
     fprintf(stderr, "\n*** test_simple expected %s, but saw %s ***\n\n%s\n",
         http_errno_name(err_expected), http_errno_name(err), buf);
-    exit(1);
+    abort();
   }
 }
 
@@ -2276,7 +2276,7 @@ test_header_overflow_error (int req)
   }
 
   fprintf(stderr, "\n*** Error expected but none in header overflow test ***\n");
-  exit(1);
+  abort();
 }
 
 static void
@@ -2356,7 +2356,7 @@ test_no_overflow_long_body (int req, size_t length)
           "\n*** error in test_no_overflow_long_body %s of length %zu ***\n",
           req ? "REQUEST" : "RESPONSE",
           length);
-  exit(1);
+  abort();
 }
 
 void
@@ -2388,26 +2388,26 @@ test_multiple3 (const struct message *r1, const struct message *r2, const struct
 
   if (read != strlen(total)) {
     print_error(total, read);
-    exit(1);
+    abort();
   }
 
   read = parse(NULL, 0);
 
   if (read != 0) {
     print_error(total, read);
-    exit(1);
+    abort();
   }
 
 test:
 
   if (message_count != num_messages) {
     fprintf(stderr, "\n\n*** Parser didn't see 3 messages only %d *** \n", num_messages);
-    exit(1);
+    abort();
   }
 
-  if (!message_eq(0, r1)) exit(1);
-  if (message_count > 1 && !message_eq(1, r2)) exit(1);
-  if (message_count > 2 && !message_eq(2, r3)) exit(1);
+  if (!message_eq(0, r1)) abort();
+  if (message_count > 1 && !message_eq(1, r2)) abort();
+  if (message_count > 2 && !message_eq(2, r3)) abort();
 
   parser_free();
 }
@@ -2530,7 +2530,7 @@ test:
   fprintf(stderr, "buf1 (%u) %s\n\n", (unsigned int)buf1_len, buf1);
   fprintf(stderr, "buf2 (%u) %s\n\n", (unsigned int)buf2_len , buf2);
   fprintf(stderr, "buf3 (%u) %s\n", (unsigned int)buf3_len, buf3);
-  exit(1);
+  abort();
 }
 
 // user required to free the result
@@ -2609,10 +2609,10 @@ test_message_pause (const struct message *msg)
 test:
   if (num_messages != 1) {
     printf("\n*** num_messages != 1 after testing '%s' ***\n\n", msg->name);
-    exit(1);
+    abort();
   }
 
-  if(!message_eq(0, msg)) exit(1);
+  if(!message_eq(0, msg)) abort();
 
   parser_free();
 }
