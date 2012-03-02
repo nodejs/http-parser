@@ -363,6 +363,7 @@ enum header_states
 #define IS_NUM(c)           ((c) >= '0' && (c) <= '9')
 #define IS_ALPHANUM(c)      (IS_ALPHA(c) || IS_NUM(c))
 #define IS_HEX(c)           (IS_NUM(c) || (LOWER(c) >= 'a' && LOWER(c) <= 'f'))
+#define STRICT_TOKEN(c)     (tokens[(unsigned char)c])
 
 #if HTTP_PARSER_STRICT
 #define TOKEN(c)            (tokens[(unsigned char)c])
@@ -1507,7 +1508,6 @@ size_t http_parser_execute (http_parser *parser,
             break;
 
           case h_matching_connection_token_start:
-            parser->index = 0;
             /* looking for 'Connection: keep-alive' */
             if (c == 'k') {
               parser->header_state = h_matching_connection_keep_alive;
@@ -1516,7 +1516,7 @@ size_t http_parser_execute (http_parser *parser,
               parser->header_state = h_matching_connection_close;
             } else if (c == 'u') {
               parser->header_state = h_matching_connection_upgrade;
-            } else if (c != ' ' && c != '\t' && c != ',') {
+            } else if (STRICT_TOKEN(c)) {
               parser->header_state = h_matching_connection_token;
             }
             break;
@@ -1554,7 +1554,10 @@ size_t http_parser_execute (http_parser *parser,
             break;
 
           case h_matching_connection_token:
-            if (ch == ',') parser->header_state = h_matching_connection_token_start;
+            if (ch == ',') {
+              parser->header_state = h_matching_connection_token_start;
+              parser->index = 0;
+            }
             break;
 
           case h_transfer_encoding_chunked:
@@ -1573,6 +1576,7 @@ size_t http_parser_execute (http_parser *parser,
                   parser->flags |= F_CONNECTION_UPGRADE;
                 }
                 parser->header_state = h_matching_connection_token_start;
+                parser->index = 0;
             } else if (ch != ' ') {
                 parser->header_state = h_matching_connection_token;
             }
@@ -1591,37 +1595,35 @@ size_t http_parser_execute (http_parser *parser,
         STRICT_CHECK(ch != LF);
 
         parser->state = s_header_value_lws;
-
-        switch (parser->header_state) {
-          case h_connection_keep_alive:
-            parser->flags |= F_CONNECTION_KEEP_ALIVE;
-            break;
-          case h_connection_close:
-            parser->flags |= F_CONNECTION_CLOSE;
-            break;
-          case h_connection_upgrade:
-            parser->flags |= F_CONNECTION_UPGRADE;
-            break;
-          case h_transfer_encoding_chunked:
-            parser->flags |= F_CHUNKED;
-            break;
-          default:
-            break;
-        }
-
         break;
       }
 
       case s_header_value_lws:
       {
-        if (ch == ' ' || ch == '\t')
-          parser->state = s_header_value_start;
-        else
-        {
+        if (ch == ' ' || ch == '\t') {
+          parser->state = s_header_value;
+          MARK(header_value);
+        } else {
+          switch (parser->header_state) {
+            case h_connection_keep_alive:
+              parser->flags |= F_CONNECTION_KEEP_ALIVE;
+              break;
+            case h_connection_close:
+              parser->flags |= F_CONNECTION_CLOSE;
+              break;
+            case h_connection_upgrade:
+              parser->flags |= F_CONNECTION_UPGRADE;
+              break;
+            case h_transfer_encoding_chunked:
+              parser->flags |= F_CHUNKED;
+              break;
+            default:
+              break;
+          }
+
           parser->state = s_header_field_start;
-          goto reexecute_byte;
         }
-        break;
+        goto reexecute_byte;
       }
 
       case s_headers_almost_done:
