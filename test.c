@@ -468,7 +468,7 @@ const struct message requests[] =
   ,.type= HTTP_REQUEST
   ,.raw= "GET /demo HTTP/1.1\r\n"
          "Host: example.com\r\n"
-         "Connection: Upgrade\r\n"
+         "Connection: Keep-Alive, Upgrade\r\n"
          "Sec-WebSocket-Key2: 12998 5 Y3 1  .P00\r\n"
          "Sec-WebSocket-Protocol: sample\r\n"
          "Upgrade: WebSocket\r\n"
@@ -488,7 +488,7 @@ const struct message requests[] =
   ,.num_headers= 7
   ,.upgrade="Hot diggity dogg"
   ,.headers= { { "Host", "example.com" }
-             , { "Connection", "Upgrade" }
+             , { "Connection", "Keep-Alive, Upgrade" }
              , { "Sec-WebSocket-Key2", "12998 5 Y3 1  .P00" }
              , { "Sec-WebSocket-Protocol", "sample" }
              , { "Upgrade", "WebSocket" }
