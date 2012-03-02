@@ -1516,7 +1516,7 @@ size_t http_parser_execute (http_parser *parser,
               parser->header_state = h_matching_connection_close;
             } else if (c == 'u') {
               parser->header_state = h_matching_connection_upgrade;
-            } else if (c != ' ' && c != '\t') {
+            } else if (c != ' ' && c != '\t' && c != ',') {
               parser->header_state = h_matching_connection_token;
             }
             break;
