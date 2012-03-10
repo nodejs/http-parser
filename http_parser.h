@@ -122,6 +122,7 @@ enum http_method
 #define XX(num, name) HTTP_##name = num,
   HTTP_METHOD_MAP(XX)
 #undef X
+  HTTP_MAX
   };
 
 
@@ -140,7 +141,7 @@ enum flags
 
 
 /* Map for errno-related constants
- * 
+ *
  * The provided argument should be a macro that takes 2 arguments.
  */
 #define HTTP_ERRNO_MAP(XX)                                           \
@@ -188,6 +189,7 @@ enum flags
 #define HTTP_ERRNO_GEN(n, s) HPE_##n,
 enum http_errno {
   HTTP_ERRNO_MAP(HTTP_ERRNO_GEN)
+  HPE_MAX
 };
 #undef HTTP_ERRNO_GEN
 
@@ -205,8 +207,21 @@ enum http_errno {
 
 struct http_parser {
   /** PRIVATE **/
-  unsigned char type : 2;     /* enum http_parser_type */
-  unsigned char flags : 6;    /* F_* values from 'flags' enum; semi-public */
+  unsigned int type : 2,     /* enum http_parser_type */
+               flags : 6,    /* F_* values from 'flags' enum, semi-public */
+
+  /** READ-ONLY **/
+               method,       /* requests only */
+               http_errno : 7,
+
+  /* 1 = Upgrade header was present and the parser has exited because of that.
+   * 0 = No upgrade header present.
+   * Should be checked when http_parser_execute() returns in addition to
+   * error checking.
+   */
+               upgrade : 1;
+
+  /** PRIVATE **/
   unsigned char state;        /* enum state from http_parser.c */
   unsigned char header_state; /* enum header_state from http_parser.c */
   unsigned char index;        /* index into current matcher */
@@ -218,15 +233,6 @@ struct http_parser {
   unsigned short http_major;
   unsigned short http_minor;
   unsigned short status_code; /* responses only */
-  unsigned char method;       /* requests only */
-  unsigned char http_errno : 7;
-
-  /* 1 = Upgrade header was present and the parser has exited because of that.
-   * 0 = No upgrade header present.
-   * Should be checked when http_parser_execute() returns in addition to
-   * error checking.
-   */
-  unsigned char upgrade : 1;
 
 #if HTTP_PARSER_DEBUG
   uint32_t error_lineno;
