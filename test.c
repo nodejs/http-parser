@@ -850,6 +850,26 @@ const struct message requests[] =
   ,.body= ""
   }
 
+#define SEARCH_REQ 32
+, {.name = "SEARCH request"
+  ,.type= HTTP_REQUEST
+  ,.raw= "SEARCH / HTTP/1.1\r\n"
+         "Host: www.example.com\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_SEARCH
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/"
+  ,.request_url= "/"
+  ,.num_headers= 1
+  ,.headers= { { "Host", "www.example.com" } }
+  ,.body= ""
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
