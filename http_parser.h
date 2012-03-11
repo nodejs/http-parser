@@ -102,20 +102,21 @@ typedef int (*http_cb) (http_parser*);
   XX(11, MOVE) \
   XX(12, PROPFIND) \
   XX(13, PROPPATCH) \
-  XX(14, UNLOCK) \
+  XX(14, SEARCH) \
+  XX(15, UNLOCK) \
   /* subversion */ \
-  XX(15, REPORT) \
-  XX(16, MKACTIVITY) \
-  XX(17, CHECKOUT) \
-  XX(18, MERGE) \
+  XX(16, REPORT) \
+  XX(17, MKACTIVITY) \
+  XX(18, CHECKOUT) \
+  XX(19, MERGE) \
   /* upnp */ \
-  XX(19, MSEARCH) \
-  XX(20, NOTIFY) \
-  XX(21, SUBSCRIBE) \
-  XX(22, UNSUBSCRIBE) \
+  XX(20, MSEARCH) \
+  XX(21, NOTIFY) \
+  XX(22, SUBSCRIBE) \
+  XX(23, UNSUBSCRIBE) \
   /* RFC-5789 */ \
-  XX(23, PATCH) \
-  XX(24, PURGE) \
+  XX(24, PATCH) \
+  XX(25, PURGE) \
 
 enum http_method
   {
