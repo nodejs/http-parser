@@ -587,7 +587,7 @@ const struct message requests[] =
   ,.body= ""
   }
 
-#define LINE_FOLDING_IN_HEADER 20
+#define LINE_FOLDING_IN_HEADER 21
 , {.name= "line folding in header value"
   ,.type= HTTP_REQUEST
   ,.raw= "GET / HTTP/1.1\r\n"
@@ -616,7 +616,7 @@ const struct message requests[] =
   }
 
 
-#define QUERY_TERMINATED_HOST 21
+#define QUERY_TERMINATED_HOST 22
 , {.name= "host terminated by a query string"
   ,.type= HTTP_REQUEST
   ,.raw= "GET http://hypnotoad.org?hail=all HTTP/1.1\r\n"
@@ -635,7 +635,7 @@ const struct message requests[] =
   ,.body= ""
   }
 
-#define QUERY_TERMINATED_HOSTPORT 22
+#define QUERY_TERMINATED_HOSTPORT 23
 , {.name= "host:port terminated by a query string"
   ,.type= HTTP_REQUEST
   ,.raw= "GET http://hypnotoad.org:1234?hail=all HTTP/1.1\r\n"
@@ -655,7 +655,7 @@ const struct message requests[] =
   ,.body= ""
   }
 
-#define SPACE_TERMINATED_HOSTPORT 23
+#define SPACE_TERMINATED_HOSTPORT 24
 , {.name= "host:port terminated by a space"
   ,.type= HTTP_REQUEST
   ,.raw= "GET http://hypnotoad.org:1234 HTTP/1.1\r\n"
@@ -675,7 +675,7 @@ const struct message requests[] =
   ,.body= ""
   }
 
-#define PATCH_REQ 24
+#define PATCH_REQ 25
 , {.name = "PATCH request"
   ,.type= HTTP_REQUEST
   ,.raw= "PATCH /file.txt HTTP/1.1\r\n"
@@ -703,7 +703,7 @@ const struct message requests[] =
   ,.body= "cccccccccc"
   }
 
-#define CONNECT_CAPS_REQUEST 25
+#define CONNECT_CAPS_REQUEST 26
 , {.name = "connect caps request"
   ,.type= HTTP_REQUEST
   ,.raw= "CONNECT HOME0.NETSCAPE.COM:443 HTTP/1.0\r\n"
@@ -728,7 +728,7 @@ const struct message requests[] =
   }
 
 #if !HTTP_PARSER_STRICT
-#define UTF8_PATH_REQ 26
+#define UTF8_PATH_REQ 27
 , {.name= "utf-8 path request"
   ,.type= HTTP_REQUEST
   ,.raw= "GET /δ¶/δt/pope?q=1#narf HTTP/1.1\r\n"
@@ -749,7 +749,7 @@ const struct message requests[] =
   ,.body= ""
   }
 
-#define HOSTNAME_UNDERSCORE 27
+#define HOSTNAME_UNDERSCORE 28
 , {.name = "hostname underscore"
   ,.type= HTTP_REQUEST
   ,.raw= "CONNECT home_0.netscape.com:443 HTTP/1.0\r\n"
@@ -775,7 +775,7 @@ const struct message requests[] =
 #endif  /* !HTTP_PARSER_STRICT */
 
 /* see https://github.com/ry/http-parser/issues/47 */
-#define EAT_TRAILING_CRLF_NO_CONNECTION_CLOSE 28
+#define EAT_TRAILING_CRLF_NO_CONNECTION_CLOSE 29
 , {.name = "eat CRLF between requests, no \"Connection: close\" header"
   ,.raw= "POST / HTTP/1.1\r\n"
          "Host: www.example.com\r\n"
@@ -802,7 +802,7 @@ const struct message requests[] =
   }
 
 /* see https://github.com/ry/http-parser/issues/47 */
-#define EAT_TRAILING_CRLF_WITH_CONNECTION_CLOSE 29
+#define EAT_TRAILING_CRLF_WITH_CONNECTION_CLOSE 30
 , {.name = "eat CRLF between requests even if \"Connection: close\" is set"
   ,.raw= "POST / HTTP/1.1\r\n"
          "Host: www.example.com\r\n"
@@ -830,7 +830,7 @@ const struct message requests[] =
   ,.body= "q=42"
   }
 
-#define PURGE_REQ 30
+#define PURGE_REQ 31
 , {.name = "PURGE request"
   ,.type= HTTP_REQUEST
   ,.raw= "PURGE /file.txt HTTP/1.1\r\n"
