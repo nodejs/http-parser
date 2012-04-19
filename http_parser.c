@@ -184,11 +184,18 @@ static const int8_t unhex[256] =
   };
 
 
+#if HTTP_PARSER_STRICT
+# define T 0
+#else
+# define T 1
+#endif
+
+
 static const uint8_t normal_url_char[256] = {
 /*   0 nul    1 soh    2 stx    3 etx    4 eot    5 enq    6 ack    7 bel  */
         0,       0,       0,       0,       0,       0,       0,       0,
 /*   8 bs     9 ht    10 nl    11 vt    12 np    13 cr    14 so    15 si   */
-        0,       0,       0,       0,       0,       0,       0,       0,
+        0,       T,       0,       0,       T,       0,       0,       0,
 /*  16 dle   17 dc1   18 dc2   19 dc3   20 dc4   21 nak   22 syn   23 etb */
         0,       0,       0,       0,       0,       0,       0,       0,
 /*  24 can   25 em    26 sub   27 esc   28 fs    29 gs    30 rs    31 us  */
@@ -218,6 +225,7 @@ static const uint8_t normal_url_char[256] = {
 /* 120  x   121  y   122  z   123  {   124  |   125  }   126  ~   127 del */
         1,       1,       1,       1,       1,       1,       1,       0, };
 
+#undef T
 
 enum state
   { s_dead = 1 /* important that this is > 0 */
@@ -396,7 +404,15 @@ int http_message_needs_eof(http_parser *parser);
 static enum state
 parse_url_char(enum state s, const char ch)
 {
-  assert(!isspace(ch));
+  if (ch == ' ' || ch == '\r' || ch == '\n') {
+    return s_dead;
+  }
+
+#if HTTP_PARSER_STRICT
+  if (ch == '\t' || ch == '\f') {
+    return s_dead;
+  }
+#endif
 
   switch (s) {
     case s_req_spaces_before_url:

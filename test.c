@@ -2072,6 +2072,68 @@ const struct url_test url_tests[] =
   ,.is_connect=1
   ,.rv=1
   }
+
+, {.name="space in URL"
+  ,.url="/foo bar/"
+  ,.rv=1 /* s_dead */
+  }
+
+, {.name="carriage return in URL"
+  ,.url="/foo\rbar/"
+  ,.rv=1 /* s_dead */
+  }
+
+, {.name="line feed in URL"
+  ,.url="/foo\nbar/"
+  ,.rv=1 /* s_dead */
+  }
+
+#if HTTP_PARSER_STRICT
+
+, {.name="tab in URL"
+  ,.url="/foo\tbar/"
+  ,.rv=1 /* s_dead */
+  }
+
+, {.name="form feed in URL"
+  ,.url="/foo\fbar/"
+  ,.rv=1 /* s_dead */
+  }
+
+#else /* !HTTP_PARSER_STRICT */
+
+, {.name="tab in URL"
+  ,.url="/foo\tbar/"
+  ,.u=
+    {.field_set=(1 << UF_PATH)
+    ,.field_data=
+      {{  0,  0 } /* UF_SCHEMA */
+      ,{  0,  0 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{  0,  9 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      }
+    }
+  ,.rv=0
+  }
+
+, {.name="form feed in URL"
+  ,.url="/foo\fbar/"
+  ,.u=
+    {.field_set=(1 << UF_PATH)
+    ,.field_data=
+      {{  0,  0 } /* UF_SCHEMA */
+      ,{  0,  0 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{  0,  9 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      }
+    }
+  ,.rv=0
+  }
+#endif
 };
 
 void
