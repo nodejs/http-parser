@@ -7,3 +7,4 @@ test_fast
 *.mk
 *.Makefile
 *.so
+*.a
