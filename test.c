@@ -2416,8 +2416,8 @@ test_no_overflow_long_body (int req, size_t length)
   size_t parsed;
   size_t i;
   char buf1[3000];
-  size_t buf1len = sprintf(buf1, "%s\r\nConnection: Keep-Alive\r\nContent-Length: %zu\r\n\r\n",
-      req ? "POST / HTTP/1.0" : "HTTP/1.0 200 OK", length);
+  size_t buf1len = sprintf(buf1, "%s\r\nConnection: Keep-Alive\r\nContent-Length: %lu\r\n\r\n",
+      req ? "POST / HTTP/1.0" : "HTTP/1.0 200 OK", (unsigned long)length);
   parsed = http_parser_execute(&parser, &settings_null, buf1, buf1len);
   if (parsed != buf1len)
     goto err;
@@ -2435,9 +2435,9 @@ test_no_overflow_long_body (int req, size_t length)
 
  err:
   fprintf(stderr,
-          "\n*** error in test_no_overflow_long_body %s of length %zu ***\n",
+          "\n*** error in test_no_overflow_long_body %s of length %lu ***\n",
           req ? "REQUEST" : "RESPONSE",
-          length);
+          (unsigned long)length);
   abort();
 }
 
