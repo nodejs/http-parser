@@ -29,6 +29,8 @@
 #include <string.h>
 #include <limits.h>
 
+const unsigned int http_parser_debug = HTTP_PARSER_DEBUG;
+
 #ifndef ULLONG_MAX
 # define ULLONG_MAX ((uint64_t) -1) /* 2^64-1 */
 #endif

@@ -58,6 +58,8 @@ typedef int ssize_t;
 # define HTTP_PARSER_DEBUG 0
 #endif
 
+const unsigned int http_parser_debug;
+
 
 /* Maximium header size allowed */
 #define HTTP_MAX_HEADER_SIZE (80*1024)
