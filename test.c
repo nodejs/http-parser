@@ -1973,6 +1973,7 @@ const struct url_test url_tests[] =
       ,{ 15,  1 } /* UF_PATH */
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
       }
     }
   ,.rv=0
@@ -1991,6 +1992,7 @@ const struct url_test url_tests[] =
       ,{ 19,  1 } /* UF_PATH */
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
       }
     }
   ,.rv=0
@@ -2009,6 +2011,7 @@ const struct url_test url_tests[] =
       ,{  0,  0 } /* UF_PATH */
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
       }
     }
   ,.rv=0
@@ -2027,6 +2030,7 @@ const struct url_test url_tests[] =
       ,{ 17,  1 } /* UF_PATH */
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
       }
     }
   ,.rv=0
@@ -2045,6 +2049,7 @@ const struct url_test url_tests[] =
       ,{ 20,  1 } /* UF_PATH */
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
       }
     }
   ,.rv=0
@@ -2063,6 +2068,7 @@ const struct url_test url_tests[] =
       ,{  0,  0 } /* UF_PATH */
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
       }
     }
   ,.rv=0
@@ -2081,6 +2087,7 @@ const struct url_test url_tests[] =
       ,{ 17, 12 } /* UF_PATH */
       ,{ 30,187 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
       }
     }
   ,.rv=0
@@ -2099,6 +2106,7 @@ const struct url_test url_tests[] =
       ,{  0, 10 } /* UF_PATH */
       ,{ 11, 10 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
       }
     }
   ,.rv=0
@@ -2118,6 +2126,7 @@ const struct url_test url_tests[] =
       ,{  0, 10 } /* UF_PATH */
       ,{  0,  0 } /* UF_QUERY */
       ,{ 11,  4 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
       }
     }
   ,.rv=0
@@ -2136,6 +2145,7 @@ const struct url_test url_tests[] =
       ,{ 29,  6 } /* UF_PATH */
       ,{ 36, 69 } /* UF_QUERY */
       ,{106,  7 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
       }
     }
   ,.rv=0
@@ -2154,6 +2164,7 @@ const struct url_test url_tests[] =
       ,{ 20,  8 } /* UF_PATH */
       ,{ 29, 12 } /* UF_QUERY */
       ,{ 42,  4 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
       }
     }
   ,.rv=0
@@ -2254,6 +2265,7 @@ const struct url_test url_tests[] =
       ,{  0,  9 } /* UF_PATH */
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
       }
     }
   ,.rv=0
@@ -2270,6 +2282,7 @@ const struct url_test url_tests[] =
       ,{  0,  9 } /* UF_PATH */
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
       }
     }
   ,.rv=0

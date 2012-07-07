@@ -335,6 +335,8 @@ enum header_states
 enum http_host_state
   {
     s_http_host_dead = 1
+  , s_http_userinfo_start
+  , s_http_userinfo
   , s_http_host_start
   , s_http_host_v6_start
   , s_http_host
@@ -352,6 +354,8 @@ enum http_host_state
 #define IS_NUM(c)           ((c) >= '0' && (c) <= '9')
 #define IS_ALPHANUM(c)      (IS_ALPHA(c) || IS_NUM(c))
 #define IS_HEX(c)           (IS_NUM(c) || (LOWER(c) >= 'a' && LOWER(c) <= 'f'))
+#define IS_MARK(c)          ((c) == '-' || (c) == '_' || (c) == '.' || (c) == '!' || (c) == '~' || (c) == '*' || (c) == '\'' || (c) == '(' || (c) == ')')
+#define IS_USERINFO_CHAR(c) (IS_ALPHANUM(c) || IS_MARK(c) || (c) == '%' || (c) == ';' || (c) == ':' || (c) == '&' || (c) == '=' || (c) == '+' || (c) == '$' || (c) == ',')
 
 #if HTTP_PARSER_STRICT
 #define TOKEN(c)            (tokens[(unsigned char)c])
@@ -408,7 +412,7 @@ int http_message_needs_eof(http_parser *parser);
  * URL and non-URL states by looking for these.
  */
 static enum state
-parse_url_char(enum state s, const char ch)
+parse_url_char(enum state s, const char ch, int * found_at)
 {
   if (ch == ' ' || ch == '\r' || ch == '\n') {
     return s_dead;
@@ -471,7 +475,14 @@ parse_url_char(enum state s, const char ch)
         return s_req_query_string_start;
       }
 
-      if (IS_ALPHANUM(ch) || ch == '_' || ch == '@' || ch == '[' || ch == ']' || ch == '.' || ch == '-' || ch == '%' || ch == ';' || ch == ':' || ch == '&' || ch == '=' || ch ==  '+' || ch ==  '$' || ch == ',') {
+      if (IS_USERINFO_CHAR(ch) || ch == '[' || ch == ']') {
+        return s_req_host;
+      }
+
+      if (ch == '@') {
+        if (found_at) {
+          *found_at = 1;
+        }
         return s_req_host;
       }
 
@@ -959,7 +970,7 @@ size_t http_parser_execute (http_parser *parser,
           parser->state = s_req_host_start;
         }
 
-        parser->state = parse_url_char((enum state)parser->state, ch);
+        parser->state = parse_url_char((enum state)parser->state, ch, 0);
         if (parser->state == s_dead) {
           SET_ERRNO(HPE_INVALID_URL);
           goto error;
@@ -981,7 +992,7 @@ size_t http_parser_execute (http_parser *parser,
             SET_ERRNO(HPE_INVALID_URL);
             goto error;
           default:
-            parser->state = parse_url_char((enum state)parser->state, ch);
+            parser->state = parse_url_char((enum state)parser->state, ch, 0);
             if (parser->state == s_dead) {
               SET_ERRNO(HPE_INVALID_URL);
               goto error;
@@ -1013,7 +1024,7 @@ size_t http_parser_execute (http_parser *parser,
             CALLBACK_DATA(url);
             break;
           default:
-            parser->state = parse_url_char((enum state)parser->state, ch);
+            parser->state = parse_url_char((enum state)parser->state, ch, 0);
             if (parser->state == s_dead) {
               SET_ERRNO(HPE_INVALID_URL);
               goto error;
@@ -1890,8 +1901,20 @@ http_errno_description(enum http_errno err) {
   return http_strerror_tab[err].description;
 }
 
-static enum http_host_state http_parse_host_char(enum http_host_state s, const char ch) {
+static enum http_host_state
+http_parse_host_char(enum http_host_state s, const char ch) {
   switch(s) {
+    case s_http_userinfo:
+    case s_http_userinfo_start:
+      if (ch == '@') {
+        return s_http_host_start;
+      }
+
+      if (IS_USERINFO_CHAR(ch)) {
+        return s_http_userinfo;
+      }
+      break;
+
     case s_http_host_start:
       if (ch == '[') {
         return s_http_host_v6_start;
@@ -1944,7 +1967,7 @@ static enum http_host_state http_parse_host_char(enum http_host_state s, const c
   return s_http_host_dead;
 }
 
-int http_parse_host(const char * buf, struct http_parser_url *u) {
+int http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
   enum http_host_state s;
 
   int i;
@@ -1954,11 +1977,12 @@ int http_parse_host(const char * buf, struct http_parser_url *u) {
   u->field_data[UF_HOST].len = 0;
 
   i = 0;
-  s = s_http_host_start;
+  s = found_at ? s_http_userinfo_start : s_http_host_start;
 
   for(; i < len; i ++) {
     char ch = buf[start + i];
     enum http_host_state new_s = http_parse_host_char(s, ch);
+
     if (new_s == s_http_host_dead) {
       return 1;
     }
@@ -1987,6 +2011,15 @@ int http_parse_host(const char * buf, struct http_parser_url *u) {
         u->field_data[UF_PORT].len ++;
         break;
 
+      case s_http_userinfo:
+        if (s != s_http_userinfo) {
+          u->field_data[UF_USERINFO].off = start + i;
+          u->field_data[UF_USERINFO].len = 0;
+          u->field_set |= (1 << UF_USERINFO);
+        }
+        u->field_data[UF_USERINFO].len ++;
+        break;
+
       default:
         break;
     }
@@ -2013,13 +2046,14 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   enum state s;
   const char *p;
   enum http_parser_url_fields uf, old_uf;
+  int found_at = 0;
 
   u->port = u->field_set = 0;
   s = is_connect ? s_req_host_start : s_req_spaces_before_url;
   uf = old_uf = UF_MAX;
 
   for (p = buf; p < buf + buflen; p++) {
-    s = parse_url_char(s, *p);
+    s = parse_url_char(s, *p, &found_at);
 
     /* Figure out the next field that we're operating on */
     switch (s) {
@@ -2073,7 +2107,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   }
 
   if ((u->field_set & (1 << UF_HOST)) != 0) {
-    if (http_parse_host(buf, u) != 0) {
+    if (http_parse_host(buf, u, found_at) != 0) {
       return 1;
     }
   }
