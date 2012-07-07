@@ -50,6 +50,7 @@ struct message {
   char query_string[MAX_ELEMENT_SIZE];
   char body[MAX_ELEMENT_SIZE];
   size_t body_size;
+  const char *host;
   uint16_t port;
   int num_headers;
   enum { NONE=0, FIELD, VALUE } last_header_element;
@@ -649,6 +650,7 @@ const struct message requests[] =
   ,.fragment= ""
   ,.request_path= ""
   ,.request_url= "http://hypnotoad.org:1234?hail=all"
+  ,.host= "hypnotoad.org"
   ,.port= 1234
   ,.num_headers= 0
   ,.headers= { }
@@ -669,6 +671,7 @@ const struct message requests[] =
   ,.fragment= ""
   ,.request_path= ""
   ,.request_url= "http://hypnotoad.org:1234"
+  ,.host= "hypnotoad.org"
   ,.port= 1234
   ,.num_headers= 0
   ,.headers= { }
@@ -1794,6 +1797,10 @@ message_eq (int index, const struct message *expected)
       abort();
     }
 
+    if (expected->host) {
+      MESSAGE_CHECK_URL_EQ(&u, expected, m, host, UF_HOST);
+    }
+
     m->port = (u.field_set & (1 << UF_PORT)) ?
       u.port : 0;
 
@@ -1971,6 +1978,24 @@ const struct url_test url_tests[] =
   ,.rv=0
   }
 
+, {.name="proxy request with port"
+  ,.url="http://hostname:444/"
+  ,.is_connect=0
+  ,.u=
+    {.field_set=(1 << UF_SCHEMA) | (1 << UF_HOST) | (1 << UF_PORT) | (1 << UF_PATH)
+    ,.port=444
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{  7,  8 } /* UF_HOST */
+      ,{ 16,  3 } /* UF_PORT */
+      ,{ 19,  1 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      }
+    }
+  ,.rv=0
+  }
+
 , {.name="CONNECT request"
   ,.url="hostname:443"
   ,.is_connect=1
@@ -2000,6 +2025,24 @@ const struct url_test url_tests[] =
       ,{  8,  8 } /* UF_HOST */
       ,{  0,  0 } /* UF_PORT */
       ,{ 17,  1 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      }
+    }
+  ,.rv=0
+  }
+
+, {.name="proxy ipv6 request with port"
+  ,.url="http://[1:2::3:4]:67/"
+  ,.is_connect=0
+  ,.u=
+    {.field_set=(1 << UF_SCHEMA) | (1 << UF_HOST) | (1 << UF_PORT) | (1 << UF_PATH)
+    ,.port=67
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{  8,  8 } /* UF_HOST */
+      ,{ 18,  2 } /* UF_PORT */
+      ,{ 20,  1 } /* UF_PATH */
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
       }
@@ -2038,6 +2081,79 @@ const struct url_test url_tests[] =
       ,{ 17, 12 } /* UF_PATH */
       ,{ 30,187 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
+      }
+    }
+  ,.rv=0
+  }
+
+, {.name="space URL encoded"
+  ,.url="/toto.html?toto=a%20b"
+  ,.is_connect=0
+  ,.u=
+    {.field_set= (1<<UF_PATH) | (1<<UF_QUERY)
+    ,.port=0
+    ,.field_data=
+      {{  0,  0 } /* UF_SCHEMA */
+      ,{  0,  0 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{  0, 10 } /* UF_PATH */
+      ,{ 11, 10 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      }
+    }
+  ,.rv=0
+  }
+
+
+, {.name="URL fragment"
+  ,.url="/toto.html#titi"
+  ,.is_connect=0
+  ,.u=
+    {.field_set= (1<<UF_PATH) | (1<<UF_FRAGMENT)
+    ,.port=0
+    ,.field_data=
+      {{  0,  0 } /* UF_SCHEMA */
+      ,{  0,  0 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{  0, 10 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{ 11,  4 } /* UF_FRAGMENT */
+      }
+    }
+  ,.rv=0
+  }
+
+, {.name="complex URL fragment"
+  ,.url="http://www.webmasterworld.com/r.cgi?f=21&d=8405&url=http://www.example.com/index.html?foo=bar&hello=world#midpage"
+  ,.is_connect=0
+  ,.u=
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PATH) | (1<<UF_QUERY) | (1<<UF_FRAGMENT)
+    ,.port=0
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{  7, 22 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{ 29,  6 } /* UF_PATH */
+      ,{ 36, 69 } /* UF_QUERY */
+      ,{106,  7 } /* UF_FRAGMENT */
+      }
+    }
+  ,.rv=0
+  }
+
+, {.name="complex URL from node js url parser doc"
+  ,.url="http://host.com:8080/p/a/t/h?query=string#hash"
+  ,.is_connect=0
+  ,.u=
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PORT) | (1<<UF_PATH) | (1<<UF_QUERY) | (1<<UF_FRAGMENT)
+    ,.port=8080
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{  7,  8 } /* UF_HOST */
+      ,{ 16,  4 } /* UF_PORT */
+      ,{ 20,  8 } /* UF_PATH */
+      ,{ 29, 12 } /* UF_QUERY */
+      ,{ 42,  4 } /* UF_FRAGMENT */
       }
     }
   ,.rv=0
@@ -2083,8 +2199,33 @@ const struct url_test url_tests[] =
   ,.rv=1 /* s_dead */
   }
 
+, {.name="double : in URL"
+  ,.url="http://hostname::443/"
+  ,.rv=1 /* s_dead */
+  }
+
 , {.name="line feed in URL"
   ,.url="/foo\nbar/"
+  ,.rv=1 /* s_dead */
+  }
+
+, {.name="line feed in hostname"
+  ,.url="http://host\name/fo"
+  ,.rv=1 /* s_dead */
+  }
+
+, {.name="% in hostname"
+  ,.url="http://host%name/fo"
+  ,.rv=1 /* s_dead */
+  }
+
+, {.name="; in hostname"
+  ,.url="http://host;ame/fo"
+  ,.rv=1 /* s_dead */
+  }
+
+, {.name="= in URL"
+  ,.url="http://host=ame/fo"
   ,.rv=1 /* s_dead */
   }
 
