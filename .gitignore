@@ -4,6 +4,7 @@ tags
 test
 test_g
 test_fast
+url_parser
 *.mk
 *.Makefile
 *.so
