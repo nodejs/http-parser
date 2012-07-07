@@ -254,12 +254,7 @@ enum state
   , s_req_schema_slash
   , s_req_schema_slash_slash
   , s_req_host_start
-  , s_req_host_v6_start
-  , s_req_host_v6
-  , s_req_host_v6_end
   , s_req_host
-  , s_req_port_start
-  , s_req_port
   , s_req_path
   , s_req_query_string_start
   , s_req_query_string
@@ -337,6 +332,17 @@ enum header_states
   , h_connection_close
   };
 
+enum http_host_state
+  {
+    s_http_host_dead = 1
+  , s_http_host_start
+  , s_http_host_v6_start
+  , s_http_host
+  , s_http_host_v6
+  , s_http_host_v6_end
+  , s_http_host_port_start
+  , s_http_host_port
+};
 
 /* Macros for character classes; depends on strict-mode  */
 #define CR                  '\r'
@@ -456,61 +462,17 @@ parse_url_char(enum state s, const char ch)
       break;
 
     case s_req_host_start:
-      if (ch == '[') {
-        return s_req_host_v6_start;
-      }
-
-      if (IS_HOST_CHAR(ch)) {
-        return s_req_host;
-      }
-
-      break;
-
     case s_req_host:
-      if (IS_HOST_CHAR(ch)) {
+      if (ch == '/') {
+        return s_req_path;
+      }
+
+      if (ch == '?') {
+        return s_req_query_string_start;
+      }
+
+      if (IS_ALPHANUM(ch) || ch == '_' || ch == '@' || ch == '[' || ch == ']' || ch == '.' || ch == '-' || ch == '%' || ch == ';' || ch == ':' || ch == '&' || ch == '=' || ch ==  '+' || ch ==  '$' || ch == ',') {
         return s_req_host;
-      }
-
-      /* FALLTHROUGH */
-    case s_req_host_v6_end:
-      switch (ch) {
-        case ':':
-          return s_req_port_start;
-
-        case '/':
-          return s_req_path;
-
-        case '?':
-          return s_req_query_string_start;
-      }
-
-      break;
-
-    case s_req_host_v6:
-      if (ch == ']') {
-        return s_req_host_v6_end;
-      }
-
-      /* FALLTHROUGH */
-    case s_req_host_v6_start:
-      if (IS_HEX(ch) || ch == ':') {
-        return s_req_host_v6;
-      }
-      break;
-
-    case s_req_port:
-      switch (ch) {
-        case '/':
-          return s_req_path;
-
-        case '?':
-          return s_req_query_string_start;
-      }
-
-      /* FALLTHROUGH */
-    case s_req_port_start:
-      if (IS_NUM(ch)) {
-        return s_req_port;
       }
 
       break;
@@ -633,12 +595,7 @@ size_t http_parser_execute (http_parser *parser,
   case s_req_schema_slash:
   case s_req_schema_slash_slash:
   case s_req_host_start:
-  case s_req_host_v6_start:
-  case s_req_host_v6:
-  case s_req_host_v6_end:
   case s_req_host:
-  case s_req_port_start:
-  case s_req_port:
   case s_req_query_string_start:
   case s_req_query_string:
   case s_req_fragment_start:
@@ -1015,9 +972,6 @@ size_t http_parser_execute (http_parser *parser,
       case s_req_schema_slash:
       case s_req_schema_slash_slash:
       case s_req_host_start:
-      case s_req_host_v6_start:
-      case s_req_host_v6:
-      case s_req_port_start:
       {
         switch (ch) {
           /* No whitespace allowed here */
@@ -1038,8 +992,6 @@ size_t http_parser_execute (http_parser *parser,
       }
 
       case s_req_host:
-      case s_req_host_v6_end:
-      case s_req_port:
       case s_req_path:
       case s_req_query_string_start:
       case s_req_query_string:
@@ -1938,6 +1890,122 @@ http_errno_description(enum http_errno err) {
   return http_strerror_tab[err].description;
 }
 
+static enum http_host_state http_parse_host_char(enum http_host_state s, const char ch) {
+  switch(s) {
+    case s_http_host_start:
+      if (ch == '[') {
+        return s_http_host_v6_start;
+      }
+
+      if (IS_HOST_CHAR(ch)) {
+        return s_http_host;
+      }
+
+      break;
+
+    case s_http_host:
+
+      if (IS_HOST_CHAR(ch)) {
+        return s_http_host;
+      }
+
+    /* FALLTHROUGH */
+    case s_http_host_v6_end:
+      if (ch == ':') {
+        return s_http_host_port_start;
+      }
+
+      break;
+
+    case s_http_host_v6:
+      if (ch == ']') {
+        return s_http_host_v6_end;
+      }
+
+    /* FALLTHROUGH */
+    case s_http_host_v6_start:
+      if (IS_HEX(ch) || ch == ':') {
+        return s_http_host_v6;
+      }
+
+      break;
+
+    case s_http_host_port:
+    case s_http_host_port_start:
+      if (IS_NUM(ch)) {
+        return s_http_host_port;
+      }
+
+      break;
+
+    default:
+      break;
+  }
+  return s_http_host_dead;
+}
+
+int http_parse_host(const char * buf, struct http_parser_url *u) {
+  enum http_host_state s;
+
+  int i;
+  int start = u->field_data[UF_HOST].off;
+  int len = u->field_data[UF_HOST].len;
+
+  u->field_data[UF_HOST].len = 0;
+
+  i = 0;
+  s = s_http_host_start;
+
+  for(; i < len; i ++) {
+    char ch = buf[start + i];
+    enum http_host_state new_s = http_parse_host_char(s, ch);
+    if (new_s == s_http_host_dead) {
+      return 1;
+    }
+
+    switch(new_s) {
+      case s_http_host:
+        if (s != s_http_host) {
+          u->field_data[UF_HOST].off = start + i;
+        }
+        u->field_data[UF_HOST].len ++;
+        break;
+
+      case s_http_host_v6:
+        if (s != s_http_host_v6) {
+          u->field_data[UF_HOST].off = start + i;
+        }
+        u->field_data[UF_HOST].len ++;
+        break;
+
+      case s_http_host_port:
+        if (s != s_http_host_port) {
+          u->field_data[UF_PORT].off = start + i;
+          u->field_data[UF_PORT].len = 0;
+          u->field_set |= (1 << UF_PORT);
+        }
+        u->field_data[UF_PORT].len ++;
+        break;
+
+      default:
+        break;
+    }
+    s = new_s;
+  }
+
+  /* Make sure we don't end somewhere unexpected */
+  switch (s) {
+    case s_http_host_v6_start:
+    case s_http_host_v6:
+    case s_http_host_port_start:
+      return 1;
+    default:
+      break;
+  }
+
+  return 0;
+}
+
 int
 http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
                       struct http_parser_url *u)
@@ -1962,9 +2030,6 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
       case s_req_schema_slash:
       case s_req_schema_slash_slash:
       case s_req_host_start:
-      case s_req_host_v6_start:
-      case s_req_host_v6_end:
-      case s_req_port_start:
       case s_req_query_string_start:
       case s_req_fragment_start:
         continue;
@@ -1974,12 +2039,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
         break;
 
       case s_req_host:
-      case s_req_host_v6:
         uf = UF_HOST;
-        break;
-
-      case s_req_port:
-        uf = UF_PORT;
         break;
 
       case s_req_path:
@@ -2012,21 +2072,15 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
     old_uf = uf;
   }
 
+  if ((u->field_set & (1 << UF_HOST)) != 0) {
+    if (http_parse_host(buf, u) != 0) {
+      return 1;
+    }
+  }
+
   /* CONNECT requests can only contain "hostname:port" */
   if (is_connect && u->field_set != ((1 << UF_HOST)|(1 << UF_PORT))) {
     return 1;
-  }
-
-  /* Make sure we don't end somewhere unexpected */
-  switch (s) {
-  case s_req_host_v6_start:
-  case s_req_host_v6:
-  case s_req_host_v6_end:
-  case s_req_host:
-  case s_req_port_start:
-    return 1;
-  default:
-    break;
   }
 
   if (u->field_set & (1 << UF_PORT)) {
