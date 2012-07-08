@@ -1967,21 +1967,21 @@ http_parse_host_char(enum http_host_state s, const char ch) {
   return s_http_host_dead;
 }
 
-int http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
+#include <stdio.h>
+
+static int
+http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
   enum http_host_state s;
 
-  int i;
-  int start = u->field_data[UF_HOST].off;
-  int len = u->field_data[UF_HOST].len;
+  const char *p;
+  size_t buflen = u->field_data[UF_HOST].off + u->field_data[UF_HOST].len;
 
   u->field_data[UF_HOST].len = 0;
 
-  i = 0;
   s = found_at ? s_http_userinfo_start : s_http_host_start;
 
-  for(; i < len; i ++) {
-    char ch = buf[start + i];
-    enum http_host_state new_s = http_parse_host_char(s, ch);
+  for (p = buf + u->field_data[UF_HOST].off; p < buf + buflen; p++) {
+    enum http_host_state new_s = http_parse_host_char(s, *p);
 
     if (new_s == s_http_host_dead) {
       return 1;
@@ -1990,21 +1990,21 @@ int http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
     switch(new_s) {
       case s_http_host:
         if (s != s_http_host) {
-          u->field_data[UF_HOST].off = start + i;
+          u->field_data[UF_HOST].off = p - buf;
         }
         u->field_data[UF_HOST].len ++;
         break;
 
       case s_http_host_v6:
         if (s != s_http_host_v6) {
-          u->field_data[UF_HOST].off = start + i;
+          u->field_data[UF_HOST].off = p - buf;
         }
         u->field_data[UF_HOST].len ++;
         break;
 
       case s_http_host_port:
         if (s != s_http_host_port) {
-          u->field_data[UF_PORT].off = start + i;
+          u->field_data[UF_PORT].off = p - buf;
           u->field_data[UF_PORT].len = 0;
           u->field_set |= (1 << UF_PORT);
         }
@@ -2013,7 +2013,7 @@ int http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
 
       case s_http_userinfo:
         if (s != s_http_userinfo) {
-          u->field_data[UF_USERINFO].off = start + i;
+          u->field_data[UF_USERINFO].off = p - buf ;
           u->field_data[UF_USERINFO].len = 0;
           u->field_set |= (1 << UF_USERINFO);
         }
@@ -2028,9 +2028,12 @@ int http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
 
   /* Make sure we don't end somewhere unexpected */
   switch (s) {
+    case s_http_host_start:
     case s_http_host_v6_start:
     case s_http_host_v6:
     case s_http_host_port_start:
+    case s_http_userinfo:
+    case s_http_userinfo_start:
       return 1;
     default:
       break;
@@ -2106,7 +2109,8 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
     old_uf = uf;
   }
 
-  if ((u->field_set & (1 << UF_HOST)) != 0) {
+  // host must be present if there is a schema
+  if ((u->field_set & ((1 << UF_SCHEMA) | (1 << UF_HOST))) != 0) {
     if (http_parse_host(buf, u, found_at) != 0) {
       return 1;
     }

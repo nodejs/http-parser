@@ -2258,7 +2258,7 @@ const struct url_test url_tests[] =
   ,.rv=1 /* s_dead */
   }
 
-, {.name="basic auth with space url encoded"
+, {.name="proxy basic auth with space url encoded"
   ,.url="http://a%20:b@host.com/"
   ,.is_connect=0
   ,.u=
@@ -2282,12 +2282,12 @@ const struct url_test url_tests[] =
   ,.rv=1 /* s_dead */
   }
 
-, {.name="double : in URL"
+, {.name="proxy double : in URL"
   ,.url="http://hostname::443/"
   ,.rv=1 /* s_dead */
   }
 
-, {.name="basic auth with double :"
+, {.name="proxy basic auth with double :"
   ,.url="http://a::b@host.com/"
   ,.is_connect=0
   ,.u=
@@ -2311,7 +2311,7 @@ const struct url_test url_tests[] =
   ,.rv=1 /* s_dead */
   }
 
-, {.name="empty basic auth"
+, {.name="proxy empty basic auth"
   ,.url="http://@hostname/fo"
   ,.u=
     {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PATH)
@@ -2328,22 +2328,22 @@ const struct url_test url_tests[] =
     }
   ,.rv=0
   }
-, {.name="line feed in hostname"
+, {.name="proxy line feed in hostname"
   ,.url="http://host\name/fo"
   ,.rv=1 /* s_dead */
   }
 
-, {.name="% in hostname"
+, {.name="proxy % in hostname"
   ,.url="http://host%name/fo"
   ,.rv=1 /* s_dead */
   }
 
-, {.name="; in hostname"
+, {.name="proxy ; in hostname"
   ,.url="http://host;ame/fo"
   ,.rv=1 /* s_dead */
   }
 
-, {.name="basic auth with unreservedchars"
+, {.name="proxy basic auth with unreservedchars"
   ,.url="http://a!;-_!=+$@host.com/"
   ,.is_connect=0
   ,.u=
@@ -2362,7 +2362,17 @@ const struct url_test url_tests[] =
   ,.rv=0
   }
 
-, {.name="= in URL"
+, {.name="proxy only basic auth"
+  ,.url="http://@/fo"
+  ,.rv=1 /* s_dead */
+  }
+
+, {.name="proxy emtpy hostname"
+  ,.url="http:///fo"
+  ,.rv=1 /* s_dead */
+  }
+
+, {.name="proxy = in URL"
   ,.url="http://host=ame/fo"
   ,.rv=1 /* s_dead */
   }
