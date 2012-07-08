@@ -51,6 +51,7 @@ struct message {
   char body[MAX_ELEMENT_SIZE];
   size_t body_size;
   const char *host;
+  const char *userinfo;
   uint16_t port;
   int num_headers;
   enum { NONE=0, FIELD, VALUE } last_header_element;
@@ -631,6 +632,7 @@ const struct message requests[] =
   ,.fragment= ""
   ,.request_path= ""
   ,.request_url= "http://hypnotoad.org?hail=all"
+  ,.host= "hypnotoad.org"
   ,.num_headers= 0
   ,.headers= { }
   ,.body= ""
@@ -872,6 +874,28 @@ const struct message requests[] =
   ,.headers= { { "Host", "www.example.com" } }
   ,.body= ""
   }
+
+#define PROXY_WITH_BASIC_AUTH 33
+, {.name= "host:port and basic_auth"
+  ,.type= HTTP_REQUEST
+  ,.raw= "GET http://a%12:b!&*$@hypnotoad.org:1234/toto HTTP/1.1\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GET
+  ,.fragment= ""
+  ,.request_path= "/toto"
+  ,.request_url= "http://a%12:b!&*$@hypnotoad.org:1234/toto"
+  ,.host= "hypnotoad.org"
+  ,.userinfo= "a%12:b!&*$"
+  ,.port= 1234
+  ,.num_headers= 0
+  ,.headers= { }
+  ,.body= ""
+  }
+
 
 , {.name= NULL } /* sentinel */
 };
@@ -1801,6 +1825,10 @@ message_eq (int index, const struct message *expected)
       MESSAGE_CHECK_URL_EQ(&u, expected, m, host, UF_HOST);
     }
 
+    if (expected->userinfo) {
+      MESSAGE_CHECK_URL_EQ(&u, expected, m, userinfo, UF_USERINFO);
+    }
+
     m->port = (u.field_set & (1 << UF_PORT)) ?
       u.port : 0;
 
@@ -2170,6 +2198,25 @@ const struct url_test url_tests[] =
   ,.rv=0
   }
 
+, {.name="complex URL with basic auth from node js url parser doc"
+  ,.url="http://a:b@host.com:8080/p/a/t/h?query=string#hash"
+  ,.is_connect=0
+  ,.u=
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PORT) | (1<<UF_PATH) | (1<<UF_QUERY) | (1<<UF_FRAGMENT) | (1<<UF_USERINFO)
+    ,.port=8080
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{ 11,  8 } /* UF_HOST */
+      ,{ 20,  4 } /* UF_PORT */
+      ,{ 24,  8 } /* UF_PATH */
+      ,{ 33, 12 } /* UF_QUERY */
+      ,{ 46,  4 } /* UF_FRAGMENT */
+      ,{  7,  3 } /* UF_USERINFO */
+      }
+    }
+  ,.rv=0
+  }
+
 , {.name="proxy empty host"
   ,.url="http://:443/"
   ,.is_connect=0
@@ -2179,6 +2226,12 @@ const struct url_test url_tests[] =
 , {.name="proxy empty port"
   ,.url="http://hostname:/"
   ,.is_connect=0
+  ,.rv=1
+  }
+
+, {.name="CONNECT with basic auth"
+  ,.url="a:b@hostname:443"
+  ,.is_connect=1
   ,.rv=1
   }
 
@@ -2205,6 +2258,25 @@ const struct url_test url_tests[] =
   ,.rv=1 /* s_dead */
   }
 
+, {.name="basic auth with space url encoded"
+  ,.url="http://a%20:b@host.com/"
+  ,.is_connect=0
+  ,.u=
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PATH) | (1<<UF_USERINFO)
+    ,.port=0
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{ 14,  8 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{ 22,  1 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  7,  6 } /* UF_USERINFO */
+      }
+    }
+  ,.rv=0
+  }
+
 , {.name="carriage return in URL"
   ,.url="/foo\rbar/"
   ,.rv=1 /* s_dead */
@@ -2215,11 +2287,47 @@ const struct url_test url_tests[] =
   ,.rv=1 /* s_dead */
   }
 
+, {.name="basic auth with double :"
+  ,.url="http://a::b@host.com/"
+  ,.is_connect=0
+  ,.u=
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PATH) | (1<<UF_USERINFO)
+    ,.port=0
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{ 12,  8 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{ 20,  1 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  7,  4 } /* UF_USERINFO */
+      }
+    }
+  ,.rv=0
+  }
+
 , {.name="line feed in URL"
   ,.url="/foo\nbar/"
   ,.rv=1 /* s_dead */
   }
 
+, {.name="empty basic auth"
+  ,.url="http://@hostname/fo"
+  ,.u=
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PATH)
+    ,.port=0
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{  8,  8 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{ 16,  3 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
+      }
+    }
+  ,.rv=0
+  }
 , {.name="line feed in hostname"
   ,.url="http://host\name/fo"
   ,.rv=1 /* s_dead */
@@ -2233,6 +2341,25 @@ const struct url_test url_tests[] =
 , {.name="; in hostname"
   ,.url="http://host;ame/fo"
   ,.rv=1 /* s_dead */
+  }
+
+, {.name="basic auth with unreservedchars"
+  ,.url="http://a!;-_!=+$@host.com/"
+  ,.is_connect=0
+  ,.u=
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PATH) | (1<<UF_USERINFO)
+    ,.port=0
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{ 17,  8 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{ 25,  1 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  7,  9 } /* UF_USERINFO */
+      }
+    }
+  ,.rv=0
   }
 
 , {.name="= in URL"
