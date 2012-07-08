@@ -2045,6 +2045,12 @@ const struct url_test url_tests[] =
   ,.rv=0
   }
 
+, {.name="CONNECT request but not connect"
+  ,.url="hostname:443"
+  ,.is_connect=0
+  ,.rv=1
+  }
+
 , {.name="proxy ipv6 request"
   ,.url="http://[1:2::3:4]/"
   ,.is_connect=0
@@ -2362,8 +2368,13 @@ const struct url_test url_tests[] =
   ,.rv=0
   }
 
-, {.name="proxy only basic auth"
+, {.name="proxy only empty basic auth"
   ,.url="http://@/fo"
+  ,.rv=1 /* s_dead */
+  }
+
+, {.name="proxy only basic auth"
+  ,.url="http://toto@/fo"
   ,.rv=1 /* s_dead */
   }
 
