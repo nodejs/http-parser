@@ -2109,7 +2109,9 @@ const struct url_test url_tests[] =
   }
 
 , {.name="extra ? in query string"
-  ,.url="http://a.tbcdn.cn/p/fp/2010c/??fp-header-min.css,fp-base-min.css,fp-channel-min.css,fp-product-min.css,fp-mall-min.css,fp-category-min.css,fp-sub-min.css,fp-gdp4p-min.css,fp-css3-min.css,fp-misc-min.css?t=20101022.css"
+  ,.url="http://a.tbcdn.cn/p/fp/2010c/??fp-header-min.css,fp-base-min.css,"
+  "fp-channel-min.css,fp-product-min.css,fp-mall-min.css,fp-category-min.css,"
+  "fp-sub-min.css,fp-gdp4p-min.css,fp-css3-min.css,fp-misc-min.css?t=20101022.css"
   ,.is_connect=0
   ,.u=
     {.field_set=(1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PATH) | (1<<UF_QUERY)
@@ -2167,10 +2169,12 @@ const struct url_test url_tests[] =
   }
 
 , {.name="complex URL fragment"
-  ,.url="http://www.webmasterworld.com/r.cgi?f=21&d=8405&url=http://www.example.com/index.html?foo=bar&hello=world#midpage"
+  ,.url="http://www.webmasterworld.com/r.cgi?f=21&d=8405&url="
+    "http://www.example.com/index.html?foo=bar&hello=world#midpage"
   ,.is_connect=0
   ,.u=
-    {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PATH) | (1<<UF_QUERY) | (1<<UF_FRAGMENT)
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PATH) | (1<<UF_QUERY) |\
+      (1<<UF_FRAGMENT)
     ,.port=0
     ,.field_data=
       {{  0,  4 } /* UF_SCHEMA */
@@ -2189,7 +2193,8 @@ const struct url_test url_tests[] =
   ,.url="http://host.com:8080/p/a/t/h?query=string#hash"
   ,.is_connect=0
   ,.u=
-    {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PORT) | (1<<UF_PATH) | (1<<UF_QUERY) | (1<<UF_FRAGMENT)
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PORT) | (1<<UF_PATH) |\
+      (1<<UF_QUERY) | (1<<UF_FRAGMENT)
     ,.port=8080
     ,.field_data=
       {{  0,  4 } /* UF_SCHEMA */
@@ -2208,7 +2213,8 @@ const struct url_test url_tests[] =
   ,.url="http://a:b@host.com:8080/p/a/t/h?query=string#hash"
   ,.is_connect=0
   ,.u=
-    {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PORT) | (1<<UF_PATH) | (1<<UF_QUERY) | (1<<UF_FRAGMENT) | (1<<UF_USERINFO)
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PORT) | (1<<UF_PATH) |\
+      (1<<UF_QUERY) | (1<<UF_FRAGMENT) | (1<<UF_USERINFO)
     ,.port=8080
     ,.field_data=
       {{  0,  4 } /* UF_SCHEMA */

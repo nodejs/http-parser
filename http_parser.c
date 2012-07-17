@@ -354,8 +354,12 @@ enum http_host_state
 #define IS_NUM(c)           ((c) >= '0' && (c) <= '9')
 #define IS_ALPHANUM(c)      (IS_ALPHA(c) || IS_NUM(c))
 #define IS_HEX(c)           (IS_NUM(c) || (LOWER(c) >= 'a' && LOWER(c) <= 'f'))
-#define IS_MARK(c)          ((c) == '-' || (c) == '_' || (c) == '.' || (c) == '!' || (c) == '~' || (c) == '*' || (c) == '\'' || (c) == '(' || (c) == ')')
-#define IS_USERINFO_CHAR(c) (IS_ALPHANUM(c) || IS_MARK(c) || (c) == '%' || (c) == ';' || (c) == ':' || (c) == '&' || (c) == '=' || (c) == '+' || (c) == '$' || (c) == ',')
+#define IS_MARK(c)          ((c) == '-' || (c) == '_' || (c) == '.' || \
+  (c) == '!' || (c) == '~' || (c) == '*' || (c) == '\'' || (c) == '(' || \
+  (c) == ')')
+#define IS_USERINFO_CHAR(c) (IS_ALPHANUM(c) || IS_MARK(c) || (c) == '%' || \
+  (c) == ';' || (c) == ':' || (c) == '&' || (c) == '=' || (c) == '+' || \
+  (c) == '$' || (c) == ',')
 
 #if HTTP_PARSER_STRICT
 #define TOKEN(c)            (tokens[(unsigned char)c])
@@ -412,7 +416,7 @@ int http_message_needs_eof(http_parser *parser);
  * URL and non-URL states by looking for these.
  */
 static enum state
-parse_url_char(enum state s, const char ch, int * found_at)
+parse_url_char(enum state s, const char ch, int *found_at)
 {
   if (ch == ' ' || ch == '\r' || ch == '\n') {
     return s_dead;
@@ -970,7 +974,7 @@ size_t http_parser_execute (http_parser *parser,
           parser->state = s_req_host_start;
         }
 
-        parser->state = parse_url_char((enum state)parser->state, ch, 0);
+        parser->state = parse_url_char((enum state)parser->state, ch, NULL);
         if (parser->state == s_dead) {
           SET_ERRNO(HPE_INVALID_URL);
           goto error;
@@ -992,7 +996,7 @@ size_t http_parser_execute (http_parser *parser,
             SET_ERRNO(HPE_INVALID_URL);
             goto error;
           default:
-            parser->state = parse_url_char((enum state)parser->state, ch, 0);
+            parser->state = parse_url_char((enum state)parser->state, ch, NULL);
             if (parser->state == s_dead) {
               SET_ERRNO(HPE_INVALID_URL);
               goto error;
@@ -1024,7 +1028,7 @@ size_t http_parser_execute (http_parser *parser,
             CALLBACK_DATA(url);
             break;
           default:
-            parser->state = parse_url_char((enum state)parser->state, ch, 0);
+            parser->state = parse_url_char((enum state)parser->state, ch, NULL);
             if (parser->state == s_dead) {
               SET_ERRNO(HPE_INVALID_URL);
               goto error;
@@ -1927,7 +1931,6 @@ http_parse_host_char(enum http_host_state s, const char ch) {
       break;
 
     case s_http_host:
-
       if (IS_HOST_CHAR(ch)) {
         return s_http_host;
       }
@@ -1966,8 +1969,6 @@ http_parse_host_char(enum http_host_state s, const char ch) {
   }
   return s_http_host_dead;
 }
-
-#include <stdio.h>
 
 static int
 http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
@@ -2109,7 +2110,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
     old_uf = uf;
   }
 
-  // host must be present if there is a schema
+  /* host must be present if there is a schema */
   if ((u->field_set & ((1 << UF_SCHEMA) | (1 << UF_HOST))) != 0) {
     if (http_parse_host(buf, u, found_at) != 0) {
       return 1;
