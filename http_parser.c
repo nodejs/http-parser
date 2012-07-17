@@ -255,6 +255,7 @@ enum state
   , s_req_schema_slash_slash
   , s_req_host_start
   , s_req_host
+  , s_req_host_with_at
   , s_req_path
   , s_req_query_string_start
   , s_req_query_string
@@ -416,7 +417,7 @@ int http_message_needs_eof(http_parser *parser);
  * URL and non-URL states by looking for these.
  */
 static enum state
-parse_url_char(enum state s, const char ch, int *found_at)
+parse_url_char(enum state s, const char ch)
 {
   if (ch == ' ' || ch == '\r' || ch == '\n') {
     return s_dead;
@@ -469,6 +470,12 @@ parse_url_char(enum state s, const char ch, int *found_at)
 
       break;
 
+    case s_req_host_with_at:
+      if (ch == '@') {
+        return s_dead;
+      }
+
+    /* FALLTHROUGH */
     case s_req_host_start:
     case s_req_host:
       if (ch == '/') {
@@ -484,10 +491,7 @@ parse_url_char(enum state s, const char ch, int *found_at)
       }
 
       if (ch == '@') {
-        if (found_at) {
-          *found_at = 1;
-        }
-        return s_req_host;
+        return s_req_host_with_at;
       }
 
       break;
@@ -611,6 +615,7 @@ size_t http_parser_execute (http_parser *parser,
   case s_req_schema_slash_slash:
   case s_req_host_start:
   case s_req_host:
+  case s_req_host_with_at:
   case s_req_query_string_start:
   case s_req_query_string:
   case s_req_fragment_start:
@@ -974,7 +979,7 @@ size_t http_parser_execute (http_parser *parser,
           parser->state = s_req_host_start;
         }
 
-        parser->state = parse_url_char((enum state)parser->state, ch, NULL);
+        parser->state = parse_url_char((enum state)parser->state, ch);
         if (parser->state == s_dead) {
           SET_ERRNO(HPE_INVALID_URL);
           goto error;
@@ -996,7 +1001,7 @@ size_t http_parser_execute (http_parser *parser,
             SET_ERRNO(HPE_INVALID_URL);
             goto error;
           default:
-            parser->state = parse_url_char((enum state)parser->state, ch, NULL);
+            parser->state = parse_url_char((enum state)parser->state, ch);
             if (parser->state == s_dead) {
               SET_ERRNO(HPE_INVALID_URL);
               goto error;
@@ -1007,6 +1012,7 @@ size_t http_parser_execute (http_parser *parser,
       }
 
       case s_req_host:
+      case s_req_host_with_at:
       case s_req_path:
       case s_req_query_string_start:
       case s_req_query_string:
@@ -1028,7 +1034,7 @@ size_t http_parser_execute (http_parser *parser,
             CALLBACK_DATA(url);
             break;
           default:
-            parser->state = parse_url_char((enum state)parser->state, ch, NULL);
+            parser->state = parse_url_char((enum state)parser->state, ch);
             if (parser->state == s_dead) {
               SET_ERRNO(HPE_INVALID_URL);
               goto error;
@@ -2057,7 +2063,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   uf = old_uf = UF_MAX;
 
   for (p = buf; p < buf + buflen; p++) {
-    s = parse_url_char(s, *p, &found_at);
+    s = parse_url_char(s, *p);
 
     /* Figure out the next field that we're operating on */
     switch (s) {
@@ -2076,6 +2082,10 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
         uf = UF_SCHEMA;
         break;
 
+      case s_req_host_with_at:
+        found_at = 1;
+
+      /* FALLTROUGH */
       case s_req_host:
         uf = UF_HOST;
         break;

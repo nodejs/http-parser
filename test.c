@@ -2229,6 +2229,12 @@ const struct url_test url_tests[] =
   ,.rv=0
   }
 
+, {.name="double @"
+  ,.url="http://a:b@@hostname:443/"
+  ,.is_connect=0
+  ,.rv=1
+  }
+
 , {.name="proxy empty host"
   ,.url="http://:443/"
   ,.is_connect=0
