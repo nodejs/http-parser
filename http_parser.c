@@ -486,12 +486,12 @@ parse_url_char(enum state s, const char ch)
         return s_req_query_string_start;
       }
 
-      if (IS_USERINFO_CHAR(ch) || ch == '[' || ch == ']') {
-        return s_req_host;
-      }
-
       if (ch == '@') {
         return s_req_host_with_at;
+      }
+
+      if (IS_USERINFO_CHAR(ch) || ch == '[' || ch == ']') {
+        return s_req_host;
       }
 
       break;
