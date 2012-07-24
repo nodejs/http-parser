@@ -253,9 +253,9 @@ enum state
   , s_req_schema
   , s_req_schema_slash
   , s_req_schema_slash_slash
-  , s_req_host_start
-  , s_req_host
-  , s_req_host_with_at
+  , s_req_server_start
+  , s_req_server
+  , s_req_server_with_at
   , s_req_path
   , s_req_query_string_start
   , s_req_query_string
@@ -465,19 +465,19 @@ parse_url_char(enum state s, const char ch)
 
     case s_req_schema_slash_slash:
       if (ch == '/') {
-        return s_req_host_start;
+        return s_req_server_start;
       }
 
       break;
 
-    case s_req_host_with_at:
+    case s_req_server_with_at:
       if (ch == '@') {
         return s_dead;
       }
 
     /* FALLTHROUGH */
-    case s_req_host_start:
-    case s_req_host:
+    case s_req_server_start:
+    case s_req_server:
       if (ch == '/') {
         return s_req_path;
       }
@@ -487,11 +487,11 @@ parse_url_char(enum state s, const char ch)
       }
 
       if (ch == '@') {
-        return s_req_host_with_at;
+        return s_req_server_with_at;
       }
 
       if (IS_USERINFO_CHAR(ch) || ch == '[' || ch == ']') {
-        return s_req_host;
+        return s_req_server;
       }
 
       break;
@@ -613,9 +613,9 @@ size_t http_parser_execute (http_parser *parser,
   case s_req_schema:
   case s_req_schema_slash:
   case s_req_schema_slash_slash:
-  case s_req_host_start:
-  case s_req_host:
-  case s_req_host_with_at:
+  case s_req_server_start:
+  case s_req_server:
+  case s_req_server_with_at:
   case s_req_query_string_start:
   case s_req_query_string:
   case s_req_fragment_start:
@@ -976,7 +976,7 @@ size_t http_parser_execute (http_parser *parser,
 
         MARK(url);
         if (parser->method == HTTP_CONNECT) {
-          parser->state = s_req_host_start;
+          parser->state = s_req_server_start;
         }
 
         parser->state = parse_url_char((enum state)parser->state, ch);
@@ -991,7 +991,7 @@ size_t http_parser_execute (http_parser *parser,
       case s_req_schema:
       case s_req_schema_slash:
       case s_req_schema_slash_slash:
-      case s_req_host_start:
+      case s_req_server_start:
       {
         switch (ch) {
           /* No whitespace allowed here */
@@ -1011,8 +1011,8 @@ size_t http_parser_execute (http_parser *parser,
         break;
       }
 
-      case s_req_host:
-      case s_req_host_with_at:
+      case s_req_server:
+      case s_req_server_with_at:
       case s_req_path:
       case s_req_query_string_start:
       case s_req_query_string:
@@ -2059,7 +2059,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   int found_at = 0;
 
   u->port = u->field_set = 0;
-  s = is_connect ? s_req_host_start : s_req_spaces_before_url;
+  s = is_connect ? s_req_server_start : s_req_spaces_before_url;
   uf = old_uf = UF_MAX;
 
   for (p = buf; p < buf + buflen; p++) {
@@ -2073,7 +2073,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
       /* Skip delimeters */
       case s_req_schema_slash:
       case s_req_schema_slash_slash:
-      case s_req_host_start:
+      case s_req_server_start:
       case s_req_query_string_start:
       case s_req_fragment_start:
         continue;
@@ -2082,11 +2082,11 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
         uf = UF_SCHEMA;
         break;
 
-      case s_req_host_with_at:
+      case s_req_server_with_at:
         found_at = 1;
 
       /* FALLTROUGH */
-      case s_req_host:
+      case s_req_server:
         uf = UF_HOST;
         break;
 
