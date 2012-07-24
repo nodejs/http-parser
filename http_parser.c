@@ -1999,14 +1999,14 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
         if (s != s_http_host) {
           u->field_data[UF_HOST].off = p - buf;
         }
-        u->field_data[UF_HOST].len ++;
+        u->field_data[UF_HOST].len++;
         break;
 
       case s_http_host_v6:
         if (s != s_http_host_v6) {
           u->field_data[UF_HOST].off = p - buf;
         }
-        u->field_data[UF_HOST].len ++;
+        u->field_data[UF_HOST].len++;
         break;
 
       case s_http_host_port:
@@ -2015,7 +2015,7 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
           u->field_data[UF_PORT].len = 0;
           u->field_set |= (1 << UF_PORT);
         }
-        u->field_data[UF_PORT].len ++;
+        u->field_data[UF_PORT].len++;
         break;
 
       case s_http_userinfo:
@@ -2024,7 +2024,7 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
           u->field_data[UF_USERINFO].len = 0;
           u->field_set |= (1 << UF_USERINFO);
         }
-        u->field_data[UF_USERINFO].len ++;
+        u->field_data[UF_USERINFO].len++;
         break;
 
       default:
