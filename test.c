@@ -2453,7 +2453,6 @@ const struct url_test url_tests[] =
 void
 dump_url (const char *url, const struct http_parser_url *u)
 {
-  char part[512];
   unsigned int i;
 
   printf("\tfield_set: 0x%x, port: %u\n", u->field_set, u->port);
@@ -2463,14 +2462,12 @@ dump_url (const char *url, const struct http_parser_url *u)
       continue;
     }
 
-    memcpy(part, url + u->field_data[i].off, u->field_data[i].len);
-    part[u->field_data[i].len] = '\0';
-
-    printf("\tfield_data[%u]: off: %u len: %u part: \"%s\"\n",
+    printf("\tfield_data[%u]: off: %u len: %u part: \"%.*s\n",
            i,
            u->field_data[i].off,
            u->field_data[i].len,
-           part);
+           u->field_data[i].len,
+           url + u->field_data[i].off);
   }
 }
 
