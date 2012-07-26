@@ -289,7 +289,7 @@ size_t http_parser_execute(http_parser *parser,
 
 
 /* If http_should_keep_alive() in the on_headers_complete or
- * on_message_complete callback returns true, then this should be
+ * on_message_complete callback returns 0, then this should be
  * the last message on the connection.
  * If you are the server, respond with the "Connection: close" header.
  * If you are the client, close the connection.
