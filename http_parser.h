@@ -27,6 +27,8 @@ extern "C" {
 #define HTTP_PARSER_VERSION_MAJOR 1
 #define HTTP_PARSER_VERSION_MINOR 0
 
+const char * http_parser_version();
+
 #include <sys/types.h>
 #if defined(_WIN32) && !defined(__MINGW32__) && (!defined(_MSC_VER) || _MSC_VER<1600)
 #include <BaseTsd.h>
@@ -57,6 +59,8 @@ typedef SSIZE_T ssize_t;
 #ifndef HTTP_PARSER_DEBUG
 # define HTTP_PARSER_DEBUG 0
 #endif
+
+const unsigned int http_parser_debug;
 
 
 /* Maximium header size allowed */

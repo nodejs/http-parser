@@ -29,6 +29,11 @@
 #include <string.h>
 #include <limits.h>
 
+#define STRINGIZE(x) _STRINGIZE(x)
+#define _STRINGIZE(x) #x
+
+const unsigned int http_parser_debug = HTTP_PARSER_DEBUG;
+
 #ifndef ULLONG_MAX
 # define ULLONG_MAX ((uint64_t) -1) /* 2^64-1 */
 #endif
@@ -2160,4 +2165,9 @@ http_parser_pause(http_parser *parser, int paused) {
   } else {
     assert(0 && "Attempting to pause parser in error state");
   }
+}
+
+const char *
+http_parser_version() {
+  return STRINGIZE(HTTP_PARSER_VERSION_MAJOR.HTTP_PARSER_VERSION_MINOR);
 }
