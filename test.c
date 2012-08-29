@@ -2518,6 +2518,13 @@ test_parse_url (void)
 }
 
 void
+test_method_str (void)
+{
+  assert(0 == strcmp("GET", http_method_str(HTTP_GET)));
+  assert(0 == strcmp("<unknown>", http_method_str(1337)));
+}
+
+void
 test_message (const struct message *message)
 {
   size_t raw_len = strlen(message->raw);
@@ -3026,6 +3033,7 @@ main (void)
   //// API
   test_preserve_data();
   test_parse_url();
+  test_method_str();
 
   //// OVERFLOW CONDITIONS
 

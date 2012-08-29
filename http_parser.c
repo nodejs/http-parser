@@ -37,6 +37,13 @@
 # define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
+#ifndef ARRAY_SIZE
+# define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+#endif
+
+#ifndef ELEM_AT
+# define ELEM_AT(a, i, v) ((unsigned int) (i) < ARRAY_SIZE(a) ? (a)[(i)] : (v))
+#endif
 
 #if HTTP_PARSER_DEBUG
 #define SET_ERRNO(e)                                                 \
@@ -1882,9 +1889,10 @@ http_should_keep_alive (const http_parser *parser)
 }
 
 
-const char * http_method_str (enum http_method m)
+const char *
+http_method_str (enum http_method m)
 {
-  return method_strings[m];
+  return ELEM_AT(method_strings, m, "<unknown>");
 }
 
 
