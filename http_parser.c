@@ -403,7 +403,7 @@ static struct {
 };
 #undef HTTP_STRERROR_GEN
 
-int http_message_needs_eof(http_parser *parser);
+int http_message_needs_eof(const http_parser *parser);
 
 /* Our URL parser.
  *
@@ -1841,7 +1841,7 @@ error:
 
 /* Does the parser need to see an EOF to find the end of the message? */
 int
-http_message_needs_eof (http_parser *parser)
+http_message_needs_eof (const http_parser *parser)
 {
   if (parser->type == HTTP_REQUEST) {
     return 0;
@@ -1864,7 +1864,7 @@ http_message_needs_eof (http_parser *parser)
 
 
 int
-http_should_keep_alive (http_parser *parser)
+http_should_keep_alive (const http_parser *parser)
 {
   if (parser->http_major > 0 && parser->http_minor > 0) {
     /* HTTP/1.1 */
