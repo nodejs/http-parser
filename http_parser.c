@@ -2175,3 +2175,8 @@ http_parser_pause(http_parser *parser, int paused) {
     assert(0 && "Attempting to pause parser in error state");
   }
 }
+
+int
+http_body_is_final(const struct http_parser *parser) {
+    return parser->state == s_message_done;
+}

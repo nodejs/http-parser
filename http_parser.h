@@ -313,6 +313,9 @@ int http_parser_parse_url(const char *buf, size_t buflen,
 /* Pause or un-pause the parser; a nonzero value pauses */
 void http_parser_pause(http_parser *parser, int paused);
 
+/* Checks if this is the final chunk of the body. */
+int http_body_is_final(const http_parser *parser);
+
 #ifdef __cplusplus
 }
 #endif
