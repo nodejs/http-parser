@@ -107,7 +107,7 @@ do {                                                                 \
     FOR##_mark = NULL;                                               \
   }                                                                  \
 } while (0)
-  
+
 /* Run the data callback FOR and consume the current byte */
 #define CALLBACK_DATA(FOR)                                           \
     CALLBACK_DATA_(FOR, p - FOR##_mark, p - data + 1)
@@ -2174,4 +2174,9 @@ http_parser_pause(http_parser *parser, int paused) {
   } else {
     assert(0 && "Attempting to pause parser in error state");
   }
+}
+
+int
+http_body_is_final(const struct http_parser *parser) {
+    return parser->state ==s_message_done;
 }
