@@ -67,6 +67,7 @@ struct message {
   int headers_complete_cb_called;
   int message_complete_cb_called;
   int message_complete_on_eof;
+  int body_is_final;
 };
 
 static int currently_parsing_eof;
@@ -1449,12 +1450,26 @@ header_value_cb (http_parser *p, const char *buf, size_t len)
   return 0;
 }
 
+void
+check_body_is_final (const http_parser *p)
+{
+  if (messages[num_messages].body_is_final) {
+    fprintf(stderr, "\n\n *** Error http_body_is_final() should return 1 "
+                    "on last on_body callback call "
+                    "but it doesn't! ***\n\n");
+    assert(0);
+    abort();
+  }
+  messages[num_messages].body_is_final = http_body_is_final(p);
+}
+
 int
 body_cb (http_parser *p, const char *buf, size_t len)
 {
   assert(p == parser);
   strncat(messages[num_messages].body, buf, len);
   messages[num_messages].body_size += len;
+  check_body_is_final(p);
  // printf("body_cb: '%s'\n", requests[num_messages].body);
   return 0;
 }
@@ -1465,6 +1480,7 @@ count_body_cb (http_parser *p, const char *buf, size_t len)
   assert(p == parser);
   assert(buf);
   messages[num_messages].body_size += len;
+  check_body_is_final(p);
   return 0;
 }
 
@@ -1501,6 +1517,16 @@ message_complete_cb (http_parser *p)
     assert(0);
     abort();
   }
+
+  if (messages[num_messages].body_size && http_body_is_final(p)
+          && !messages[num_messages].body_is_final) {
+    fprintf(stderr, "\n\n *** Error http_body_is_final() should return 1 "
+                    "on last on_body callback call "
+                    "but it doesn't! ***\n\n");
+    assert(0);
+    abort();
+  }
+
   messages[num_messages].message_complete_cb_called = TRUE;
 
   messages[num_messages].message_complete_on_eof = currently_parsing_eof;
@@ -1891,7 +1917,7 @@ upgrade_message_fix(char *body, const size_t nread, const size_t nmsgs, ...) {
   va_list ap;
   size_t i;
   size_t off = 0;
- 
+
   va_start(ap, nmsgs);
 
   for (i = 0; i < nmsgs; i++) {
