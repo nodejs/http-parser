@@ -24,7 +24,7 @@
 extern "C" {
 #endif
 
-#define HTTP_PARSER_VERSION_MAJOR 1
+#define HTTP_PARSER_VERSION_MAJOR 2
 #define HTTP_PARSER_VERSION_MINOR 0
 
 #include <sys/types.h>
