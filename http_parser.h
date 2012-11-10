@@ -51,14 +51,6 @@ typedef SSIZE_T ssize_t;
 # define HTTP_PARSER_STRICT 1
 #endif
 
-/* Compile with -DHTTP_PARSER_DEBUG=1 to add extra debugging information to
- * the error reporting facility.
- */
-#ifndef HTTP_PARSER_DEBUG
-# define HTTP_PARSER_DEBUG 0
-#endif
-
-
 /* Maximium header size allowed */
 #define HTTP_MAX_HEADER_SIZE (80*1024)
 
@@ -196,13 +188,6 @@ enum http_errno {
 /* Get an http_errno value from an http_parser */
 #define HTTP_PARSER_ERRNO(p)            ((enum http_errno) (p)->http_errno)
 
-/* Get the line number that generated the current error */
-#if HTTP_PARSER_DEBUG
-#define HTTP_PARSER_ERRNO_LINE(p)       ((p)->error_lineno)
-#else
-#define HTTP_PARSER_ERRNO_LINE(p)       0
-#endif
-
 
 struct http_parser {
   /** PRIVATE **/
@@ -228,10 +213,6 @@ struct http_parser {
    * error checking.
    */
   unsigned char upgrade : 1;
-
-#if HTTP_PARSER_DEBUG
-  uint32_t error_lineno;
-#endif
 
   /** PUBLIC **/
   void *data; /* A pointer to get hook to the "connection" or "socket" object */

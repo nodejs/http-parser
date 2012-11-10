@@ -1954,8 +1954,7 @@ upgrade_message_fix(char *body, const size_t nread, const size_t nmsgs, ...) {
 static void
 print_error (const char *raw, size_t error_location)
 {
-  fprintf(stderr, "\n*** %s:%d -- %s ***\n\n",
-          "http_parser.c", HTTP_PARSER_ERRNO_LINE(parser),
+  fprintf(stderr, "\n*** %s ***\n\n",
           http_errno_description(HTTP_PARSER_ERRNO(parser)));
 
   int this_line = 0, char_len = 0;

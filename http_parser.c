@@ -51,18 +51,10 @@
 # define ELEM_AT(a, i, v) ((unsigned int) (i) < ARRAY_SIZE(a) ? (a)[(i)] : (v))
 #endif
 
-#if HTTP_PARSER_DEBUG
-#define SET_ERRNO(e)                                                 \
-do {                                                                 \
-  parser->http_errno = (e);                                          \
-  parser->error_lineno = __LINE__;                                   \
-} while (0)
-#else
 #define SET_ERRNO(e)                                                 \
 do {                                                                 \
   parser->http_errno = (e);                                          \
 } while(0)
-#endif
 
 
 /* Run the notify callback FOR, returning ER if it fails */
