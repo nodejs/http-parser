@@ -27,6 +27,7 @@ extern "C" {
 /* Also update SONAME in the Makefile whenever you change these. */
 #define HTTP_PARSER_VERSION_MAJOR 2
 #define HTTP_PARSER_VERSION_MINOR 1
+#define HTTP_PARSER_VERSION_PATCH 0
 
 #include <sys/types.h>
 #if defined(_WIN32) && !defined(__MINGW32__) && (!defined(_MSC_VER) || _MSC_VER<1600)
@@ -261,6 +262,18 @@ struct http_parser_url {
   } field_data[UF_MAX];
 };
 
+
+/* Returns the library version. Bits 16-23 contain the major version number,
+ * bits 8-15 the minor version number and bits 0-7 the patch level.
+ * Usage example:
+ *
+ *   unsigned long version = http_parser_version();
+ *   unsigned major = (version >> 16) & 255;
+ *   unsigned minor = (version >> 8) & 255;
+ *   unsigned patch = version & 255;
+ *   printf("http_parser v%u.%u.%u\n", major, minor, version);
+ */
+unsigned long http_parser_version(void);
 
 void http_parser_init(http_parser *parser, enum http_parser_type type);
 

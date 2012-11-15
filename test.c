@@ -3170,6 +3170,16 @@ main (void)
   int i, j, k;
   int request_count;
   int response_count;
+  unsigned long version;
+  unsigned major;
+  unsigned minor;
+  unsigned patch;
+
+  version = http_parser_version();
+  major = (version >> 16) & 255;
+  minor = (version >> 8) & 255;
+  patch = version & 255;
+  printf("http_parser v%u.%u.%u (0x%06lx)\n", major, minor, patch, version);
 
   printf("sizeof(http_parser) = %u\n", (unsigned int)sizeof(http_parser));
 

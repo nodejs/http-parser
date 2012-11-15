@@ -2173,3 +2173,10 @@ int
 http_body_is_final(const struct http_parser *parser) {
     return parser->state == s_message_done;
 }
+
+unsigned long
+http_parser_version(void) {
+  return HTTP_PARSER_VERSION_MAJOR * 0x10000 |
+         HTTP_PARSER_VERSION_MINOR * 0x00100 |
+         HTTP_PARSER_VERSION_PATCH * 0x00001;
+}
