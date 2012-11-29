@@ -32,7 +32,7 @@
 #define FALSE 0
 
 #define MAX_HEADERS 13
-#define MAX_ELEMENT_SIZE 500
+#define MAX_ELEMENT_SIZE 2048
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
