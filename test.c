@@ -2213,7 +2213,24 @@ const struct url_test url_tests[] =
     }
   ,.rv=0
   }
-
+, {.name="ipv4 in ipv6 address"
+  ,.url="http://[2001:0000:0000:0000:0000:0000:1.9.1.1]/"
+  ,.is_connect=0
+  ,.u=
+    {.field_set=(1 << UF_SCHEMA) | (1 << UF_HOST) | (1 << UF_PATH)
+    ,.port=0
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{  8, 37 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{ 46,  1 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
+      }
+    }
+  ,.rv=0
+  }
 , {.name="extra ? in query string"
   ,.url="http://a.tbcdn.cn/p/fp/2010c/??fp-header-min.css,fp-base-min.css,"
   "fp-channel-min.css,fp-product-min.css,fp-mall-min.css,fp-category-min.css,"
