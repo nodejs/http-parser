@@ -1962,7 +1962,7 @@ http_parse_host_char(enum http_host_state s, const char ch) {
 
     /* FALLTHROUGH */
     case s_http_host_v6_start:
-      if (IS_HEX(ch) || ch == ':') {
+      if (IS_HEX(ch) || ch == ':' || ch == '.') {
         return s_http_host_v6;
       }
 
