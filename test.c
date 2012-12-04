@@ -2587,7 +2587,7 @@ dump_url (const char *url, const struct http_parser_url *u)
       continue;
     }
 
-    printf("\tfield_data[%u]: off: %u len: %u part: \"%.*s\n",
+    printf("\tfield_data[%u]: off: %u len: %u part: \"%.*s\n\"",
            i,
            u->field_data[i].off,
            u->field_data[i].len,
