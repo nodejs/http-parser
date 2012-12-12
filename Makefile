@@ -55,6 +55,9 @@ library: libhttp_parser.o
 package: http_parser.o
 	$(AR) rcs libhttp_parser.a http_parser.o
 
+parsertrace: http_parser_g.o http_parser.h utils/parsertrace.c
+	$(CC) $(CFLAGS_DEBUG) -o parsertrace http_parser_g.o utils/parsertrace.c
+
 tags: http_parser.c http_parser.h test.c
 	ctags $^
 
