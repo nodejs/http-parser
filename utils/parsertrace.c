@@ -1,10 +1,7 @@
 /* Dump what the parser finds to stdout as it happen */
 
 #include <stdio.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include "../http_parser.h"
 
 int on_message_begin(http_parser *_ ) {
@@ -55,7 +52,21 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 	char *filename = argv[1];
-	int fd = open(filename, O_RDONLY);
+	FILE *file = fopen(filename, "r");
+	if (file == NULL) {
+		fprintf(stderr, "Error: couldn't open %s", filename);
+		return EXIT_FAILURE;
+	}
+
+	fseek(file, 0, SEEK_END);
+	unsigned long file_length = (unsigned long)ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+	char *data = malloc(file_length);
+	if(fread(data, sizeof(char), file_length, file) != file_length) {
+		fprintf(stderr, "couldn't read entire file (please report this as a bug!)\n");
+		return EXIT_FAILURE;
+	}
 
 	http_parser_settings settings;
 	settings.on_message_begin = on_message_begin;
@@ -68,19 +79,7 @@ int main(int argc, char *argv[]) {
 	http_parser parser;
 	http_parser_init(&parser, HTTP_RESPONSE);
 
-	struct stat statinfo;
-	if(stat(argv[1], &statinfo)) {
-		fprintf(stderr, "can't stat file\n");
-		return EXIT_FAILURE;
-	}
-
-	char *data = malloc(statinfo.st_size);
-	if(read(fd, data, statinfo.st_size) != statinfo.st_size) {
-		fprintf(stderr, "couldn't read entire file (please report this as a bug!)\n");
-		return EXIT_FAILURE;
-	}
-
-	http_parser_execute(&parser, &settings, data, statinfo.st_size);
+	http_parser_execute(&parser, &settings, data, file_length);
 
 	free(data);
 	return EXIT_SUCCESS;
