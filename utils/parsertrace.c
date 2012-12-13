@@ -7,37 +7,44 @@
 #include <unistd.h>
 #include "../http_parser.h"
 
-int on_message_begin(http_parser *_ __attribute__((unused))) {
+int on_message_begin(http_parser *_ ) {
+	(void)_;
 	printf("\n***MESSAGE BEGIN***\n\n");
 	return 0;
 }
 
-int on_headers_complete(http_parser *_ __attribute__((unused))) {
+int on_headers_complete(http_parser *_ ) {
+	(void)_;
 	printf("\n***HEADERS COMPLETE***\n\n");
 	return 0;
 }
 
-int on_message_complete(http_parser *_ __attribute__((unused))) {
+int on_message_complete(http_parser *_ ) {
+	(void)_;
 	printf("\n***MESSAGE COMPLETE***\n\n");
 	return 0;
 }
 
-int on_url(http_parser *_ __attribute__((unused)), const char *at, size_t length) {
+int on_url(http_parser *_ , const char *at, size_t length) {
+	(void)_;
 	printf("Url: %.*s\n", (int)length, at);
 	return 0;
 }
 
-int on_header_field(http_parser *_ __attribute__((unused)), const char *at, size_t length) {
+int on_header_field(http_parser *_ , const char *at, size_t length) {
+	(void)_;
 	printf("Header field: %.*s\n", (int)length, at);
 	return 0;
 }
 
-int on_header_value(http_parser *_ __attribute__((unused)), const char *at, size_t length) {
+int on_header_value(http_parser *_ , const char *at, size_t length) {
+	(void)_;
 	printf("Header value: %.*s\n", (int)length, at);
 	return 0;
 }
 
-int on_body(http_parser *_ __attribute__((unused)), const char *at, size_t length) {
+int on_body(http_parser *_ , const char *at, size_t length) {
+	(void)_;
 	printf("Body: %.*s\n", (int)length, at);
 	return 0;
 }
