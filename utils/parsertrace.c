@@ -65,8 +65,8 @@ int main(int argc, char *argv[]) {
 	settings.on_headers_complete = on_headers_complete;
 	settings.on_body = on_body;
 	settings.on_message_complete = on_message_complete;
-	http_parser *parser = malloc(sizeof(http_parser));
-	http_parser_init(parser, HTTP_RESPONSE);
+	http_parser parser;
+	http_parser_init(&parser, HTTP_RESPONSE);
 
 	struct stat statinfo;
 	if(stat(argv[1], &statinfo)) {
@@ -80,7 +80,8 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	http_parser_execute(parser, &settings, data, statinfo.st_size);
+	http_parser_execute(&parser, &settings, data, statinfo.st_size);
 
+	free(data);
 	return EXIT_SUCCESS;
 }
