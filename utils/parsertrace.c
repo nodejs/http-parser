@@ -47,14 +47,38 @@ int on_body(http_parser *_ , const char *at, size_t length) {
 }
 
 int main(int argc, char *argv[]) {
-	if (argc != 2) {
-		fprintf(stderr, "Usage: ./parsertrace $filename\n");
+	enum http_parser_type file_type;
+	if (argc != 3) {
+err:		fprintf(stderr, "Usage: %s $type $filename\n"
+						"\ttype: -x, where x is one of {r,b,q}\n"
+						"\tparses file a Response, reQuest, or Both\n"
+						, argv[0]);
 		return EXIT_FAILURE;
 	}
-	char *filename = argv[1];
+	char *type = argv[1];
+	if (type[0] != '-') {
+		goto err;
+	} else {
+		switch(type[1]) {
+			/* in the case of "-", type[1] will be NUL */
+			case 'r':
+				file_type = HTTP_RESPONSE;
+				break;
+			case 'q':
+				file_type = HTTP_REQUEST;
+				break;
+			case 'b':
+				file_type = HTTP_BOTH;
+				break;
+			default:
+				goto err;
+				break;
+		}
+	}
+	char *filename = argv[2];
 	FILE *file = fopen(filename, "r");
 	if (file == NULL) {
-		fprintf(stderr, "Error: couldn't open %s", filename);
+		fprintf(stderr, "Error: couldn't open %s\n", filename);
 		return EXIT_FAILURE;
 	}
 
@@ -77,7 +101,7 @@ int main(int argc, char *argv[]) {
 	settings.on_body = on_body;
 	settings.on_message_complete = on_message_complete;
 	http_parser parser;
-	http_parser_init(&parser, HTTP_RESPONSE);
+	http_parser_init(&parser, file_type);
 
 	http_parser_execute(&parser, &settings, data, file_length);
 
