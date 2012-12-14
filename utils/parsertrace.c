@@ -103,7 +103,11 @@ err:		fprintf(stderr, "Usage: %s $type $filename\n"
 	http_parser parser;
 	http_parser_init(&parser, file_type);
 
-	http_parser_execute(&parser, &settings, data, file_length);
+	if (http_parser_execute(&parser, &settings, data, file_length) != file_length) {
+		fprintf(stderr, "Error: %s (%s)\n",
+				http_errno_description(HTTP_PARSER_ERRNO(&parser)),
+				http_errno_name(HTTP_PARSER_ERRNO(&parser)));
+	}
 
 	free(data);
 	return EXIT_SUCCESS;
