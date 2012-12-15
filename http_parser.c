@@ -866,6 +866,7 @@ size_t http_parser_execute (http_parser *parser,
       case s_res_line_almost_done:
         STRICT_CHECK(ch != LF);
         parser->state = s_header_field_start;
+      	CALLBACK_NOTIFY(status_complete);
         break;
 
       case s_start_req:
