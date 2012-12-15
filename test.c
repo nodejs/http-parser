@@ -1492,6 +1492,13 @@ request_url_cb (http_parser *p, const char *buf, size_t len)
 }
 
 int
+status_complete_cb (http_parser *p) {
+  assert(p == parser);
+  p->data++;
+  return 0;
+}
+
+int
 header_field_cb (http_parser *p, const char *buf, size_t len)
 {
   assert(p == parser);
@@ -3089,6 +3096,20 @@ create_large_chunked_message (int body_size_in_kb, const char* headers)
   return buf;
 }
 
+void
+test_status_complete (void)
+{
+  parser_init(HTTP_RESPONSE);
+  parser->data = 0;
+  http_parser_settings settings = settings_null;
+  settings.on_status_complete = status_complete_cb;
+
+  char *response = "don't mind me, just a simple response";
+  http_parser_execute(parser, &settings, response, strlen(response));
+  assert(parser->data == (void*)0); // the status_complete callback was never called
+  assert(parser->http_errno == HPE_INVALID_CONSTANT); // the errno for an invalid status line
+}
+
 /* Verify that we can pause parsing at any of the bytes in the
  * message and still get the result that we're expecting. */
 void
@@ -3395,6 +3416,8 @@ main (void)
            , &requests[PREFIX_NEWLINE_GET ]
            , &requests[CONNECT_REQUEST]
            );
+
+  test_status_complete();
 
   puts("requests okay");
 
