@@ -6,7 +6,9 @@ test
 test_g
 test_fast
 url_parser
+parsertrace
 *.mk
 *.Makefile
 *.so
 *.a
+callgrind.out.*
