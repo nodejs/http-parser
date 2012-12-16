@@ -581,6 +581,7 @@ size_t http_parser_execute (http_parser *parser,
   const char *header_value_mark = 0;
   const char *url_mark = 0;
   const char *body_mark = 0;
+  const char *method_mark = 0;
 
   /* We're in an error state. Don't bother doing anything. */
   if (HTTP_PARSER_ERRNO(parser) != HPE_OK) {
@@ -679,13 +680,12 @@ size_t http_parser_execute (http_parser *parser,
           parser->type = HTTP_RESPONSE;
           parser->state = s_res_HT;
         } else {
-          if (ch != 'E') {
-            SET_ERRNO(HPE_INVALID_CONSTANT);
-            goto error;
+          if (ch == 'E') {
+            parser->method = HTTP_HEAD;
+          } else {
+            parser->type = HTTP_REQUEST;
           }
 
-          parser->type = HTTP_REQUEST;
-          parser->method = HTTP_HEAD;
           parser->index = 2;
           parser->state = s_req_method;
         }
@@ -881,6 +881,7 @@ size_t http_parser_execute (http_parser *parser,
           goto error;
         }
 
+        MARK(method);
         parser->method = (enum http_method) 0;
         parser->index = 1;
         switch (ch) {
@@ -900,8 +901,7 @@ size_t http_parser_execute (http_parser *parser,
           case 'T': parser->method = HTTP_TRACE; break;
           case 'U': parser->method = HTTP_UNLOCK; /* or UNSUBSCRIBE */ break;
           default:
-            SET_ERRNO(HPE_INVALID_METHOD);
-            goto error;
+            parser->method = HTTP_GENERIC; break;
         }
         parser->state = s_req_method;
 
@@ -920,6 +920,7 @@ size_t http_parser_execute (http_parser *parser,
 
         matcher = method_strings[parser->method];
         if (ch == ' ' && matcher[parser->index] == '\0') {
+		  CALLBACK_DATA(method);
           parser->state = s_req_spaces_before_url;
         } else if (ch == matcher[parser->index]) {
           ; /* nada */
@@ -968,8 +969,7 @@ size_t http_parser_execute (http_parser *parser,
         } else if (parser->index == 4 && parser->method == HTTP_PROPFIND && ch == 'P') {
           parser->method = HTTP_PROPPATCH;
         } else {
-          SET_ERRNO(HPE_INVALID_METHOD);
-          goto error;
+          parser->method = HTTP_GENERIC;
         }
 
         ++parser->index;

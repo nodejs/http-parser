@@ -3263,13 +3263,13 @@ main (void)
 
   /// REQUESTS
 
-  test_simple("hello world", HPE_INVALID_METHOD);
+  test_simple("hello world", HPE_OK);
   test_simple("GET / HTP/1.1\r\n\r\n", HPE_INVALID_VERSION);
 
 
-  test_simple("ASDF / HTTP/1.1\r\n\r\n", HPE_INVALID_METHOD);
-  test_simple("PROPPATCHA / HTTP/1.1\r\n\r\n", HPE_INVALID_METHOD);
-  test_simple("GETA / HTTP/1.1\r\n\r\n", HPE_INVALID_METHOD);
+  test_simple("ASDF / HTTP/1.1\r\n\r\n", HPE_OK);
+  test_simple("PROPPATCHA / HTTP/1.1\r\n\r\n", HPE_OK);
+  test_simple("GETA / HTTP/1.1\r\n\r\n", HPE_OK);
 
   // Well-formed but incomplete
   test_simple("GET / HTTP/1.1\r\n"
