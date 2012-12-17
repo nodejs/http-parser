@@ -3263,7 +3263,7 @@ main (void)
 
   /// REQUESTS
 
-  test_simple("hello world", HPE_OK);
+  test_simple("hello world", HPE_INVALID_PATH);
   test_simple("GET / HTP/1.1\r\n\r\n", HPE_INVALID_VERSION);
 
 
