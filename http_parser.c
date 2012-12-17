@@ -920,7 +920,7 @@ size_t http_parser_execute (http_parser *parser,
 
         matcher = method_strings[parser->method];
         if (ch == ' ' && matcher[parser->index] == '\0') {
-		  CALLBACK_DATA(method);
+          CALLBACK_DATA(method);
           parser->state = s_req_spaces_before_url;
         } else if (ch == matcher[parser->index]) {
           ; /* nada */
