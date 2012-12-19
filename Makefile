@@ -31,12 +31,6 @@ test_fast: http_parser.o test.o http_parser.h
 test.o: test.c http_parser.h Makefile
 	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_FAST) -c test.c -o $@
 
-url_parser: http_parser_g.o url_parser.o
-	$(CC) $(CFLAGS_DEBUG) $(LDFLAGS) http_parser_g.o url_parser.o -o $@
-
-url_parser.o: url_parser.c http_parser.h Makefile
-	$(CC) $(CPPFLAGS_DEBUG) $(CFLAGS_DEBUG) -c url_parser.c -o $@
-
 http_parser.o: http_parser.c http_parser.h Makefile
 	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_FAST) -c http_parser.c
 
@@ -55,16 +49,27 @@ library: libhttp_parser.o
 package: http_parser.o
 	$(AR) rcs libhttp_parser.a http_parser.o
 
-parsertrace_g: http_parser_g.o http_parser.h contrib/parsertrace.c
-	$(CC) $(CPPFLAGS_DEBUG) $(CFLAGS_DEBUG) -o parsertrace_g http_parser_g.o contrib/parsertrace.c
+url_parser: http_parser.o contrib/url_parser.c
+	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_FAST) $^ -o $@
 
-parsertrace: http_parser.o http_parser.h contrib/parsertrace.c
-	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_FAST) -o parsertrace http_parser.o contrib/parsertrace.c
+url_parser_g: http_parser_g.o contrib/url_parser.c
+	$(CC) $(CPPFLAGS_DEBUG) $(CFLAGS_DEBUG) $^ -o $@
+
+parsertrace: http_parser.o contrib/parsertrace.c
+	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_FAST) $^ -o parsertrace
+
+parsertrace_g: http_parser_g.o contrib/parsertrace.c
+	$(CC) $(CPPFLAGS_DEBUG) $(CFLAGS_DEBUG) $^ -o parsertrace_g
 
 tags: http_parser.c http_parser.h test.c
 	ctags $^
 
 clean:
-	rm -f *.o *.a test test_fast test_g url_parser http_parser.tar tags libhttp_parser.so libhttp_parser.o
+	rm -f *.o *.a tags test test_fast test_g \
+		http_parser.tar libhttp_parser.so \
+		url_parser url_parser_g parsertrace parsertrace_g
+
+contrib/url_parser.c:	http_parser.h
+contrib/parsertrace.c:	http_parser.h
 
 .PHONY: clean package test-run test-run-timed test-valgrind
