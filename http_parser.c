@@ -459,6 +459,8 @@ parse_url_char(enum state s, const char ch)
         return s_req_schema_slash;
       }
 
+      return s_dead; /* handles the case of an invalid URI (no path, no colon
+                        to mark the schema) */
       break;
 
     case s_req_schema_slash:
@@ -919,7 +921,7 @@ size_t http_parser_execute (http_parser *parser,
         }
 
         matcher = method_strings[parser->method];
-        if (ch == ' ' && matcher[parser->index] == '\0') {
+        if (ch == ' ' && (matcher[parser->index] == '\0' || parser->method == HTTP_GENERIC)) {
           CALLBACK_DATA(method);
           parser->state = s_req_spaces_before_url;
         } else if (ch == matcher[parser->index]) {
