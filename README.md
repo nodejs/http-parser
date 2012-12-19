@@ -36,7 +36,7 @@ using `http_parser_init()` and set the callbacks. That might look something
 like this for a request parser:
 
     http_parser_settings settings;
-    settings.on_path = my_path_callback;
+    settings.on_url = my_url_callback;
     settings.on_header_field = my_header_field_callback;
     /* ... */
 
