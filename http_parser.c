@@ -953,9 +953,11 @@ size_t http_parser_execute (http_parser *parser,
           goto error;
         }
 
-        if (parser->method == HTTP_GENERIC && ch == ' ') {
-          CALLBACK_DATA(method);
-          parser->state = s_req_spaces_before_url;
+        if (parser->method == HTTP_GENERIC) {
+          if (ch == ' ') {
+            CALLBACK_DATA(method);
+            parser->state = s_req_spaces_before_url;
+          }
           break;
         }
 
