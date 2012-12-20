@@ -897,6 +897,24 @@ const struct message requests[] =
   ,.body= ""
   }
 
+#define GENERIC_METHOD 34
+, {.name= "use a generic extension method"
+  ,.type= HTTP_REQUEST
+  ,.raw= "LOOKOVERHERE http://example.com/ HTTP/1.1\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GENERIC
+  ,.fragment= ""
+  ,.request_path= "/"
+  ,.request_url= "http://example.com/"
+  ,.host= "example.com"
+  ,.num_headers= 0
+  ,.headers= { }
+  ,.body= ""
+  }
 
 , {.name= NULL } /* sentinel */
 };
@@ -3263,7 +3281,7 @@ main (void)
 
   /// REQUESTS
 
-  test_simple("hello world", HPE_INVALID_PATH);
+  test_simple("hello world", HPE_OK);
   test_simple("GET / HTP/1.1\r\n\r\n", HPE_INVALID_VERSION);
 
 
