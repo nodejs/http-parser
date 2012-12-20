@@ -237,6 +237,9 @@ enum state
 
   , s_start_req_or_res
   , s_res_or_resp_H
+  , s_res_or_resp_HT
+  , s_res_or_resp_HTT
+  , s_res_or_resp_HTTP
   , s_start_res
   , s_res_H
   , s_res_HT
@@ -679,16 +682,46 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_res_or_resp_H:
         if (ch == 'T') {
-          parser->type = HTTP_RESPONSE;
-          parser->state = s_res_HT;
+          parser->state = s_res_or_resp_HT;
         } else {
+          parser->type = HTTP_REQUEST;
           if (ch == 'E') {
             parser->method = HTTP_HEAD;
           } else {
-            parser->type = HTTP_REQUEST;
+            parser->method = HTTP_GENERIC;
           }
 
           parser->index = 2;
+          parser->state = s_req_method;
+        }
+        break;
+
+      case s_res_or_resp_HT:
+        if (ch == 'T') {
+          parser->state = s_res_or_resp_HTT;
+        } else {
+          parser->type = HTTP_REQUEST;
+          parser->method = HTTP_GENERIC;
+          parser->state = s_req_method;
+        }
+        break;
+
+      case s_res_or_resp_HTT:
+        if (ch == 'P') {
+          parser->state = s_res_or_resp_HTTP;
+        } else {
+          parser->type = HTTP_REQUEST;
+          parser->method = HTTP_GENERIC;
+          parser->state = s_req_method;
+        }
+        break;
+
+      case s_res_or_resp_HTTP:
+        if (ch == '/') {
+          parser->state = s_res_first_http_major;
+        } else {
+          parser->type = HTTP_REQUEST;
+          parser->method = HTTP_GENERIC;
           parser->state = s_req_method;
         }
         break;
@@ -920,8 +953,16 @@ size_t http_parser_execute (http_parser *parser,
           goto error;
         }
 
+        if (parser->method == HTTP_GENERIC && ch == ' ') {
+          CALLBACK_DATA(method);
+          parser->state = s_req_spaces_before_url;
+          break;
+        }
+
         matcher = method_strings[parser->method];
-        if (ch == ' ' && (matcher[parser->index] == '\0' || parser->method == HTTP_GENERIC)) {
+
+        /* TODO: parse full method before deciding it isn't generic */
+        if (ch == ' ' && matcher[parser->index] == '\0') {
           CALLBACK_DATA(method);
           parser->state = s_req_spaces_before_url;
         } else if (ch == matcher[parser->index]) {
