@@ -1,6 +1,8 @@
 HTTP Parser
 ===========
 
+[![Build Status](https://travis-ci.org/cmr/http-parser.png?branch=master)](https://travis-ci.org/cmr/http-parser)
+
 This is a parser for HTTP messages written in C. It parses both requests and
 responses. The parser is designed to be used in performance HTTP
 applications. It does not make any syscalls nor allocations, it does not
