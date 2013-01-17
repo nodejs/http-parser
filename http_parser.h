@@ -204,6 +204,8 @@ struct http_parser {
   unsigned short http_major;
   unsigned short http_minor;
   unsigned short status_code; /* responses only */
+  char status_msg[4096];      /* responses only */
+  unsigned short status_msg_length;
   unsigned char method;       /* requests only */
   unsigned char http_errno : 7;
 
