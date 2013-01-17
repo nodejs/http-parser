@@ -149,6 +149,7 @@ enum flags
   XX(CB_headers_complete, "the on_headers_complete callback failed") \
   XX(CB_body, "the on_body callback failed")                         \
   XX(CB_message_complete, "the on_message_complete callback failed") \
+  XX(CB_status, "the on_status callback failed")                     \
                                                                      \
   /* Parsing-related errors */                                       \
   XX(INVALID_EOF_STATE, "stream ended at an unexpected time")        \
@@ -223,6 +224,7 @@ struct http_parser {
 struct http_parser_settings {
   http_cb      on_message_begin;
   http_data_cb on_url;
+  http_data_cb on_status;
   http_cb      on_status_complete;
   http_data_cb on_header_field;
   http_data_cb on_header_value;
