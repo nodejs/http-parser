@@ -823,6 +823,7 @@ size_t http_parser_execute (http_parser *parser,
         if (!IS_NUM(ch)) {
           switch (ch) {
             case ' ':
+              parser->status_msg_length = 0;
               parser->state = s_res_status;
               break;
             case CR:
@@ -855,11 +856,13 @@ size_t http_parser_execute (http_parser *parser,
         if (ch == CR) {
           parser->state = s_res_line_almost_done;
           break;
-        }
-
-        if (ch == LF) {
+        }else if (ch == LF) {
           parser->state = s_header_field_start;
           break;
+        }else{          
+          if(parser->status_msg_length < 4096){
+            parser->status_msg[parser->status_msg_length++] = ch;
+          }
         }
         break;
 
