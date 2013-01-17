@@ -248,6 +248,7 @@ enum state
   , s_res_http_minor
   , s_res_first_status_code
   , s_res_status_code
+  , s_res_status_start
   , s_res_status
   , s_res_line_almost_done
 
@@ -581,6 +582,7 @@ size_t http_parser_execute (http_parser *parser,
   const char *header_value_mark = 0;
   const char *url_mark = 0;
   const char *body_mark = 0;
+  const char *status_mark = 0;
 
   /* We're in an error state. Don't bother doing anything. */
   if (HTTP_PARSER_ERRNO(parser) != HPE_OK) {
@@ -626,6 +628,10 @@ size_t http_parser_execute (http_parser *parser,
   case s_req_fragment_start:
   case s_req_fragment:
     url_mark = data;
+    break;
+  case s_res_status:
+  case s_res_status_start:
+    status_mark = data;
     break;
   }
 
@@ -823,7 +829,7 @@ size_t http_parser_execute (http_parser *parser,
         if (!IS_NUM(ch)) {
           switch (ch) {
             case ' ':
-              parser->state = s_res_status;
+              parser->state = s_res_status_start;
               break;
             case CR:
               parser->state = s_res_line_almost_done;
@@ -848,18 +854,28 @@ size_t http_parser_execute (http_parser *parser,
 
         break;
       }
-
+      
+      case s_res_status_start:
       case s_res_status:
         /* the human readable status. e.g. "NOT FOUND"
          * we are not humans so just ignore this */
+
         if (ch == CR) {
+          if(parser->state == s_res_status){
+            CALLBACK_DATA(status);
+          }
           parser->state = s_res_line_almost_done;
           break;
-        }
-
-        if (ch == LF) {
+        }else if (ch == LF) {
+          if(parser->state == s_res_status){
+            CALLBACK_DATA(status);
+          }
           parser->state = s_header_field_start;
           break;
+        }else if(parser->state == s_res_status_start){
+          MARK(status);
+          parser->state = s_res_status;
+          parser->index = 0;
         }
         break;
 
@@ -1827,12 +1843,14 @@ size_t http_parser_execute (http_parser *parser,
   assert(((header_field_mark ? 1 : 0) +
           (header_value_mark ? 1 : 0) +
           (url_mark ? 1 : 0)  +
-          (body_mark ? 1 : 0)) <= 1);
+          (body_mark ? 1 : 0) +
+          (status_mark ? 1: 0)) <= 1);
 
   CALLBACK_DATA_NOADVANCE(header_field);
   CALLBACK_DATA_NOADVANCE(header_value);
   CALLBACK_DATA_NOADVANCE(url);
   CALLBACK_DATA_NOADVANCE(body);
+  CALLBACK_DATA_NOADVANCE(status);
 
   return len;
 
