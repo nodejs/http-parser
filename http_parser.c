@@ -1614,6 +1614,10 @@ size_t http_parser_execute (http_parser *parser,
         if (parser->flags & F_SKIPBODY) {
           parser->state = NEW_MESSAGE();
           CALLBACK_NOTIFY(message_complete);
+          //voluntary move the current pointer to the end of the buffer
+          //sometimes, the body of a response for an HEAD request is not empty because some server
+          //will gzip the empty string which product 20 bytes in the body.
+          p = data + len - 1;
         } else if (parser->flags & F_CHUNKED) {
           /* chunked encoding - ignore Content-Length header */
           parser->state = s_chunk_size_start;
