@@ -857,8 +857,6 @@ size_t http_parser_execute (http_parser *parser,
       
       case s_res_status_start:
       case s_res_status:
-        /* the human readable status. e.g. "NOT FOUND"
-         * we are not humans so just ignore this */
 
         if (ch == CR) {
           if(parser->state == s_res_status){
@@ -866,13 +864,13 @@ size_t http_parser_execute (http_parser *parser,
           }
           parser->state = s_res_line_almost_done;
           break;
-        }else if (ch == LF) {
-          if(parser->state == s_res_status){
+        } else if (ch == LF) {
+          if (parser->state == s_res_status) {
             CALLBACK_DATA(status);
           }
           parser->state = s_header_field_start;
           break;
-        }else if(parser->state == s_res_status_start){
+        } else if(parser->state == s_res_status_start) {
           MARK(status);
           parser->state = s_res_status;
           parser->index = 0;

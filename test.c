@@ -1643,6 +1643,7 @@ message_complete_cb (http_parser *p)
   num_messages++;
   return 0;
 }
+
 int
 response_status_cb (http_parser *p, const char *buf, size_t len)
 {
@@ -1713,8 +1714,8 @@ dontcall_message_complete_cb (http_parser *p)
                   "parser ***\n\n");
   abort();
 }
-int
 
+int
 dontcall_response_status_cb (http_parser *p, const char *buf, size_t len)
 {
   if (p || buf || len) { } // gcc
