@@ -25,7 +25,7 @@ extern "C" {
 #endif
 
 #define HTTP_PARSER_VERSION_MAJOR 2
-#define HTTP_PARSER_VERSION_MINOR 0
+#define HTTP_PARSER_VERSION_MINOR 1
 
 #include <sys/types.h>
 #if defined(_WIN32) && !defined(__MINGW32__) && (!defined(_MSC_VER) || _MSC_VER<1600)
