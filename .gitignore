@@ -10,5 +10,5 @@ parsertrace
 parsertrace_g
 *.mk
 *.Makefile
-*.so
+*.so.*
 *.a

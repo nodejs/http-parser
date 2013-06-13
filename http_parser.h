@@ -24,6 +24,7 @@
 extern "C" {
 #endif
 
+/* Also update SONAME in the Makefile whenever you change these. */
 #define HTTP_PARSER_VERSION_MAJOR 2
 #define HTTP_PARSER_VERSION_MINOR 1
 
