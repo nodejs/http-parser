@@ -856,26 +856,39 @@ size_t http_parser_execute (http_parser *parser,
       }
       
       case s_res_status_start:
-      case s_res_status:
-
+      {
         if (ch == CR) {
-          if(parser->state == s_res_status){
-            CALLBACK_DATA(status);
-          }
           parser->state = s_res_line_almost_done;
           break;
-        } else if (ch == LF) {
-          if (parser->state == s_res_status) {
-            CALLBACK_DATA(status);
-          }
+        }
+
+        if (ch == LF) {
           parser->state = s_header_field_start;
           break;
-        } else if(parser->state == s_res_status_start) {
-          MARK(status);
-          parser->state = s_res_status;
-          parser->index = 0;
         }
+
+        MARK(status);
+        parser->state = s_res_status;
+        parser->index = 0;
         break;
+      }
+
+      case s_res_status:
+      {
+        if (ch == CR) {
+          parser->state = s_res_line_almost_done;
+          CALLBACK_DATA(status);
+          break;
+        }
+
+        if (ch == LF) {
+          parser->state = s_header_field_start;
+          CALLBACK_DATA(status);
+          break;
+        }
+
+        break;        
+      }
 
       case s_res_line_almost_done:
         STRICT_CHECK(ch != LF);
