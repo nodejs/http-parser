@@ -630,7 +630,6 @@ size_t http_parser_execute (http_parser *parser,
     url_mark = data;
     break;
   case s_res_status:
-  case s_res_status_start:
     status_mark = data;
     break;
   }

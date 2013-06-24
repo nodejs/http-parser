@@ -1431,6 +1431,22 @@ const struct message responses[] =
   }
 #endif /* !HTTP_PARSER_STRICT */
 
+#define EMPTY_REASON_PHRASE_AFTER_SPACE 20
+, {.name= "empty reason phrase after space"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 200 \r\n"
+         "\r\n"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 200
+  ,.response_status= ""
+  ,.num_headers= 0
+  ,.headers= {}
+  ,.body= ""
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
