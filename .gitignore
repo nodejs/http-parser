@@ -10,3 +10,5 @@ url_parser
 *.Makefile
 *.so
 *.a
+.deps
+.dirstamp
