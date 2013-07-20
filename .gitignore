@@ -12,3 +12,5 @@ parsertrace_g
 *.Makefile
 *.so.*
 *.a
+.deps
+.dirstamp
