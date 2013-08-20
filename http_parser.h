@@ -109,6 +109,7 @@ typedef int (*http_cb) (http_parser*);
   /* RFC-5789 */                    \
   XX(24, PATCH,       PATCH)        \
   XX(25, PURGE,       PURGE)        \
+  XX(26, GENERIC,     GENERIC)      \
 
 enum http_method
   {
@@ -149,6 +150,7 @@ enum flags
   XX(CB_headers_complete, "the on_headers_complete callback failed") \
   XX(CB_body, "the on_body callback failed")                         \
   XX(CB_message_complete, "the on_message_complete callback failed") \
+  XX(CB_method, "the on_method callback failed")                     \
                                                                      \
   /* Parsing-related errors */                                       \
   XX(INVALID_EOF_STATE, "stream ended at an unexpected time")        \
@@ -222,6 +224,7 @@ struct http_parser {
 
 struct http_parser_settings {
   http_cb      on_message_begin;
+  http_data_cb on_method;
   http_data_cb on_url;
   http_cb      on_status_complete;
   http_data_cb on_header_field;
