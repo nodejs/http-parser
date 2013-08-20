@@ -3275,7 +3275,10 @@ main (void)
 
   test_simple("hello world", HPE_INVALID_METHOD);
   test_simple("GET / HTP/1.1\r\n\r\n", HPE_INVALID_VERSION);
-
+  test_simple("GEM / HTTP/1.1\r\n\r\n", HPE_INVALID_METHOD);
+  test_simple("PUN / HTTP/1.1\r\n\r\n", HPE_INVALID_METHOD);
+  test_simple("PX / HTTP/1.1\r\n\r\n", HPE_INVALID_METHOD);
+  test_simple("SA / HTTP/1.1\r\n\r\n", HPE_INVALID_METHOD);
 
   test_simple("ASDF / HTTP/1.1\r\n\r\n", HPE_INVALID_METHOD);
   test_simple("PROPPATCHA / HTTP/1.1\r\n\r\n", HPE_INVALID_METHOD);
