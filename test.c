@@ -44,6 +44,7 @@ struct message {
   enum http_parser_type type;
   enum http_method method;
   int status_code;
+  char method_string[MAX_ELEMENT_SIZE];
   char request_path[MAX_ELEMENT_SIZE];
   char request_url[MAX_ELEMENT_SIZE];
   char fragment[MAX_ELEMENT_SIZE];
@@ -1499,6 +1500,20 @@ status_complete_cb (http_parser *p) {
 }
 
 int
+unknown_method_cb (http_parser *p, const char *buf, size_t len)
+{
+  assert(p == parser);
+  strlncat(messages[num_messages].method_string,
+		   sizeof(messages[num_messages].method_string),
+		   buf,
+		   len);
+  // fprintf(stderr, messages[num_messages].method_string
+  // return 0 if the unknown method is handled by the callback,
+  // otherwise return -1 to cause an HPE_INVALID_METHOD
+  return -1;
+}
+
+int
 header_field_cb (http_parser *p, const char *buf, size_t len)
 {
   assert(p == parser);
@@ -1761,6 +1776,7 @@ static http_parser_settings settings_pause =
   ,.on_body = pause_body_cb
   ,.on_headers_complete = pause_headers_complete_cb
   ,.on_message_complete = pause_message_complete_cb
+  ,.on_unknown_method = unknown_method_cb
   };
 
 static http_parser_settings settings =
@@ -1771,6 +1787,7 @@ static http_parser_settings settings =
   ,.on_body = body_cb
   ,.on_headers_complete = headers_complete_cb
   ,.on_message_complete = message_complete_cb
+  ,.on_unknown_method = unknown_method_cb
   };
 
 static http_parser_settings settings_count_body =
@@ -1781,6 +1798,7 @@ static http_parser_settings settings_count_body =
   ,.on_body = count_body_cb
   ,.on_headers_complete = headers_complete_cb
   ,.on_message_complete = message_complete_cb
+  ,.on_unknown_method = unknown_method_cb
   };
 
 static http_parser_settings settings_null =
@@ -1791,6 +1809,7 @@ static http_parser_settings settings_null =
   ,.on_body = 0
   ,.on_headers_complete = 0
   ,.on_message_complete = 0
+  ,.on_unknown_method = 0
   };
 
 void
@@ -3330,6 +3349,7 @@ main (void)
       "SA",
       "hello world",
       0 };
+
   for (this_method = bad_methods; *this_method; this_method++) {
     char buf[200];
     sprintf(buf, "%s / HTTP/1.1\r\n\r\n", *this_method);

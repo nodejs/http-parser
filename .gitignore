@@ -12,3 +12,7 @@ parsertrace_g
 *.Makefile
 *.so.*
 *.a
+
+.cproject
+
+.project
