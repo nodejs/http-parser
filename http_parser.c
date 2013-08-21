@@ -879,7 +879,7 @@ size_t http_parser_execute (http_parser *parser,
         parser->flags = 0;
         parser->content_length = ULLONG_MAX;
 
-        if (!IS_ALPHA(ch)) {
+        if (!TOKEN(ch)) {
           SET_ERRNO(HPE_INVALID_METHOD);
           goto error;
         }
@@ -919,7 +919,13 @@ size_t http_parser_execute (http_parser *parser,
           SET_ERRNO(HPE_INVALID_METHOD);
           goto error;
         }
+
         matcher = method_strings[parser->method];
+
+        if (!TOKEN(ch) && ch != ' ') {
+        	SET_ERRNO(HPE_INVALID_METHOD);
+        	goto error;
+        }
 
         if (ch == ' ' && (parser->method == HTTP_unknown || matcher[parser->index] == '\0')) {
           parser->state = s_req_spaces_before_url;

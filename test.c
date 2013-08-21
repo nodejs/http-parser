@@ -1510,7 +1510,7 @@ unknown_method_cb (http_parser *p, const char *buf, size_t len)
   // fprintf(stderr, messages[num_messages].method_string
   // return 0 if the unknown method is handled by the callback,
   // otherwise return -1 to cause an HPE_INVALID_METHOD
-  return -1;
+  return 0;
 }
 
 int
@@ -3335,7 +3335,9 @@ main (void)
     test_simple(buf, HPE_OK);
   }
 
-  static const char *bad_methods[] = {
+  static const char *ext_methods[] = {
+	  "LINK",
+	  "UNLINK",
       "ASDF",
       "C******",
       "COLA",
@@ -3347,13 +3349,27 @@ main (void)
       "PUN",
       "PX",
       "SA",
-      "hello world",
-      0 };
+      "+1",
+      0
+  };
 
-  for (this_method = bad_methods; *this_method; this_method++) {
+  for (this_method = ext_methods; *this_method; this_method++) {
     char buf[200];
     sprintf(buf, "%s / HTTP/1.1\r\n\r\n", *this_method);
-    test_simple(buf, HPE_INVALID_METHOD);
+    test_simple(buf, HPE_OK);
+  }
+
+  static const char *bad_methods[] = {
+    "JO]",
+    "GE]",
+    "[GET]",
+    0
+  };
+
+  for (this_method = bad_methods; *this_method; this_method++) {
+	  char buf[200];
+	  sprintf(buf, "%s / HTTP/1.1\r\n\r\n", *this_method);
+	  test_simple(buf, HPE_INVALID_METHOD);
   }
 
   const char *dumbfuck2 =
