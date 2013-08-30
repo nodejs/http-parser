@@ -47,6 +47,18 @@ int on_message_complete(http_parser* _) {
   return 0;
 }
 
+int on_chunk_begin(http_parser* _) {
+  (void)_;
+  printf("\n***CHUNK BEGIN***\n\n");
+  return 0;
+}
+
+int on_chunk_complete(http_parser* _) {
+  (void)_;
+  printf("\n***CHUNK COMPLETE***\n\n");
+  return 0;
+}
+
 int on_url(http_parser* _, const char* at, size_t length) {
   (void)_;
   printf("Url: %.*s\n", (int)length, at);
@@ -136,7 +148,9 @@ int main(int argc, char* argv[]) {
   settings.on_header_field = on_header_field;
   settings.on_header_value = on_header_value;
   settings.on_headers_complete = on_headers_complete;
+  settings.on_chunk_begin = on_chunk_begin;
   settings.on_body = on_body;
+  settings.on_chunk_complete = on_chunk_complete;
   settings.on_message_complete = on_message_complete;
 
   http_parser parser;
