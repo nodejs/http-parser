@@ -54,6 +54,8 @@ struct message {
   const char *userinfo;
   uint16_t port;
   int num_headers;
+  int num_chunks;
+  int num_end_chunks;
   enum { NONE=0, FIELD, VALUE } last_header_element;
   char headers [MAX_HEADERS][2][MAX_ELEMENT_SIZE];
   int should_keep_alive;
@@ -290,6 +292,7 @@ const struct message requests[] =
   ,.request_path= "/post_chunked_all_your_base"
   ,.request_url= "/post_chunked_all_your_base"
   ,.num_headers= 1
+  ,.num_chunks= 1
   ,.headers=
     { { "Transfer-Encoding" , "chunked" }
     }
@@ -316,6 +319,7 @@ const struct message requests[] =
   ,.request_path= "/two_chunks_mult_zero_end"
   ,.request_url= "/two_chunks_mult_zero_end"
   ,.num_headers= 1
+  ,.num_chunks= 2
   ,.headers=
     { { "Transfer-Encoding", "chunked" }
     }
@@ -344,6 +348,7 @@ const struct message requests[] =
   ,.request_path= "/chunked_w_trailing_headers"
   ,.request_url= "/chunked_w_trailing_headers"
   ,.num_headers= 3
+  ,.num_chunks= 2
   ,.headers=
     { { "Transfer-Encoding",  "chunked" }
     , { "Vary", "*" }
@@ -372,6 +377,7 @@ const struct message requests[] =
   ,.request_path= "/chunked_w_bullshit_after_length"
   ,.request_url= "/chunked_w_bullshit_after_length"
   ,.num_headers= 1
+  ,.num_chunks= 2
   ,.headers=
     { { "Transfer-Encoding", "chunked" }
     }
@@ -1044,6 +1050,7 @@ const struct message responses[] =
   ,.http_minor= 1
   ,.status_code= 200
   ,.num_headers= 2
+  ,.num_chunks= 2
   ,.headers=
     { {"Content-Type", "text/plain" }
     , {"Transfer-Encoding", "chunked" }
@@ -1187,6 +1194,7 @@ const struct message responses[] =
   ,.http_minor= 1
   ,.status_code= 200
   ,.num_headers= 11
+  ,.num_chunks= 0
   ,.headers=
     { { "Date", "Tue, 28 Sep 2010 01:14:13 GMT" }
     , { "Server", "Apache" }
@@ -1369,6 +1377,7 @@ const struct message responses[] =
   ,.http_minor= 1
   ,.status_code= 200
   ,.num_headers= 1
+  ,.num_chunks= 0
   ,.headers=
     { { "Transfer-Encoding", "chunked" }
     }
@@ -1623,6 +1632,22 @@ message_complete_cb (http_parser *p)
   return 0;
 }
 
+int
+chunk_begin_cb (http_parser *p)
+{
+  assert(p == parser);
+  messages[num_messages].num_chunks++;
+  return 0;
+}
+
+int
+chunk_complete_cb (http_parser *p)
+{
+  assert(p == parser);
+  messages[num_messages].num_end_chunks++;
+  return 0;
+}
+
 /* These dontcall_* callbacks exist so that we can verify that when we're
  * paused, no additional callbacks are invoked */
 int
@@ -1683,6 +1708,24 @@ dontcall_message_complete_cb (http_parser *p)
   abort();
 }
 
+int
+dontcall_chunk_begin_cb (http_parser *p)
+{
+  if (p) { } // gcc
+  fprintf(stderr, "\n\n*** on_chunk_begin() called on paused "
+                  "parser ***\n\n");
+  abort();
+}
+
+int
+dontcall_chunk_complete_cb (http_parser *p)
+{
+  if (p) { } // gcc
+  fprintf(stderr, "\n\n*** on_chunk_complete() called on paused "
+                  "parser ***\n\n");
+  abort();
+}
+
 static http_parser_settings settings_dontcall =
   {.on_message_begin = dontcall_message_begin_cb
   ,.on_header_field = dontcall_header_field_cb
@@ -1691,6 +1734,8 @@ static http_parser_settings settings_dontcall =
   ,.on_body = dontcall_body_cb
   ,.on_headers_complete = dontcall_headers_complete_cb
   ,.on_message_complete = dontcall_message_complete_cb
+  ,.on_chunk_begin = dontcall_chunk_begin_cb
+  ,.on_chunk_complete = dontcall_chunk_complete_cb
   };
 
 /* These pause_* callbacks always pause the parser and just invoke the regular
@@ -1753,6 +1798,22 @@ pause_message_complete_cb (http_parser *p)
   return message_complete_cb(p);
 }
 
+int
+pause_chunk_begin_cb (http_parser *p)
+{
+  http_parser_pause(p, 1);
+  *current_pause_parser = settings_dontcall;
+  return chunk_begin_cb(p);
+}
+
+int
+pause_chunk_complete_cb (http_parser *p)
+{
+  http_parser_pause(p, 1);
+  *current_pause_parser = settings_dontcall;
+  return chunk_complete_cb(p);
+}
+
 static http_parser_settings settings_pause =
   {.on_message_begin = pause_message_begin_cb
   ,.on_header_field = pause_header_field_cb
@@ -1761,6 +1822,8 @@ static http_parser_settings settings_pause =
   ,.on_body = pause_body_cb
   ,.on_headers_complete = pause_headers_complete_cb
   ,.on_message_complete = pause_message_complete_cb
+  ,.on_chunk_begin = pause_chunk_begin_cb
+  ,.on_chunk_complete = pause_chunk_complete_cb
   };
 
 static http_parser_settings settings =
@@ -1771,6 +1834,8 @@ static http_parser_settings settings =
   ,.on_body = body_cb
   ,.on_headers_complete = headers_complete_cb
   ,.on_message_complete = message_complete_cb
+  ,.on_chunk_begin = chunk_begin_cb
+  ,.on_chunk_complete = chunk_complete_cb
   };
 
 static http_parser_settings settings_count_body =
@@ -1781,6 +1846,8 @@ static http_parser_settings settings_count_body =
   ,.on_body = count_body_cb
   ,.on_headers_complete = headers_complete_cb
   ,.on_message_complete = message_complete_cb
+  ,.on_chunk_begin = chunk_begin_cb
+  ,.on_chunk_complete = chunk_complete_cb
   };
 
 static http_parser_settings settings_null =
@@ -1791,6 +1858,8 @@ static http_parser_settings settings_null =
   ,.on_body = 0
   ,.on_headers_complete = 0
   ,.on_message_complete = 0
+  ,.on_chunk_begin = 0
+  ,.on_chunk_complete = 0
   };
 
 void
@@ -1959,6 +2028,8 @@ message_eq (int index, const struct message *expected)
   }
 
   MESSAGE_CHECK_NUM_EQ(expected, m, num_headers);
+  MESSAGE_CHECK_NUM_EQ(expected, m, num_chunks);
+  if (!check_num_eq(expected, "num_end_chunks", m->num_chunks, m->num_end_chunks)) return 0;
 
   int r;
   for (i = 0; i < m->num_headers; i++) {
@@ -3244,6 +3315,7 @@ main (void)
       ,.http_minor= 0
       ,.status_code= 200
       ,.num_headers= 2
+      ,.num_chunks= 31337
       ,.headers=
         { { "Transfer-Encoding", "chunked" }
         , { "Content-Type", "text/plain" }
