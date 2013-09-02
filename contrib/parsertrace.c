@@ -142,7 +142,7 @@ int main(int argc, char* argv[]) {
   }
 
   char* filename = argv[2];
-  FILE* file = fopen(filename, "r");
+  FILE* file = (strcmp(filename, "-"))?fopen(filename, "r"):stdin;
   if (file == NULL) {
     perror("fopen");
     return EXIT_FAILURE;
@@ -172,11 +172,11 @@ int main(int argc, char* argv[]) {
               "Error: %s (%s)\n",
               http_errno_description(HTTP_PARSER_ERRNO(&parser)),
               http_errno_name(HTTP_PARSER_ERRNO(&parser)));
-      fclose(file);
+      if (file != stdin) fclose(file);
       return EXIT_FAILURE;
     }
   }
 
-  fclose(file);
+  if (file != stdin) fclose(file);
   return EXIT_SUCCESS;
 }
