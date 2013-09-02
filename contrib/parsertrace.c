@@ -32,6 +32,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <netdb.h>
+#include <fcntl.h>
 
 struct timeval start;
 unsigned long long timestamp() {
@@ -107,27 +112,29 @@ int on_body(http_parser* _, const char* at, size_t length) {
 void usage(const char* name) {
   fprintf(stderr,
           "Usage: %s $type $filename\n"
+          "       %s $url\n"
           "  type: -x, where x is one of {r,b,q}\n"
           "  parses file as a Response, reQuest, or Both\n",
-          name);
+          name, name);
   exit(EXIT_FAILURE);
 }
 
 int main(int argc, char* argv[]) {
   char data[2 << 16];
-  enum http_parser_type file_type;
+  enum http_parser_type file_type = HTTP_RESPONSE;
 
-  if (argc != 3) {
+  if (argc != 3 && argc != 2) {
     usage(argv[0]);
   }
 
-  char* type = argv[1];
-  if (type[0] != '-') {
-    usage(argv[0]);
-  }
+  if (argc == 3) {
+    char* type = argv[1];
+    if (type[0] != '-') {
+      usage(argv[0]);
+    }
 
-  switch (type[1]) {
-    /* in the case of "-", type[1] will be NUL */
+    switch (type[1]) {
+      /* in the case of "-", type[1] will be NUL */
     case 'r':
       file_type = HTTP_RESPONSE;
       break;
@@ -139,13 +146,81 @@ int main(int argc, char* argv[]) {
       break;
     default:
       usage(argv[0]);
+    }
   }
 
-  char* filename = argv[2];
-  FILE* file = (strcmp(filename, "-"))?fopen(filename, "r"):stdin;
-  if (file == NULL) {
-    perror("fopen");
-    return EXIT_FAILURE;
+  int file = -1;
+
+  if (argc == 3) {
+    char* filename = argv[2];
+    file = (strcmp(filename, "-"))?open(filename, O_RDONLY):STDIN_FILENO;
+    if (file == -1) {
+      perror("open");
+      return EXIT_FAILURE;
+    }
+  } else {
+    char* url = argv[1];
+    struct http_parser_url u;
+    if (http_parser_parse_url(url, strlen(url), 0, &u) != 0) {
+      fprintf(stderr, "Unable to parse %s\n", url);
+      return EXIT_FAILURE;
+    }
+    if ((u.field_set & (1 << UF_SCHEMA)) == 0 ||
+        (u.field_set & (1 << UF_HOST)) == 0 ||
+        (u.field_set & (1 << UF_PATH)) == 0 ||
+        u.field_data[UF_SCHEMA].len != 4 ||
+        strncmp(url + u.field_data[UF_SCHEMA].off, "http", 4)) {
+      fprintf(stderr, "Absolute HTTP URL expected\n");
+      return EXIT_FAILURE;
+    }
+
+    int n;
+    char *remote; char *port;
+    remote = strndup(url + u.field_data[UF_HOST].off, u.field_data[UF_HOST].len);
+    port = u.port?strndup(url + u.field_data[UF_PORT].off, u.field_data[UF_PORT].len):strdup("http");
+
+    struct addrinfo *res, *ressave;
+    struct addrinfo hints = {
+      .ai_family = AF_UNSPEC,
+      .ai_socktype = SOCK_STREAM,
+      .ai_protocol = IPPROTO_TCP
+    };
+    if ((n = getaddrinfo(remote, port, &hints, &res)) != 0) {
+      fprintf(stderr, "unable to get address for %s:%s: %s",
+              remote, port, gai_strerror(n));
+      free(remote); free(port);
+      return EXIT_FAILURE;
+    }
+    ressave = res;
+    do {
+      int s = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+      if (s < 0) continue;
+      if (connect(s, res->ai_addr, res->ai_addrlen) != 0) {
+        close(s);
+        continue;
+      }
+      file = s;
+      break;
+    } while ((res = res->ai_next) != NULL);
+    freeaddrinfo(ressave);
+
+    if (file == -1) {
+      fprintf(stderr, "unable to connect to %s:%s",
+              remote, port);
+      free(remote); free(port);
+      return EXIT_FAILURE;
+    }
+
+    struct iovec stuff[] = {
+      {"GET ", 4},
+      {url + u.field_data[UF_PATH].off,
+       u.field_data[UF_PATH].len + ((u.field_set & (1 << UF_QUERY))?(1 + u.field_data[UF_QUERY].len):0) },
+      {" HTTP/1.1\r\nHost: ", 17},
+      {url + u.field_data[UF_HOST].off, u.field_data[UF_HOST].len},
+      {"\r\n\r\n", 4}
+    };
+    writev(file, stuff, sizeof(stuff)/sizeof(stuff[0]));
+    shutdown(file, SHUT_WR);
   }
 
   http_parser_settings settings;
@@ -165,18 +240,18 @@ int main(int argc, char* argv[]) {
   gettimeofday(&start, NULL);
 
   size_t len;
-  while ((len = fread(data, 1, sizeof(data), file)) > 0) {
+  while ((len = read(file, data, sizeof(data))) > 0) {
     size_t nparsed = http_parser_execute(&parser, &settings, data, len);
     if (nparsed != len) {
       fprintf(stderr,
               "Error: %s (%s)\n",
               http_errno_description(HTTP_PARSER_ERRNO(&parser)),
               http_errno_name(HTTP_PARSER_ERRNO(&parser)));
-      if (file != stdin) fclose(file);
+      if (file && file != STDIN_FILENO) close(file);
       return EXIT_FAILURE;
     }
   }
 
-  if (file != stdin) fclose(file);
+  if (file && file != STDIN_FILENO) close(file);
   return EXIT_SUCCESS;
 }
