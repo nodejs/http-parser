@@ -22,65 +22,86 @@
  * IN THE SOFTWARE.
  */
 
-/* Dump what the parser finds to stdout as it happen */
+/* Dump what the parser finds to stderr as it happen, body go to stdout */
 
+#define _GNU_SOURCE 1
 #include "http_parser.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <unistd.h>
 #include <string.h>
+#include <sys/time.h>
+
+struct timeval start;
+unsigned long long timestamp() {
+  struct timeval stop;
+  gettimeofday(&stop, NULL);
+  return (stop.tv_sec - start.tv_sec)*1000 + (stop.tv_usec - start.tv_usec)/1000;
+}
+
+int log_event(const char *fmt, ...) {
+  va_list ap;
+  char *nfmt;
+  va_start(ap, fmt);
+  if (asprintf(&nfmt, "%s %6llu ms: %s %s\n",
+               isatty(STDERR_FILENO)?"\033[1;33m**":"\n**", timestamp(),
+               fmt, isatty(STDERR_FILENO)?"\033[0m":"**\n") == -1) {
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+  } else {
+    vfprintf(stderr, nfmt, ap);
+    free(nfmt);
+  }
+  fflush(stderr);
+  return 0;
+}
 
 int on_message_begin(http_parser* _) {
   (void)_;
-  printf("\n***MESSAGE BEGIN***\n\n");
-  return 0;
+  return log_event("MESSAGE BEGIN");
 }
 
 int on_headers_complete(http_parser* _) {
   (void)_;
-  printf("\n***HEADERS COMPLETE***\n\n");
-  return 0;
+  return log_event("HEADERS COMPLETE");
 }
 
 int on_message_complete(http_parser* _) {
   (void)_;
-  printf("\n***MESSAGE COMPLETE***\n\n");
-  return 0;
+  return log_event("MESSAGE COMPLETE");
 }
 
 int on_chunk_begin(http_parser* _) {
   (void)_;
-  printf("\n***CHUNK BEGIN***\n\n");
-  return 0;
+  return log_event("CHUNK BEGIN");
 }
 
 int on_chunk_complete(http_parser* _) {
   (void)_;
-  printf("\n***CHUNK COMPLETE***\n\n");
-  return 0;
+  return log_event("CHUNK COMPLETE");
 }
 
 int on_url(http_parser* _, const char* at, size_t length) {
   (void)_;
-  printf("Url: %.*s\n", (int)length, at);
-  return 0;
+  return log_event("URL: %.*s", (int)length, at);
 }
 
 int on_header_field(http_parser* _, const char* at, size_t length) {
   (void)_;
-  printf("Header field: %.*s\n", (int)length, at);
-  return 0;
+  return log_event("Header field: %.*s", (int)length, at);
 }
 
 int on_header_value(http_parser* _, const char* at, size_t length) {
   (void)_;
-  printf("Header value: %.*s\n", (int)length, at);
-  return 0;
+  return log_event("Header value: %.*s", (int)length, at);
 }
 
 int on_body(http_parser* _, const char* at, size_t length) {
   (void)_;
-  printf("Body: %.*s\n", (int)length, at);
-  return 0;
+  log_event("<body> (size=%zu)", length);
+  printf("%.*s", (int)length, at);
+  return log_event("</body>");
 }
 
 void usage(const char* name) {
@@ -155,6 +176,7 @@ int main(int argc, char* argv[]) {
 
   http_parser parser;
   http_parser_init(&parser, file_type);
+  gettimeofday(&start, NULL);
   size_t nparsed = http_parser_execute(&parser, &settings, data, file_length);
   free(data);
 
