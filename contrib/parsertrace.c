@@ -114,6 +114,7 @@ void usage(const char* name) {
 }
 
 int main(int argc, char* argv[]) {
+  char data[2 << 16];
   enum http_parser_type file_type;
 
   if (argc != 3) {
@@ -147,21 +148,6 @@ int main(int argc, char* argv[]) {
     return EXIT_FAILURE;
   }
 
-  fseek(file, 0, SEEK_END);
-  long file_length = ftell(file);
-  if (file_length == -1) {
-    perror("ftell");
-    return EXIT_FAILURE;
-  }
-  fseek(file, 0, SEEK_SET);
-
-  char* data = malloc(file_length);
-  if (fread(data, 1, file_length, file) != (size_t)file_length) {
-    fprintf(stderr, "couldn't read entire file\n");
-    free(data);
-    return EXIT_FAILURE;
-  }
-
   http_parser_settings settings;
   memset(&settings, 0, sizeof(settings));
   settings.on_message_begin = on_message_begin;
@@ -177,16 +163,20 @@ int main(int argc, char* argv[]) {
   http_parser parser;
   http_parser_init(&parser, file_type);
   gettimeofday(&start, NULL);
-  size_t nparsed = http_parser_execute(&parser, &settings, data, file_length);
-  free(data);
 
-  if (nparsed != (size_t)file_length) {
-    fprintf(stderr,
-            "Error: %s (%s)\n",
-            http_errno_description(HTTP_PARSER_ERRNO(&parser)),
-            http_errno_name(HTTP_PARSER_ERRNO(&parser)));
-    return EXIT_FAILURE;
+  size_t len;
+  while ((len = fread(data, 1, sizeof(data), file)) > 0) {
+    size_t nparsed = http_parser_execute(&parser, &settings, data, len);
+    if (nparsed != len) {
+      fprintf(stderr,
+              "Error: %s (%s)\n",
+              http_errno_description(HTTP_PARSER_ERRNO(&parser)),
+              http_errno_name(HTTP_PARSER_ERRNO(&parser)));
+      fclose(file);
+      return EXIT_FAILURE;
+    }
   }
 
+  fclose(file);
   return EXIT_SUCCESS;
 }
