@@ -634,7 +634,17 @@ size_t http_parser_execute (http_parser *parser,
 
     if (PARSING_HEADER(parser->state)) {
       ++parser->nread;
-      /* Buffer overflow attack */
+      /* Don't allow the total size of the HTTP headers (including the status
+       * line) to exceed HTTP_MAX_HEADER_SIZE.  This check is here to protect
+       * embedders against denial-of-service attacks where the attacker feeds
+       * us a never-ending header that the embedder keeps buffering.
+       *
+       * This check is arguably the responsibility of embedders but we're doing
+       * it on the embedder's behalf because most won't bother and this way we
+       * make the web a little safer.  HTTP_MAX_HEADER_SIZE is still far bigger
+       * than any reasonable request or response so this should never affect
+       * day-to-day operation.
+       */
       if (parser->nread > HTTP_MAX_HEADER_SIZE) {
         SET_ERRNO(HPE_HEADER_OVERFLOW);
         goto error;
