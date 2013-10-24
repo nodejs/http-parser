@@ -47,7 +47,7 @@ http_parser_init(parser, HTTP_REQUEST);
 parser->data = my_socket;
 ```
 When data is received on the socket execute the parser and check for errors.
-```
+```c
 size_t len = 80*1024, nparsed;
 char buf[len];
 ssize_t recved;
