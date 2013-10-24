@@ -36,38 +36,39 @@ Usage
 One `http_parser` object is used per TCP connection. Initialize the struct
 using `http_parser_init()` and set the callbacks. That might look something
 like this for a request parser:
+```c
+http_parser_settings settings;
+settings.on_url = my_url_callback;
+settings.on_header_field = my_header_field_callback;
+/* ... */
 
-    http_parser_settings settings;
-    settings.on_url = my_url_callback;
-    settings.on_header_field = my_header_field_callback;
-    /* ... */
-
-    http_parser *parser = malloc(sizeof(http_parser));
-    http_parser_init(parser, HTTP_REQUEST);
-    parser->data = my_socket;
-
+http_parser *parser = malloc(sizeof(http_parser));
+http_parser_init(parser, HTTP_REQUEST);
+parser->data = my_socket;
+```
 When data is received on the socket execute the parser and check for errors.
+```c
+size_t len = 80*1024, nparsed;
+char buf[len];
+ssize_t recved;
 
-    size_t len = 80*1024, nparsed;
-    char buf[len];
-    ssize_t recved;
+recved = recv(fd, buf, len, 0);
 
-    recved = recv(fd, buf, len, 0);
+if (recved < 0) {
+  /* Handle error. */
+}
 
-    if (recved < 0) {
-      /* Handle error. */
-    }
+/* Start up / continue the parser.
+ * Note we pass recved==0 to signal that EOF has been recieved.
+ */
+nparsed = http_parser_execute(parser, &settings, buf, recved);
 
-    /* Start up / continue the parser.
-     * Note we pass recved==0 to signal that EOF has been recieved.
-     */
-    nparsed = http_parser_execute(parser, &settings, buf, recved);
-
-    if (parser->upgrade) {
-      /* handle new protocol */
-    } else if (nparsed != recved) {
-      /* Handle error. Usually just close the connection. */
-    }
+if (parser->upgrade) {
+  /* handle new protocol */
+} else if (nparsed != recved) {
+  /* Handle error. Usually just close the connection. */
+}
+```
 
 HTTP needs to know where the end of the stream is. For example, sometimes
 servers send responses without Content-Length and expect the client to
