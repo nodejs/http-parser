@@ -81,14 +81,14 @@ do {                                                                 \
 #define CALLBACK_NOTIFY_NOADVANCE(FOR)  CALLBACK_NOTIFY_(FOR, p - data)
 
 /* Run data callback FOR with LEN bytes, returning ER if it fails */
-#define CALLBACK_DATA_(FOR, LEN, ER)                                 \
+#define CALLBACK_DATA_(FOR, LEN, ER, ERR)                            \
 do {                                                                 \
   assert(HTTP_PARSER_ERRNO(parser) == HPE_OK);                       \
                                                                      \
   if (FOR##_mark) {                                                  \
     if (settings->on_##FOR) {                                        \
       if (0 != settings->on_##FOR(parser, FOR##_mark, (LEN))) {      \
-        SET_ERRNO(HPE_CB_##FOR);                                     \
+        SET_ERRNO(ERR);                                     \
       }                                                              \
                                                                      \
       /* We either errored above or got paused; get out */           \
@@ -102,11 +102,11 @@ do {                                                                 \
   
 /* Run the data callback FOR and consume the current byte */
 #define CALLBACK_DATA(FOR)                                           \
-    CALLBACK_DATA_(FOR, p - FOR##_mark, p - data + 1)
+    CALLBACK_DATA_(FOR, p - FOR##_mark, p - data + 1, HPE_CB_##FOR)
 
 /* Run the data callback FOR and don't consume the current byte */
 #define CALLBACK_DATA_NOADVANCE(FOR)                                 \
-    CALLBACK_DATA_(FOR, p - FOR##_mark, p - data)
+    CALLBACK_DATA_(FOR, p - FOR##_mark, p - data, HPE_CB_##FOR)
 
 /* Set the mark FOR; non-destructive if mark is already set */
 #define MARK(FOR)                                                    \
@@ -579,6 +579,7 @@ size_t http_parser_execute (http_parser *parser,
   const char *p = data;
   const char *header_field_mark = 0;
   const char *header_value_mark = 0;
+  const char *unknown_method_mark = 0;
   const char *url_mark = 0;
   const char *body_mark = 0;
 
@@ -613,6 +614,8 @@ size_t http_parser_execute (http_parser *parser,
     header_field_mark = data;
   if (parser->state == s_header_value)
     header_value_mark = data;
+  if (parser->state == s_start_req)
+	unknown_method_mark = data;
   switch (parser->state) {
   case s_req_path:
   case s_req_schema:
@@ -886,7 +889,7 @@ size_t http_parser_execute (http_parser *parser,
         parser->flags = 0;
         parser->content_length = ULLONG_MAX;
 
-        if (!IS_ALPHA(ch)) {
+        if (!TOKEN(ch)) {
           SET_ERRNO(HPE_INVALID_METHOD);
           goto error;
         }
@@ -910,8 +913,7 @@ size_t http_parser_execute (http_parser *parser,
           case 'T': parser->method = HTTP_TRACE; break;
           case 'U': parser->method = HTTP_UNLOCK; /* or UNSUBSCRIBE */ break;
           default:
-            SET_ERRNO(HPE_INVALID_METHOD);
-            goto error;
+            parser->method = HTTP_unknown;
         }
         parser->state = s_req_method;
 
@@ -929,8 +931,16 @@ size_t http_parser_execute (http_parser *parser,
         }
 
         matcher = method_strings[parser->method];
-        if (ch == ' ' && matcher[parser->index] == '\0') {
+
+        if (!TOKEN(ch) && ch != ' ') {
+        	SET_ERRNO(HPE_INVALID_METHOD);
+        	goto error;
+        }
+
+        if (ch == ' ' && (parser->method == HTTP_unknown || matcher[parser->index] == '\0')) {
           parser->state = s_req_spaces_before_url;
+        } else if (parser->method == HTTP_unknown) {
+          ; /* nada */
         } else if (ch == matcher[parser->index]) {
           ; /* nada */
         } else if (parser->method == HTTP_CONNECT) {
@@ -939,8 +949,7 @@ size_t http_parser_execute (http_parser *parser,
           } else if (parser->index == 2  && ch == 'P') {
             parser->method = HTTP_COPY;
           } else {
-            SET_ERRNO(HPE_INVALID_METHOD);
-            goto error;
+        	parser->method = HTTP_unknown;
           }
         } else if (parser->method == HTTP_MKCOL) {
           if (parser->index == 1 && ch == 'O') {
@@ -952,15 +961,13 @@ size_t http_parser_execute (http_parser *parser,
           } else if (parser->index == 2 && ch == 'A') {
             parser->method = HTTP_MKACTIVITY;
           } else {
-            SET_ERRNO(HPE_INVALID_METHOD);
-            goto error;
+        	parser->method = HTTP_unknown;
           }
         } else if (parser->method == HTTP_SUBSCRIBE) {
           if (parser->index == 1 && ch == 'E') {
             parser->method = HTTP_SEARCH;
           } else {
-            SET_ERRNO(HPE_INVALID_METHOD);
-            goto error;
+            parser->method = HTTP_unknown;
           }
         } else if (parser->index == 1 && parser->method == HTTP_POST) {
           if (ch == 'R') {
@@ -970,33 +977,28 @@ size_t http_parser_execute (http_parser *parser,
           } else if (ch == 'A') {
             parser->method = HTTP_PATCH;
           } else {
-            SET_ERRNO(HPE_INVALID_METHOD);
-            goto error;
+            parser->method = HTTP_unknown;
           }
         } else if (parser->index == 2) {
           if (parser->method == HTTP_PUT) {
             if (ch == 'R') {
               parser->method = HTTP_PURGE;
             } else {
-              SET_ERRNO(HPE_INVALID_METHOD);
-              goto error;
+              parser->method = HTTP_unknown;
             }
           } else if (parser->method == HTTP_UNLOCK) {
             if (ch == 'S') {
               parser->method = HTTP_UNSUBSCRIBE;
             } else {
-              SET_ERRNO(HPE_INVALID_METHOD);
-              goto error;
+              parser->method = HTTP_unknown;
             }
           } else {
-            SET_ERRNO(HPE_INVALID_METHOD);
-            goto error;
+        	 parser->method = HTTP_unknown;
           }
         } else if (parser->index == 4 && parser->method == HTTP_PROPFIND && ch == 'P') {
           parser->method = HTTP_PROPPATCH;
         } else {
-          SET_ERRNO(HPE_INVALID_METHOD);
-          goto error;
+      	  parser->method = HTTP_unknown;
         }
 
         ++parser->index;
@@ -1005,6 +1007,19 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_req_spaces_before_url:
       {
+    	// Check if the method is unknown, if it is, send it to the
+    	// unknown method callback handler (if set). If that callback
+    	// returns != 0, specify an HPE_INVALID_METHOD error. Otherwise,
+    	// just accept it and keep going.
+        if (parser->method == HTTP_unknown) {
+          if (settings->on_unknown_method) {
+        	CALLBACK_DATA_(unknown_method, p - unknown_method_mark - 1, p - data, HPE_INVALID_METHOD);
+          } else {
+            SET_ERRNO(HPE_INVALID_METHOD);
+            goto error;
+          }
+        }
+
         if (ch == ' ') break;
 
         MARK(url);
@@ -1697,7 +1712,7 @@ size_t http_parser_execute (http_parser *parser,
            * complete-on-length. It's not clear that this distinction is
            * important for applications, but let's keep it for now.
            */
-          CALLBACK_DATA_(body, p - body_mark + 1, p - data);
+          CALLBACK_DATA_(body, p - body_mark + 1, p - data, HPE_CB_body);
           goto reexecute_byte;
         }
 
