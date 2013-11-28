@@ -612,7 +612,7 @@ const struct message requests[] =
   ,.request_path= "/"
   ,.request_url= "/"
   ,.num_headers= 2
-  ,.headers= { { "Line1", "abcdefghijklmno qrs" }
+  ,.headers= { { "Line1", "abc\tdef ghi\t\tjkl  mno \t \tqrs" }
              , { "Line2", "line2\t" }
              }
   ,.body= ""
