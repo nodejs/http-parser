@@ -281,6 +281,8 @@ enum state
   , s_header_field_start
   , s_header_field
   , s_header_value_discard_ws
+  , s_header_value_discard_ws_almost_done
+  , s_header_value_discard_lws
   , s_header_value_start
   , s_header_value
   , s_header_value_lws
@@ -1404,6 +1406,17 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_header_value_discard_ws:
         if (ch == ' ' || ch == '\t') break;
+
+        if (ch == CR) {
+          parser->state = s_header_value_discard_ws_almost_done;
+          break;
+        }
+
+        if (ch == LF) {
+          parser->state = s_header_value_discard_lws;
+          break;
+        }
+
         /* FALLTHROUGH */
 
       case s_header_value_start:
@@ -1412,19 +1425,6 @@ size_t http_parser_execute (http_parser *parser,
 
         parser->state = s_header_value;
         parser->index = 0;
-
-        if (ch == CR) {
-          parser->header_state = h_general;
-          parser->state = s_header_almost_done;
-          CALLBACK_DATA(header_value);
-          break;
-        }
-
-        if (ch == LF) {
-          parser->state = s_header_field_start;
-          CALLBACK_DATA(header_value);
-          break;
-        }
 
         c = LOWER(ch);
 
@@ -1573,7 +1573,17 @@ size_t http_parser_execute (http_parser *parser,
         STRICT_CHECK(ch != LF);
 
         parser->state = s_header_value_lws;
+        break;
+      }
 
+      case s_header_value_lws:
+      {
+        if (ch == ' ' || ch == '\t') {
+          parser->state = s_header_value_start;
+          goto reexecute_byte;
+        }
+
+        /* finished the header */
         switch (parser->header_state) {
           case h_connection_keep_alive:
             parser->flags |= F_CONNECTION_KEEP_ALIVE;
@@ -1588,17 +1598,29 @@ size_t http_parser_execute (http_parser *parser,
             break;
         }
 
+        parser->state = s_header_field_start;
+        goto reexecute_byte;
+      }
+
+      case s_header_value_discard_ws_almost_done:
+      {
+        STRICT_CHECK(ch != LF);
+        parser->state = s_header_value_discard_lws;
         break;
       }
 
-      case s_header_value_lws:
+      case s_header_value_discard_lws:
       {
-        if (ch == ' ' || ch == '\t')
-          parser->state = s_header_value_start;
-        else
+        if (ch == ' ' || ch == '\t') {
+          parser->state = s_header_value_discard_ws;
+          break;
+        } else {
+          /* header value was empty */
+          MARK(header_value);
           parser->state = s_header_field_start;
-
-        goto reexecute_byte;
+          CALLBACK_DATA_NOADVANCE(header_value);
+          goto reexecute_byte;
+        }
       }
 
       case s_headers_almost_done:
