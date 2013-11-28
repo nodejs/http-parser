@@ -280,6 +280,7 @@ enum state
 
   , s_header_field_start
   , s_header_field
+  , s_header_value_discard_ws
   , s_header_value_start
   , s_header_value
   , s_header_value_lws
@@ -1380,7 +1381,7 @@ size_t http_parser_execute (http_parser *parser,
         }
 
         if (ch == ':') {
-          parser->state = s_header_value_start;
+          parser->state = s_header_value_discard_ws;
           CALLBACK_DATA(header_field);
           break;
         }
@@ -1401,10 +1402,12 @@ size_t http_parser_execute (http_parser *parser,
         goto error;
       }
 
+      case s_header_value_discard_ws:
+        if (ch == ' ' || ch == '\t') break;
+        /* FALLTHROUGH */
+
       case s_header_value_start:
       {
-        if (ch == ' ' || ch == '\t') break;
-
         MARK(header_value);
 
         parser->state = s_header_value;
@@ -1593,11 +1596,9 @@ size_t http_parser_execute (http_parser *parser,
         if (ch == ' ' || ch == '\t')
           parser->state = s_header_value_start;
         else
-        {
           parser->state = s_header_field_start;
-          goto reexecute_byte;
-        }
-        break;
+
+        goto reexecute_byte;
       }
 
       case s_headers_almost_done:
