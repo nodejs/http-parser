@@ -26,6 +26,12 @@
 #include <string.h>
 #include <stdarg.h>
 
+#if defined(__APPLE__)
+# undef strlcat
+# undef strlncpy
+# undef strlcpy
+#endif  /* defined(__APPLE__) */
+
 #undef TRUE
 #define TRUE 1
 #undef FALSE
@@ -1525,15 +1531,12 @@ strlncat(char *dst, size_t len, const char *src, size_t n)
   return slen + dlen;
 }
 
-#ifndef strlcat
 size_t
 strlcat(char *dst, const char *src, size_t len)
 {
   return strlncat(dst, len, src, (size_t) -1);
 }
-#endif  /* !strlcat */
 
-#ifndef strlncpy
 size_t
 strlncpy(char *dst, size_t len, const char *src, size_t n)
 {
@@ -1551,15 +1554,12 @@ strlncpy(char *dst, size_t len, const char *src, size_t n)
   assert(len > slen);
   return slen;
 }
-#endif  /* !strlncpy */
 
-#ifndef strlcpy
 size_t
 strlcpy(char *dst, const char *src, size_t len)
 {
   return strlncpy(dst, len, src, (size_t) -1);
 }
-#endif  /* !strlcpy */
 
 int
 request_url_cb (http_parser *p, const char *buf, size_t len)
