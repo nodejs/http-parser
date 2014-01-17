@@ -2119,7 +2119,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
 
   u->port = u->field_set = 0;
   s = is_connect ? s_req_server_start : s_req_spaces_before_url;
-  uf = old_uf = UF_MAX;
+  old_uf = UF_MAX;
 
   for (p = buf; p < buf + buflen; p++) {
     s = parse_url_char(s, *p);
