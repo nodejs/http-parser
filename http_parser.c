@@ -331,12 +331,16 @@ enum header_states
   , h_upgrade
 
   , h_matching_transfer_encoding_chunked
+  , h_matching_connection_token_start
   , h_matching_connection_keep_alive
   , h_matching_connection_close
+  , h_matching_connection_upgrade
+  , h_matching_connection_token
 
   , h_transfer_encoding_chunked
   , h_connection_keep_alive
   , h_connection_close
+  , h_connection_upgrade
   };
 
 enum http_host_state
@@ -367,6 +371,7 @@ enum http_host_state
 #define IS_USERINFO_CHAR(c) (IS_ALPHANUM(c) || IS_MARK(c) || (c) == '%' || \
   (c) == ';' || (c) == ':' || (c) == '&' || (c) == '=' || (c) == '+' || \
   (c) == '$' || (c) == ',')
+#define STRICT_TOKEN(c)     (tokens[(unsigned char)c])
 
 #if HTTP_PARSER_STRICT
 #define TOKEN(c)            (tokens[(unsigned char)c])
@@ -1456,8 +1461,10 @@ size_t http_parser_execute (http_parser *parser,
             /* looking for 'Connection: close' */
             } else if (c == 'c') {
               parser->header_state = h_matching_connection_close;
+            } else if (c == 'u') {
+              parser->header_state = h_matching_connection_upgrade;
             } else {
-              parser->header_state = h_general;
+              parser->header_state = h_matching_connection_token;
             }
             break;
 
@@ -1530,12 +1537,26 @@ size_t http_parser_execute (http_parser *parser,
             }
             break;
 
+          case h_matching_connection_token_start:
+            /* looking for 'Connection: keep-alive' */
+            if (c == 'k') {
+              parser->header_state = h_matching_connection_keep_alive;
+            /* looking for 'Connection: close' */
+            } else if (c == 'c') {
+              parser->header_state = h_matching_connection_close;
+            } else if (c == 'u') {
+              parser->header_state = h_matching_connection_upgrade;
+            } else if (STRICT_TOKEN(c)) {
+              parser->header_state = h_matching_connection_token;
+            }
+            break;
+
           /* looking for 'Connection: keep-alive' */
           case h_matching_connection_keep_alive:
             parser->index++;
             if (parser->index > sizeof(KEEP_ALIVE)-1
                 || c != KEEP_ALIVE[parser->index]) {
-              parser->header_state = h_general;
+              parser->header_state = h_matching_connection_token;
             } else if (parser->index == sizeof(KEEP_ALIVE)-2) {
               parser->header_state = h_connection_keep_alive;
             }
@@ -1545,16 +1566,50 @@ size_t http_parser_execute (http_parser *parser,
           case h_matching_connection_close:
             parser->index++;
             if (parser->index > sizeof(CLOSE)-1 || c != CLOSE[parser->index]) {
-              parser->header_state = h_general;
+              parser->header_state = h_matching_connection_token;
             } else if (parser->index == sizeof(CLOSE)-2) {
               parser->header_state = h_connection_close;
             }
             break;
 
+          /* looking for 'Connection: upgrade' */
+          case h_matching_connection_upgrade:
+            parser->index++;
+            if (parser->index > sizeof(UPGRADE)-1
+                || c != UPGRADE[parser->index]) {
+              parser->header_state = h_matching_connection_token;
+            } else if (parser->index == sizeof(UPGRADE)-2) {
+              parser->header_state = h_connection_upgrade;
+            }
+            break;
+
+          case h_matching_connection_token:
+            if (ch == ',') {
+              parser->header_state = h_matching_connection_token_start;
+              parser->index = 0;
+            }
+            break;
+
           case h_transfer_encoding_chunked:
+            if (ch != ' ') parser->header_state = h_general;
+            break;
+
           case h_connection_keep_alive:
           case h_connection_close:
-            if (ch != ' ') parser->header_state = h_general;
+          case h_connection_upgrade:
+            if (ch == ',') {
+                if (parser->header_state == h_connection_keep_alive) {
+                  parser->flags |= F_CONNECTION_KEEP_ALIVE;
+                } else if (parser->header_state == h_connection_close) {
+                  parser->flags |= F_CONNECTION_CLOSE;
+                } else if (parser->header_state == h_connection_upgrade) {
+                  parser->flags |= F_CONNECTION_UPGRADE;
+                }
+                parser->header_state = h_matching_connection_token_start;
+                parser->index = 0;
+            } else if (ch != ' ') {
+                parser->header_state = h_matching_connection_token;
+            }
             break;
 
           default:
@@ -1570,34 +1625,35 @@ size_t http_parser_execute (http_parser *parser,
         STRICT_CHECK(ch != LF);
 
         parser->state = s_header_value_lws;
-
-        switch (parser->header_state) {
-          case h_connection_keep_alive:
-            parser->flags |= F_CONNECTION_KEEP_ALIVE;
-            break;
-          case h_connection_close:
-            parser->flags |= F_CONNECTION_CLOSE;
-            break;
-          case h_transfer_encoding_chunked:
-            parser->flags |= F_CHUNKED;
-            break;
-          default:
-            break;
-        }
-
         break;
       }
 
       case s_header_value_lws:
       {
-        if (ch == ' ' || ch == '\t')
-          parser->state = s_header_value_start;
-        else
-        {
+        if (ch == ' ' || ch == '\t') {
+          parser->state = s_header_value;
+          MARK(header_value);
+        } else {
+          switch (parser->header_state) {
+            case h_connection_keep_alive:
+              parser->flags |= F_CONNECTION_KEEP_ALIVE;
+              break;
+            case h_connection_close:
+              parser->flags |= F_CONNECTION_CLOSE;
+              break;
+            case h_connection_upgrade:
+              parser->flags |= F_CONNECTION_UPGRADE;
+              break;
+            case h_transfer_encoding_chunked:
+              parser->flags |= F_CHUNKED;
+              break;
+            default:
+              break;
+          }
+
           parser->state = s_header_field_start;
-          goto reexecute_byte;
         }
-        break;
+        goto reexecute_byte;
       }
 
       case s_headers_almost_done:
@@ -1615,7 +1671,9 @@ size_t http_parser_execute (http_parser *parser,
 
         /* Set this here so that on_headers_complete() callbacks can see it */
         parser->upgrade =
-          (parser->flags & F_UPGRADE || parser->method == HTTP_CONNECT);
+          ((parser->flags & (F_UPGRADE | F_CONNECTION_UPGRADE)) ==
+           (F_UPGRADE | F_CONNECTION_UPGRADE) ||
+           parser->method == HTTP_CONNECT);
 
         /* Here we call the headers_complete callback. This is somewhat
          * different than other callbacks because if the user returns 1, we

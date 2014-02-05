@@ -619,7 +619,7 @@ const struct message requests[] =
   ,.request_path= "/"
   ,.request_url= "/"
   ,.num_headers= 2
-  ,.headers= { { "Line1", "abcdefghijklmno qrs" }
+  ,.headers= { { "Line1", "abc\tdef ghi\t\tjkl  mno \t \tqrs" }
              , { "Line2", "line2\t" }
              }
   ,.body= ""
@@ -901,6 +901,42 @@ const struct message requests[] =
   ,.port= 1234
   ,.num_headers= 0
   ,.headers= { }
+  ,.body= ""
+  }
+
+#define CONNECTION_MULTI 34
+, {.name = "multiple connection header values with folding"
+  ,.type= HTTP_REQUEST
+  ,.raw= "GET /demo HTTP/1.1\r\n"
+         "Host: example.com\r\n"
+         "Connection: Something,\r\n"
+         " Upgrade, ,Keep-Alive\r\n"
+         "Sec-WebSocket-Key2: 12998 5 Y3 1  .P00\r\n"
+         "Sec-WebSocket-Protocol: sample\r\n"
+         "Upgrade: WebSocket\r\n"
+         "Sec-WebSocket-Key1: 4 @1  46546xW%0l 1 5\r\n"
+         "Origin: http://example.com\r\n"
+         "\r\n"
+         "Hot diggity dogg"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GET
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/demo"
+  ,.request_url= "/demo"
+  ,.num_headers= 7
+  ,.upgrade="Hot diggity dogg"
+  ,.headers= { { "Host", "example.com" }
+             , { "Connection", "Something, Upgrade, ,Keep-Alive" }
+             , { "Sec-WebSocket-Key2", "12998 5 Y3 1  .P00" }
+             , { "Sec-WebSocket-Protocol", "sample" }
+             , { "Upgrade", "WebSocket" }
+             , { "Sec-WebSocket-Key1", "4 @1  46546xW%0l 1 5" }
+             , { "Origin", "http://example.com" }
+             }
   ,.body= ""
   }
 
