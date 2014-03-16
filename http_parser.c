@@ -653,7 +653,7 @@ size_t http_parser_execute (http_parser *parser,
        * than any reasonable request or response so this should never affect
        * day-to-day operation.
        */
-      if (parser->nread > HTTP_MAX_HEADER_SIZE) {
+      if (parser->nread > (HTTP_MAX_HEADER_SIZE)) {
         SET_ERRNO(HPE_HEADER_OVERFLOW);
         goto error;
       }
