@@ -75,7 +75,7 @@ if (parser->upgrade) {
 HTTP needs to know where the end of the stream is. For example, sometimes
 servers send responses without Content-Length and expect the client to
 consume input (for the body) until EOF. To tell http_parser about EOF, give
-`0` as the forth parameter to `http_parser_execute()`. Callbacks and errors
+`0` as the fourth parameter to `http_parser_execute()`. Callbacks and errors
 can still be encountered during an EOF, so one must still be prepared
 to receive them.
 
@@ -110,8 +110,8 @@ followed by non-HTTP data.
 information the Web Socket protocol.)
 
 To support this, the parser will treat this as a normal HTTP message without a
-body. Issuing both on_headers_complete and on_message_complete callbacks. However
-http_parser_execute() will stop parsing at the end of the headers and return.
+body, issuing both `on_headers_complete` and `on_message_complete` callbacks.
+`http_parser_execute()` will stop parsing at the end of the headers and return.
 
 The user is expected to check if `parser->upgrade` has been set to 1 after
 `http_parser_execute()` returns. Non-HTTP data begins at the buffer supplied
