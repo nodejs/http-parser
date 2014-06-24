@@ -925,7 +925,7 @@ size_t http_parser_execute (http_parser *parser,
           case 'G': parser->method = HTTP_GET; break;
           case 'H': parser->method = HTTP_HEAD; break;
           case 'L': parser->method = HTTP_LOCK; break;
-          case 'M': parser->method = HTTP_MKCOL; /* or MOVE, MKACTIVITY, MERGE, M-SEARCH */ break;
+          case 'M': parser->method = HTTP_MKCOL; /* or MOVE, MKACTIVITY, MERGE, M-SEARCH, MKCALENDAR */ break;
           case 'N': parser->method = HTTP_NOTIFY; break;
           case 'O': parser->method = HTTP_OPTIONS; break;
           case 'P': parser->method = HTTP_POST;
@@ -977,6 +977,8 @@ size_t http_parser_execute (http_parser *parser,
             parser->method = HTTP_MSEARCH;
           } else if (parser->index == 2 && ch == 'A') {
             parser->method = HTTP_MKACTIVITY;
+          } else if (parser->index == 3 && ch == 'A') {
+            parser->method = HTTP_MKCALENDAR;
           } else {
             SET_ERRNO(HPE_INVALID_METHOD);
             goto error;
