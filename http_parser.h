@@ -117,6 +117,8 @@ typedef int (*http_cb) (http_parser*);
   /* RFC-5789 */                    \
   XX(24, PATCH,       PATCH)        \
   XX(25, PURGE,       PURGE)        \
+  /* CalDAV */                      \
+  XX(26, MKCALENDAR,  MKCALENDAR)   \
 
 enum http_method
   {
