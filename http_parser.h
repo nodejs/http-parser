@@ -287,6 +287,8 @@ unsigned long http_parser_version(void);
 void http_parser_init(http_parser *parser, enum http_parser_type type);
 
 
+/* Executes the parser. Returns number of parsed bytes. Sets
+ * `parser->http_errno` on error. */
 size_t http_parser_execute(http_parser *parser,
                            const http_parser_settings *settings,
                            const char *data,
