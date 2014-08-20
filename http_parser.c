@@ -1390,18 +1390,6 @@ size_t http_parser_execute (http_parser *parser,
           break;
         }
 
-        if (ch == CR) {
-          parser->state = s_header_almost_done;
-          CALLBACK_DATA(header_field);
-          break;
-        }
-
-        if (ch == LF) {
-          parser->state = s_header_field_start;
-          CALLBACK_DATA(header_field);
-          break;
-        }
-
         SET_ERRNO(HPE_INVALID_HEADER_TOKEN);
         goto error;
       }
