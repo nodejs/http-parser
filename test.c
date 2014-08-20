@@ -3476,6 +3476,13 @@ main (void)
     test_simple(buf, HPE_INVALID_METHOD);
   }
 
+  // illegal header field name line folding
+  test_simple("GET / HTTP/1.1\r\n"
+              "name\r\n"
+              " : value\r\n"
+              "\r\n",
+              HPE_INVALID_HEADER_TOKEN);
+
   const char *dumbfuck2 =
     "GET / HTTP/1.1\r\n"
     "X-SSL-Bullshit:   -----BEGIN CERTIFICATE-----\r\n"
