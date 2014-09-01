@@ -2207,7 +2207,6 @@ print_error (const char *raw, size_t error_location)
         break;
 
       case '\n':
-        char_len = 2;
         fprintf(stderr, "\\n\n");
 
         if (this_line) goto print;
@@ -2910,15 +2909,11 @@ test_simple (const char *buf, enum http_errno err_expected)
 {
   parser_init(HTTP_REQUEST);
 
-  size_t parsed;
-  int pass;
   enum http_errno err;
 
-  parsed = parse(buf, strlen(buf));
-  pass = (parsed == strlen(buf));
+  parse(buf, strlen(buf));
   err = HTTP_PARSER_ERRNO(parser);
-  parsed = parse(NULL, 0);
-  pass &= (parsed == 0);
+  parse(NULL, 0);
 
   parser_free();
 
