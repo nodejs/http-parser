@@ -280,7 +280,7 @@ struct http_parser_url {
  *   unsigned major = (version >> 16) & 255;
  *   unsigned minor = (version >> 8) & 255;
  *   unsigned patch = version & 255;
- *   printf("http_parser v%u.%u.%u\n", major, minor, version);
+ *   printf("http_parser v%u.%u.%u\n", major, minor, patch);
  */
 unsigned long http_parser_version(void);
 
