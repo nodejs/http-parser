@@ -37,6 +37,8 @@
 #undef FALSE
 #define FALSE 0
 
+#define EXPECT_FAILURE_ON_32BIT (sizeof(uintptr_t) == sizeof(uint64_t))
+
 #define MAX_HEADERS 13
 #define MAX_ELEMENT_SIZE 2048
 
@@ -2979,13 +2981,19 @@ test_header_content_length_overflow_error (void)
   "HTTP/1.1 200 OK\r\n"                                                       \
   "Content-Length: " #size "\r\n"                                             \
   "\r\n"
-  const char a[] = X(1844674407370955160);  /* 2^64 / 10 - 1 */
-  const char b[] = X(18446744073709551615); /* 2^64-1 */
-  const char c[] = X(18446744073709551616); /* 2^64   */
+  const char a[] = X(429496730);            /* 2^32 / 10 - 1 */
+  const char b[] = X(4294967295);           /* 2^32-1 */
+  const char c[] = X(4294967296);           /* 2^32   */
+  const char d[] = X(1844674407370955160);  /* 2^64 / 10 - 1 */
+  const char e[] = X(18446744073709551615); /* 2^64-1 */
+  const char f[] = X(18446744073709551616); /* 2^64   */
 #undef X
   test_content_length_overflow(a, sizeof(a) - 1, 1); /* expect ok      */
-  test_content_length_overflow(b, sizeof(b) - 1, 0); /* expect failure */
-  test_content_length_overflow(c, sizeof(c) - 1, 0); /* expect failure */
+  test_content_length_overflow(b, sizeof(b) - 1, EXPECT_FAILURE_ON_32BIT);
+  test_content_length_overflow(c, sizeof(c) - 1, EXPECT_FAILURE_ON_32BIT);
+  test_content_length_overflow(d, sizeof(d) - 1, EXPECT_FAILURE_ON_32BIT);
+  test_content_length_overflow(e, sizeof(e) - 1, 0); /* expect failure */
+  test_content_length_overflow(f, sizeof(f) - 1, 0); /* expect failure */
 }
 
 void
@@ -2997,13 +3005,17 @@ test_chunk_content_length_overflow_error (void)
     "\r\n"                                                                    \
     #size "\r\n"                                                              \
     "..."
-  const char a[] = X(FFFFFFFFFFFFFFE);   /* 2^64 / 16 - 1 */
-  const char b[] = X(FFFFFFFFFFFFFFFF);  /* 2^64-1 */
-  const char c[] = X(10000000000000000); /* 2^64   */
+  const char a[] = X(FFFFFFE);           /* 2^32 / 16 - 1 */
+  const char b[] = X(FFFFFFFF);          /* 2^32-1 */
+  const char c[] = X(FFFFFFFFFFFFFFE);   /* 2^64 / 16 - 1 */
+  const char d[] = X(FFFFFFFFFFFFFFFF);  /* 2^64-1 */
+  const char e[] = X(10000000000000000); /* 2^64   */
 #undef X
   test_content_length_overflow(a, sizeof(a) - 1, 1); /* expect ok      */
-  test_content_length_overflow(b, sizeof(b) - 1, 0); /* expect failure */
-  test_content_length_overflow(c, sizeof(c) - 1, 0); /* expect failure */
+  test_content_length_overflow(b, sizeof(b) - 1, EXPECT_FAILURE_ON_32BIT);
+  test_content_length_overflow(c, sizeof(c) - 1, EXPECT_FAILURE_ON_32BIT);
+  test_content_length_overflow(d, sizeof(d) - 1, 0); /* expect failure */
+  test_content_length_overflow(e, sizeof(e) - 1, 0); /* expect failure */
 }
 
 void

@@ -45,6 +45,8 @@ typedef unsigned __int64 uint64_t;
 #include <stdint.h>
 #endif
 
+typedef uintptr_t content_length_t;
+
 /* Compile with -DHTTP_PARSER_STRICT=0 to make less checks, but run
  * faster
  */
@@ -208,8 +210,8 @@ struct http_parser {
   unsigned int header_state : 8; /* enum header_state from http_parser.c */
   unsigned int index : 8;        /* index into current matcher */
 
-  uint32_t nread;          /* # bytes read in various scenarios */
-  uint64_t content_length; /* # bytes in body (0 if no Content-Length header) */
+  uint32_t         nread;          /* # bytes read in various scenarios */
+  content_length_t content_length; /* # bytes in body (0 if no Content-Length header) */
 
   /** READ-ONLY **/
   unsigned short http_major;
