@@ -63,6 +63,9 @@ do {                                                                 \
   parser->state = CURRENT_STATE();                                   \
   return (V);                                                        \
 } while (0);
+#define REEXECUTE()                                                  \
+  --p;                                                               \
+  break;
 
 
 /* Run the notify callback FOR, returning ER if it fails */
@@ -678,7 +681,6 @@ size_t http_parser_execute (http_parser *parser,
     if (PARSING_HEADER(CURRENT_STATE()))
       COUNT_HEADER_SIZE(1);
 
-    reexecute_byte:
     switch (CURRENT_STATE()) {
 
       case s_dead:
@@ -705,7 +707,7 @@ size_t http_parser_execute (http_parser *parser,
         } else {
           parser->type = HTTP_REQUEST;
           UPDATE_STATE(s_start_req);
-          goto reexecute_byte;
+          REEXECUTE();
         }
 
         break;
@@ -1256,7 +1258,7 @@ size_t http_parser_execute (http_parser *parser,
           /* they might be just sending \n instead of \r\n so this would be
            * the second \n to denote the end of headers*/
           UPDATE_STATE(s_headers_almost_done);
-          goto reexecute_byte;
+          REEXECUTE();
         }
 
         c = TOKEN(ch);
@@ -1509,7 +1511,7 @@ size_t http_parser_execute (http_parser *parser,
             COUNT_HEADER_SIZE(p - start);
             parser->header_state = h_state;
             CALLBACK_DATA_NOADVANCE(header_value);
-            goto reexecute_byte;
+            REEXECUTE();
           }
 
           c = LOWER(ch);
@@ -1637,7 +1639,7 @@ size_t http_parser_execute (http_parser *parser,
       {
         if (ch == ' ' || ch == '\t') {
           UPDATE_STATE(s_header_value_start);
-          goto reexecute_byte;
+          REEXECUTE();
         }
 
         /* finished the header */
@@ -1656,7 +1658,7 @@ size_t http_parser_execute (http_parser *parser,
         }
 
         UPDATE_STATE(s_header_field_start);
-        goto reexecute_byte;
+        REEXECUTE();
       }
 
       case s_header_value_discard_ws_almost_done:
@@ -1676,7 +1678,7 @@ size_t http_parser_execute (http_parser *parser,
           MARK(header_value);
           UPDATE_STATE(s_header_field_start);
           CALLBACK_DATA_NOADVANCE(header_value);
-          goto reexecute_byte;
+          REEXECUTE();
         }
       }
 
@@ -1725,7 +1727,7 @@ size_t http_parser_execute (http_parser *parser,
           RETURN(p - data);
         }
 
-        goto reexecute_byte;
+        REEXECUTE();
       }
 
       case s_headers_done:
@@ -1801,7 +1803,7 @@ size_t http_parser_execute (http_parser *parser,
            * important for applications, but let's keep it for now.
            */
           CALLBACK_DATA_(body, p - body_mark + 1, p - data);
-          goto reexecute_byte;
+          REEXECUTE();
         }
 
         break;
