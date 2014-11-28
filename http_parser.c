@@ -128,6 +128,26 @@ do {                                                                 \
   }                                                                  \
 } while (0)
 
+/* Don't allow the total size of the HTTP headers (including the status
+ * line) to exceed HTTP_MAX_HEADER_SIZE.  This check is here to protect
+ * embedders against denial-of-service attacks where the attacker feeds
+ * us a never-ending header that the embedder keeps buffering.
+ *
+ * This check is arguably the responsibility of embedders but we're doing
+ * it on the embedder's behalf because most won't bother and this way we
+ * make the web a little safer.  HTTP_MAX_HEADER_SIZE is still far bigger
+ * than any reasonable request or response so this should never affect
+ * day-to-day operation.
+ */
+#define COUNT_HEADER_SIZE(V)                                         \
+do {                                                                 \
+  parser->nread += (V);                                              \
+  if (parser->nread > (HTTP_MAX_HEADER_SIZE)) {                      \
+    SET_ERRNO(HPE_HEADER_OVERFLOW);                                  \
+    goto error;                                                      \
+  }                                                                  \
+} while (0)
+
 
 #define PROXY_CONNECTION "proxy-connection"
 #define CONNECTION "connection"
@@ -655,24 +675,8 @@ size_t http_parser_execute (http_parser *parser,
   for (p=data; p != data + len; p++) {
     ch = *p;
 
-    if (PARSING_HEADER(CURRENT_STATE())) {
-      ++parser->nread;
-      /* Don't allow the total size of the HTTP headers (including the status
-       * line) to exceed HTTP_MAX_HEADER_SIZE.  This check is here to protect
-       * embedders against denial-of-service attacks where the attacker feeds
-       * us a never-ending header that the embedder keeps buffering.
-       *
-       * This check is arguably the responsibility of embedders but we're doing
-       * it on the embedder's behalf because most won't bother and this way we
-       * make the web a little safer.  HTTP_MAX_HEADER_SIZE is still far bigger
-       * than any reasonable request or response so this should never affect
-       * day-to-day operation.
-       */
-      if (parser->nread > (HTTP_MAX_HEADER_SIZE)) {
-        SET_ERRNO(HPE_HEADER_OVERFLOW);
-        goto error;
-      }
-    }
+    if (PARSING_HEADER(CURRENT_STATE()))
+      COUNT_HEADER_SIZE(1);
 
     reexecute_byte:
     switch (CURRENT_STATE()) {
@@ -1293,9 +1297,14 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_header_field:
       {
-        c = TOKEN(ch);
+        const char* start = p;
+        for (; p != data + len; p++) {
+          ch = *p;
+          c = TOKEN(ch);
 
-        if (c) {
+          if (!c)
+            break;
+
           switch (parser->header_state) {
             case h_general:
               break;
@@ -1396,6 +1405,12 @@ size_t http_parser_execute (http_parser *parser,
               assert(0 && "Unknown header_state");
               break;
           }
+        }
+
+        COUNT_HEADER_SIZE(p - start);
+
+        if (p == data + len) {
+          --p;
           break;
         }
 
@@ -1478,98 +1493,107 @@ size_t http_parser_execute (http_parser *parser,
 
       case s_header_value:
       {
-
-        if (ch == CR) {
-          UPDATE_STATE(s_header_almost_done);
-          CALLBACK_DATA(header_value);
-          break;
-        }
-
-        if (ch == LF) {
-          UPDATE_STATE(s_header_almost_done);
-          CALLBACK_DATA_NOADVANCE(header_value);
-          goto reexecute_byte;
-        }
-
-        c = LOWER(ch);
-
-        switch (parser->header_state) {
-          case h_general:
-            break;
-
-          case h_connection:
-          case h_transfer_encoding:
-            assert(0 && "Shouldn't get here.");
-            break;
-
-          case h_content_length:
-          {
-            uint64_t t;
-
-            if (ch == ' ') break;
-
-            if (!IS_NUM(ch)) {
-              SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
-              goto error;
-            }
-
-            t = parser->content_length;
-            t *= 10;
-            t += ch - '0';
-
-            /* Overflow? Test against a conservative limit for simplicity. */
-            if ((ULLONG_MAX - 10) / 10 < parser->content_length) {
-              SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
-              goto error;
-            }
-
-            parser->content_length = t;
+        const char* start = p;
+        for (; p != data + len; p++) {
+          ch = *p;
+          if (ch == CR) {
+            UPDATE_STATE(s_header_almost_done);
+            CALLBACK_DATA(header_value);
             break;
           }
 
-          /* Transfer-Encoding: chunked */
-          case h_matching_transfer_encoding_chunked:
-            parser->index++;
-            if (parser->index > sizeof(CHUNKED)-1
-                || c != CHUNKED[parser->index]) {
-              parser->header_state = h_general;
-            } else if (parser->index == sizeof(CHUNKED)-2) {
-              parser->header_state = h_transfer_encoding_chunked;
+          if (ch == LF) {
+            UPDATE_STATE(s_header_almost_done);
+            COUNT_HEADER_SIZE(p - start);
+            CALLBACK_DATA_NOADVANCE(header_value);
+            goto reexecute_byte;
+          }
+
+          c = LOWER(ch);
+
+          switch (parser->header_state) {
+            case h_general:
+              break;
+
+            case h_connection:
+            case h_transfer_encoding:
+              assert(0 && "Shouldn't get here.");
+              break;
+
+            case h_content_length:
+            {
+              uint64_t t;
+
+              if (ch == ' ') break;
+
+              if (!IS_NUM(ch)) {
+                SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
+                goto error;
+              }
+
+              t = parser->content_length;
+              t *= 10;
+              t += ch - '0';
+
+              /* Overflow? Test against a conservative limit for simplicity. */
+              if ((ULLONG_MAX - 10) / 10 < parser->content_length) {
+                SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
+                goto error;
+              }
+
+              parser->content_length = t;
+              break;
             }
-            break;
 
-          /* looking for 'Connection: keep-alive' */
-          case h_matching_connection_keep_alive:
-            parser->index++;
-            if (parser->index > sizeof(KEEP_ALIVE)-1
-                || c != KEEP_ALIVE[parser->index]) {
+            /* Transfer-Encoding: chunked */
+            case h_matching_transfer_encoding_chunked:
+              parser->index++;
+              if (parser->index > sizeof(CHUNKED)-1
+                  || c != CHUNKED[parser->index]) {
+                parser->header_state = h_general;
+              } else if (parser->index == sizeof(CHUNKED)-2) {
+                parser->header_state = h_transfer_encoding_chunked;
+              }
+              break;
+
+            /* looking for 'Connection: keep-alive' */
+            case h_matching_connection_keep_alive:
+              parser->index++;
+              if (parser->index > sizeof(KEEP_ALIVE)-1
+                  || c != KEEP_ALIVE[parser->index]) {
+                parser->header_state = h_general;
+              } else if (parser->index == sizeof(KEEP_ALIVE)-2) {
+                parser->header_state = h_connection_keep_alive;
+              }
+              break;
+
+            /* looking for 'Connection: close' */
+            case h_matching_connection_close:
+              parser->index++;
+              if (parser->index > sizeof(CLOSE)-1 || c != CLOSE[parser->index]) {
+                parser->header_state = h_general;
+              } else if (parser->index == sizeof(CLOSE)-2) {
+                parser->header_state = h_connection_close;
+              }
+              break;
+
+            case h_transfer_encoding_chunked:
+            case h_connection_keep_alive:
+            case h_connection_close:
+              if (ch != ' ') parser->header_state = h_general;
+              break;
+
+            default:
+              UPDATE_STATE(s_header_value);
               parser->header_state = h_general;
-            } else if (parser->index == sizeof(KEEP_ALIVE)-2) {
-              parser->header_state = h_connection_keep_alive;
-            }
-            break;
-
-          /* looking for 'Connection: close' */
-          case h_matching_connection_close:
-            parser->index++;
-            if (parser->index > sizeof(CLOSE)-1 || c != CLOSE[parser->index]) {
-              parser->header_state = h_general;
-            } else if (parser->index == sizeof(CLOSE)-2) {
-              parser->header_state = h_connection_close;
-            }
-            break;
-
-          case h_transfer_encoding_chunked:
-          case h_connection_keep_alive:
-          case h_connection_close:
-            if (ch != ' ') parser->header_state = h_general;
-            break;
-
-          default:
-            UPDATE_STATE(s_header_value);
-            parser->header_state = h_general;
-            break;
+              break;
+          }
         }
+
+        COUNT_HEADER_SIZE(p - start);
+
+        if (p == data + len)
+          --p;
         break;
       }
 
