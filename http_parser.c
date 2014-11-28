@@ -1516,16 +1516,18 @@ size_t http_parser_execute (http_parser *parser,
 
           switch (h_state) {
             case h_general:
-              for (; p != data + len; p++) {
-                ch = *p;
-                if (ch == CR || ch == LF) {
-                  --p;
-                  break;
-                }
-              }
-              if (p == data + len)
-                --p;
+            {
+              const char* pos;
+
+              pos = memchr(p, CR, data + len - p);
+              if (pos == NULL)
+                pos = memchr(p, LF, data + len - p);
+              if (pos == NULL)
+                p = data + len - 1;
+              else
+                p = pos - 1;
               break;
+            }
 
             case h_connection:
             case h_transfer_encoding:
