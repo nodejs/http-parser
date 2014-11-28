@@ -1516,6 +1516,15 @@ size_t http_parser_execute (http_parser *parser,
 
           switch (h_state) {
             case h_general:
+              for (; p != data + len; p++) {
+                ch = *p;
+                if (ch == CR || ch == LF) {
+                  --p;
+                  break;
+                }
+              }
+              if (p == data + len)
+                --p;
               break;
 
             case h_connection:
