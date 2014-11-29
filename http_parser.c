@@ -1519,15 +1519,26 @@ size_t http_parser_execute (http_parser *parser,
           switch (h_state) {
             case h_general:
             {
-              const char* pos;
+              const char* p_cr;
+              const char* p_lf;
+              size_t limit = data + len - p;
 
-              pos = memchr(p, CR, data + len - p);
-              if (pos == NULL)
-                pos = memchr(p, LF, data + len - p);
-              if (pos == NULL)
-                p = data + len - 1;
-              else
-                p = pos - 1;
+              limit = MIN(limit, HTTP_MAX_HEADER_SIZE);
+
+              p_cr = memchr(p, CR, limit);
+              p_lf = memchr(p, LF, limit);
+              if (p_cr != NULL) {
+                if (p_lf != NULL && p_cr >= p_lf)
+                  p = p_lf;
+                else
+                  p = p_cr;
+              } else if (p_lf != NULL) {
+                p = p_lf;
+              } else {
+                p = data + len;
+              }
+              --p;
+
               break;
             }
 
