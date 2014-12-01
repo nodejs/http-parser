@@ -68,20 +68,29 @@ do {                                                                 \
   break;
 
 
+#ifdef __GNUC__
+# define LIKELY(X) __builtin_expect(!!(X), 1)
+# define UNLIKELY(X) __builtin_expect(!!(X), 0)
+#else
+# define LIKELY(X) (X)
+# define UNLIKELY(X) (X)
+#endif
+
+
 /* Run the notify callback FOR, returning ER if it fails */
 #define CALLBACK_NOTIFY_(FOR, ER)                                    \
 do {                                                                 \
   assert(HTTP_PARSER_ERRNO(parser) == HPE_OK);                       \
                                                                      \
-  if (settings->on_##FOR) {                                          \
+  if (LIKELY(settings->on_##FOR)) {                                  \
     parser->state = CURRENT_STATE();                                 \
-    if (0 != settings->on_##FOR(parser)) {                           \
+    if (UNLIKELY(0 != settings->on_##FOR(parser))) {                 \
       SET_ERRNO(HPE_CB_##FOR);                                       \
     }                                                                \
     UPDATE_STATE(parser->state);                                     \
                                                                      \
     /* We either errored above or got paused; get out */             \
-    if (HTTP_PARSER_ERRNO(parser) != HPE_OK) {                       \
+    if (UNLIKELY(HTTP_PARSER_ERRNO(parser) != HPE_OK)) {             \
       return (ER);                                                   \
     }                                                                \
   }                                                                  \
@@ -99,15 +108,16 @@ do {                                                                 \
   assert(HTTP_PARSER_ERRNO(parser) == HPE_OK);                       \
                                                                      \
   if (FOR##_mark) {                                                  \
-    if (settings->on_##FOR) {                                        \
+    if (LIKELY(settings->on_##FOR)) {                                \
       parser->state = CURRENT_STATE();                               \
-      if (0 != settings->on_##FOR(parser, FOR##_mark, (LEN))) {      \
+      if (UNLIKELY(0 !=                                              \
+                   settings->on_##FOR(parser, FOR##_mark, (LEN)))) { \
         SET_ERRNO(HPE_CB_##FOR);                                     \
       }                                                              \
       UPDATE_STATE(parser->state);                                   \
                                                                      \
       /* We either errored above or got paused; get out */           \
-      if (HTTP_PARSER_ERRNO(parser) != HPE_OK) {                     \
+      if (UNLIKELY(HTTP_PARSER_ERRNO(parser) != HPE_OK)) {           \
         return (ER);                                                 \
       }                                                              \
     }                                                                \
@@ -145,7 +155,7 @@ do {                                                                 \
 #define COUNT_HEADER_SIZE(V)                                         \
 do {                                                                 \
   parser->nread += (V);                                              \
-  if (parser->nread > (HTTP_MAX_HEADER_SIZE)) {                      \
+  if (UNLIKELY(parser->nread > (HTTP_MAX_HEADER_SIZE))) {            \
     SET_ERRNO(HPE_HEADER_OVERFLOW);                                  \
     goto error;                                                      \
   }                                                                  \
@@ -687,7 +697,7 @@ size_t http_parser_execute (http_parser *parser,
         /* this state is used after a 'Connection: close' message
          * the parser will error out if it reads another message
          */
-        if (ch == CR || ch == LF)
+        if (LIKELY(ch == CR || ch == LF))
           break;
 
         SET_ERRNO(HPE_CLOSED_CONNECTION);
@@ -718,7 +728,7 @@ size_t http_parser_execute (http_parser *parser,
           parser->type = HTTP_RESPONSE;
           UPDATE_STATE(s_res_HT);
         } else {
-          if (ch != 'E') {
+          if (UNLIKELY(ch != 'E')) {
             SET_ERRNO(HPE_INVALID_CONSTANT);
             goto error;
           }
@@ -774,7 +784,7 @@ size_t http_parser_execute (http_parser *parser,
         break;
 
       case s_res_first_http_major:
-        if (ch < '0' || ch > '9') {
+        if (UNLIKELY(ch < '0' || ch > '9')) {
           SET_ERRNO(HPE_INVALID_VERSION);
           goto error;
         }
@@ -799,7 +809,7 @@ size_t http_parser_execute (http_parser *parser,
         parser->http_major *= 10;
         parser->http_major += ch - '0';
 
-        if (parser->http_major > 999) {
+        if (UNLIKELY(parser->http_major > 999)) {
           SET_ERRNO(HPE_INVALID_VERSION);
           goto error;
         }
@@ -809,7 +819,7 @@ size_t http_parser_execute (http_parser *parser,
 
       /* first digit of minor HTTP version */
       case s_res_first_http_minor:
-        if (!IS_NUM(ch)) {
+        if (UNLIKELY(!IS_NUM(ch))) {
           SET_ERRNO(HPE_INVALID_VERSION);
           goto error;
         }
@@ -826,7 +836,7 @@ size_t http_parser_execute (http_parser *parser,
           break;
         }
 
-        if (!IS_NUM(ch)) {
+        if (UNLIKELY(!IS_NUM(ch))) {
           SET_ERRNO(HPE_INVALID_VERSION);
           goto error;
         }
@@ -834,7 +844,7 @@ size_t http_parser_execute (http_parser *parser,
         parser->http_minor *= 10;
         parser->http_minor += ch - '0';
 
-        if (parser->http_minor > 999) {
+        if (UNLIKELY(parser->http_minor > 999)) {
           SET_ERRNO(HPE_INVALID_VERSION);
           goto error;
         }
@@ -880,7 +890,7 @@ size_t http_parser_execute (http_parser *parser,
         parser->status_code *= 10;
         parser->status_code += ch - '0';
 
-        if (parser->status_code > 999) {
+        if (UNLIKELY(parser->status_code > 999)) {
           SET_ERRNO(HPE_INVALID_STATUS);
           goto error;
         }
@@ -933,7 +943,7 @@ size_t http_parser_execute (http_parser *parser,
         parser->flags = 0;
         parser->content_length = ULLONG_MAX;
 
-        if (!IS_ALPHA(ch)) {
+        if (UNLIKELY(!IS_ALPHA(ch))) {
           SET_ERRNO(HPE_INVALID_METHOD);
           goto error;
         }
@@ -970,7 +980,7 @@ size_t http_parser_execute (http_parser *parser,
       case s_req_method:
       {
         const char *matcher;
-        if (ch == '\0') {
+        if (UNLIKELY(ch == '\0')) {
           SET_ERRNO(HPE_INVALID_METHOD);
           goto error;
         }
@@ -1062,7 +1072,7 @@ size_t http_parser_execute (http_parser *parser,
         }
 
         UPDATE_STATE(parse_url_char(CURRENT_STATE(), ch));
-        if (CURRENT_STATE() == s_dead) {
+        if (UNLIKELY(CURRENT_STATE() == s_dead)) {
           SET_ERRNO(HPE_INVALID_URL);
           goto error;
         }
@@ -1084,7 +1094,7 @@ size_t http_parser_execute (http_parser *parser,
             goto error;
           default:
             UPDATE_STATE(parse_url_char(CURRENT_STATE(), ch));
-            if (CURRENT_STATE() == s_dead) {
+            if (UNLIKELY(CURRENT_STATE() == s_dead)) {
               SET_ERRNO(HPE_INVALID_URL);
               goto error;
             }
@@ -1117,7 +1127,7 @@ size_t http_parser_execute (http_parser *parser,
             break;
           default:
             UPDATE_STATE(parse_url_char(CURRENT_STATE(), ch));
-            if (CURRENT_STATE() == s_dead) {
+            if (UNLIKELY(CURRENT_STATE() == s_dead)) {
               SET_ERRNO(HPE_INVALID_URL);
               goto error;
             }
@@ -1160,7 +1170,7 @@ size_t http_parser_execute (http_parser *parser,
 
       /* first digit of major HTTP version */
       case s_req_first_http_major:
-        if (ch < '1' || ch > '9') {
+        if (UNLIKELY(ch < '1' || ch > '9')) {
           SET_ERRNO(HPE_INVALID_VERSION);
           goto error;
         }
@@ -1177,7 +1187,7 @@ size_t http_parser_execute (http_parser *parser,
           break;
         }
 
-        if (!IS_NUM(ch)) {
+        if (UNLIKELY(!IS_NUM(ch))) {
           SET_ERRNO(HPE_INVALID_VERSION);
           goto error;
         }
@@ -1185,7 +1195,7 @@ size_t http_parser_execute (http_parser *parser,
         parser->http_major *= 10;
         parser->http_major += ch - '0';
 
-        if (parser->http_major > 999) {
+        if (UNLIKELY(parser->http_major > 999)) {
           SET_ERRNO(HPE_INVALID_VERSION);
           goto error;
         }
@@ -1195,7 +1205,7 @@ size_t http_parser_execute (http_parser *parser,
 
       /* first digit of minor HTTP version */
       case s_req_first_http_minor:
-        if (!IS_NUM(ch)) {
+        if (UNLIKELY(!IS_NUM(ch))) {
           SET_ERRNO(HPE_INVALID_VERSION);
           goto error;
         }
@@ -1219,7 +1229,7 @@ size_t http_parser_execute (http_parser *parser,
 
         /* XXX allow spaces after digit? */
 
-        if (!IS_NUM(ch)) {
+        if (UNLIKELY(!IS_NUM(ch))) {
           SET_ERRNO(HPE_INVALID_VERSION);
           goto error;
         }
@@ -1227,7 +1237,7 @@ size_t http_parser_execute (http_parser *parser,
         parser->http_minor *= 10;
         parser->http_minor += ch - '0';
 
-        if (parser->http_minor > 999) {
+        if (UNLIKELY(parser->http_minor > 999)) {
           SET_ERRNO(HPE_INVALID_VERSION);
           goto error;
         }
@@ -1238,7 +1248,7 @@ size_t http_parser_execute (http_parser *parser,
       /* end of request line */
       case s_req_line_almost_done:
       {
-        if (ch != LF) {
+        if (UNLIKELY(ch != LF)) {
           SET_ERRNO(HPE_LF_EXPECTED);
           goto error;
         }
@@ -1263,7 +1273,7 @@ size_t http_parser_execute (http_parser *parser,
 
         c = TOKEN(ch);
 
-        if (!c) {
+        if (UNLIKELY(!c)) {
           SET_ERRNO(HPE_INVALID_HEADER_TOKEN);
           goto error;
         }
@@ -1466,7 +1476,7 @@ size_t http_parser_execute (http_parser *parser,
             break;
 
           case h_content_length:
-            if (!IS_NUM(ch)) {
+            if (UNLIKELY(!IS_NUM(ch))) {
               SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
               goto error;
             }
@@ -1532,7 +1542,7 @@ size_t http_parser_execute (http_parser *parser,
                   p = p_lf;
                 else
                   p = p_cr;
-              } else if (p_lf != NULL) {
+              } else if (UNLIKELY(p_lf != NULL)) {
                 p = p_lf;
               } else {
                 p = data + len;
@@ -1553,7 +1563,7 @@ size_t http_parser_execute (http_parser *parser,
 
               if (ch == ' ') break;
 
-              if (!IS_NUM(ch)) {
+              if (UNLIKELY(!IS_NUM(ch))) {
                 SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
                 parser->header_state = h_state;
                 goto error;
@@ -1564,7 +1574,7 @@ size_t http_parser_execute (http_parser *parser,
               t += ch - '0';
 
               /* Overflow? Test against a conservative limit for simplicity. */
-              if ((ULLONG_MAX - 10) / 10 < parser->content_length) {
+              if (UNLIKELY((ULLONG_MAX - 10) / 10 < parser->content_length)) {
                 SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
                 parser->header_state = h_state;
                 goto error;
@@ -1827,7 +1837,7 @@ size_t http_parser_execute (http_parser *parser,
         assert(parser->flags & F_CHUNKED);
 
         unhex_val = unhex[(unsigned char)ch];
-        if (unhex_val == -1) {
+        if (UNLIKELY(unhex_val == -1)) {
           SET_ERRNO(HPE_INVALID_CHUNK_SIZE);
           goto error;
         }
@@ -1865,7 +1875,7 @@ size_t http_parser_execute (http_parser *parser,
         t += unhex_val;
 
         /* Overflow? Test against a conservative limit for simplicity. */
-        if ((ULLONG_MAX - 16) / 16 < parser->content_length) {
+        if (UNLIKELY((ULLONG_MAX - 16) / 16 < parser->content_length)) {
           SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
           goto error;
         }
