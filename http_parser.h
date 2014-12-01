@@ -204,9 +204,10 @@ struct http_parser {
   /** PRIVATE **/
   unsigned int type : 2;         /* enum http_parser_type */
   unsigned int flags : 6;        /* F_* values from 'flags' enum; semi-public */
-  unsigned int state : 8;        /* enum state from http_parser.c */
+  void* state;                   /* enum state from http_parser.c */
   unsigned int header_state : 8; /* enum header_state from http_parser.c */
   unsigned int index : 8;        /* index into current matcher */
+  unsigned int parsing_data : 1; /* 1 - if parsing data, 0 - if header */
 
   uint32_t nread;          /* # bytes read in various scenarios */
   uint64_t content_length; /* # bytes in body (0 if no Content-Length header) */
