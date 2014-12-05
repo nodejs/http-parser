@@ -1331,6 +1331,11 @@ size_t http_parser_execute (http_parser *parser,
 
           switch (parser->header_state) {
             case h_general:
+              for (; p != data + len; p++) {
+                if (!TOKEN(*p))
+                  break;
+              }
+              --p;
               break;
 
             case h_C:
