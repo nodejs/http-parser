@@ -26,7 +26,7 @@ extern "C" {
 
 /* Also update SONAME in the Makefile whenever you change these. */
 #define HTTP_PARSER_VERSION_MAJOR 2
-#define HTTP_PARSER_VERSION_MINOR 3
+#define HTTP_PARSER_VERSION_MINOR 4
 #define HTTP_PARSER_VERSION_PATCH 0
 
 #include <sys/types.h>
