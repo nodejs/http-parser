@@ -19,10 +19,13 @@
 # IN THE SOFTWARE.
 
 PLATFORM ?= $(shell sh -c 'uname -s | tr "[A-Z]" "[a-z]"')
-SONAME ?= libhttp_parser.so.2.4
+SONAME ?= libhttp_parser.so.2.4.1
 
 CC?=gcc
 AR?=ar
+
+CPPFLAGS ?=
+LDFLAGS ?=
 
 CPPFLAGS += -I.
 CPPFLAGS_DEBUG = $(CPPFLAGS) -DHTTP_PARSER_STRICT=1
