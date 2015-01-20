@@ -969,7 +969,7 @@ size_t http_parser_execute (http_parser *parser,
             /* or PROPFIND|PROPPATCH|PUT|PATCH|PURGE */
             break;
           case 'R': parser->method = HTTP_REPORT; break;
-          case 'S': parser->method = HTTP_SUBSCRIBE; /* or SEARCH */ break;
+          case 'S': parser->method = HTTP_SUBSCRIBE; /* or SEARCH, SOURCE */ break;
           case 'T': parser->method = HTTP_TRACE; break;
           case 'U': parser->method = HTTP_UNLOCK; /* or UNSUBSCRIBE */ break;
           default:
@@ -1023,6 +1023,8 @@ size_t http_parser_execute (http_parser *parser,
         } else if (parser->method == HTTP_SUBSCRIBE) {
           if (parser->index == 1 && ch == 'E') {
             parser->method = HTTP_SEARCH;
+          } else if(parser->index == 1 && ch == 'O') {
+            parser->method = HTTP_SOURCE;
           } else {
             SET_ERRNO(HPE_INVALID_METHOD);
             goto error;
@@ -1791,7 +1793,8 @@ size_t http_parser_execute (http_parser *parser,
         parser->upgrade =
           ((parser->flags & (F_UPGRADE | F_CONNECTION_UPGRADE)) ==
            (F_UPGRADE | F_CONNECTION_UPGRADE) ||
-           parser->method == HTTP_CONNECT);
+           parser->method == HTTP_CONNECT ||
+           parser->method == HTTP_SOURCE);
 
         /* Here we call the headers_complete callback. This is somewhat
          * different than other callbacks because if the user returns 1, we

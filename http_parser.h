@@ -119,6 +119,8 @@ typedef int (*http_cb) (http_parser*);
   XX(25, PURGE,       PURGE)        \
   /* CalDAV */                      \
   XX(26, MKCALENDAR,  MKCALENDAR)   \
+  /* Icecast */                     \
+  XX(27, SOURCE,      SOURCE)       \
 
 enum http_method
   {

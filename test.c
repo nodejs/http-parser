@@ -986,6 +986,44 @@ const struct message requests[] =
   ,.body= ""
   }
 
+  #define ICY_SOURCE 36
+, {.name= "icecast source"
+  ,.type= HTTP_REQUEST
+  ,.raw= "SOURCE /stream HTTP/1.0\r\n"
+         "Authorization: Basic c291cmNlOmhhY2ttZQ==\r\n"
+         "ice-bitrate: 112\r\n"
+         "ice-name: \r\n"
+         "ice-genre: \r\n"
+         "ice-description: \r\n"
+         "ice-url: \r\n"
+         "ice-public: 1\r\n"
+         "User-Agent: aucast/1.0\r\n"
+         "Content-Type: audio/mpeg\r\n"
+         "\r\n"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 0
+  ,.method= HTTP_SOURCE
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/stream"
+  ,.request_url= "/stream"
+  ,.num_headers= 9
+  ,.headers=
+    { { "Authorization", "Basic c291cmNlOmhhY2ttZQ==" }
+    , { "ice-bitrate", "112" }
+    , { "ice-name", "" }
+    , { "ice-genre", "" }
+    , { "ice-description", "" }
+    , { "ice-url", "" }
+    , { "ice-public", "1" }
+    , { "User-Agent", "aucast/1.0" }
+    , { "Content-Type", "audio/mpeg" }
+    }
+  ,.body= ""
+  }
+
 
 , {.name= NULL } /* sentinel */
 };
@@ -3479,6 +3517,7 @@ main (void)
     "SUBSCRIBE",
     "UNSUBSCRIBE",
     "PATCH",
+    "SOURCE",
     0 };
   const char **this_method;
   for (this_method = all_methods; *this_method; this_method++) {
