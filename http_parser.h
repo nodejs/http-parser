@@ -288,6 +288,11 @@ unsigned long http_parser_version(void);
 void http_parser_init(http_parser *parser, enum http_parser_type type);
 
 
+/* Initialize http_parser_settings members to 0
+ */
+void http_parser_settings_init(http_parser_settings *settings);
+
+
 /* Executes the parser. Returns number of parsed bytes. Sets
  * `parser->http_errno` on error. */
 size_t http_parser_execute(http_parser *parser,
