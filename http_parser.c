@@ -2136,6 +2136,12 @@ http_parser_init (http_parser *parser, enum http_parser_type t)
   parser->http_errno = HPE_OK;
 }
 
+void
+http_parser_settings_init(http_parser_settings *settings)
+{
+  memset(settings, 0, sizeof(*settings));
+}
+
 const char *
 http_errno_name(enum http_errno err) {
   assert(err < (sizeof(http_strerror_tab)/sizeof(http_strerror_tab[0])));
