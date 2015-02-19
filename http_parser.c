@@ -64,8 +64,7 @@ do {                                                                 \
   return (V);                                                        \
 } while (0);
 #define REEXECUTE()                                                  \
-  --p;                                                               \
-  break;
+  goto reexecute;                                                    \
 
 
 #ifdef __GNUC__
@@ -697,6 +696,7 @@ size_t http_parser_execute (http_parser *parser,
     if (PARSING_HEADER(CURRENT_STATE()))
       COUNT_HEADER_SIZE(1);
 
+reexecute:
     switch (CURRENT_STATE()) {
 
       case s_dead:

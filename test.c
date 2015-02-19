@@ -3044,6 +3044,22 @@ test_header_overflow_error (int req)
   abort();
 }
 
+
+void
+test_header_nread_value ()
+{
+  http_parser parser;
+  http_parser_init(&parser, HTTP_REQUEST);
+  size_t parsed;
+  const char *buf;
+  buf = "GET / HTTP/1.1\r\nheader: value\nhdr: value\r\n";
+  parsed = http_parser_execute(&parser, &settings_null, buf, strlen(buf));
+  assert(parsed == strlen(buf));
+
+  assert(parser.nread == strlen(buf));
+}
+
+
 static void
 test_content_length_overflow (const char *buf, size_t buflen, int expect_ok)
 {
@@ -3409,6 +3425,9 @@ main (void)
   test_preserve_data();
   test_parse_url();
   test_method_str();
+
+  //// NREAD
+  test_header_nread_value();
 
   //// OVERFLOW CONDITIONS
 
