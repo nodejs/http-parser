@@ -2222,9 +2222,17 @@ http_parse_host_char(enum http_host_state s, const char ch) {
 static int
 http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
   enum http_host_state s;
-
   const char *p;
-  size_t buflen = u->field_data[UF_HOST].off + u->field_data[UF_HOST].len;
+  size_t buflen;
+
+  if(!buf || !u || !(u->field_set & (1 << UF_HOST))) {
+      return 1;
+  }
+
+  buflen = u->field_data[UF_HOST].off + u->field_data[UF_HOST].len;
+  if(buflen > (uint16_t)-1) {
+      return 1;
+  }
 
   u->field_data[UF_HOST].len = 0;
 
@@ -2240,21 +2248,21 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
     switch(new_s) {
       case s_http_host:
         if (s != s_http_host) {
-          u->field_data[UF_HOST].off = p - buf;
+          u->field_data[UF_HOST].off = (uint16_t)(p - buf);
         }
         u->field_data[UF_HOST].len++;
         break;
 
       case s_http_host_v6:
         if (s != s_http_host_v6) {
-          u->field_data[UF_HOST].off = p - buf;
+          u->field_data[UF_HOST].off = (uint16_t)(p - buf);
         }
         u->field_data[UF_HOST].len++;
         break;
 
       case s_http_host_port:
         if (s != s_http_host_port) {
-          u->field_data[UF_PORT].off = p - buf;
+          u->field_data[UF_PORT].off = (uint16_t)(p - buf);
           u->field_data[UF_PORT].len = 0;
           u->field_set |= (1 << UF_PORT);
         }
@@ -2263,7 +2271,7 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
 
       case s_http_userinfo:
         if (s != s_http_userinfo) {
-          u->field_data[UF_USERINFO].off = p - buf ;
+          u->field_data[UF_USERINFO].off = (uint16_t)(p - buf);
           u->field_data[UF_USERINFO].len = 0;
           u->field_set |= (1 << UF_USERINFO);
         }
@@ -2301,7 +2309,11 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   enum http_parser_url_fields uf, old_uf;
   int found_at = 0;
 
-  u->port = u->field_set = 0;
+  if(!buf || !buflen || (buflen > (uint16_t)-1) || !u) {
+      return 1;
+  }
+
+  memset(u, 0, sizeof *u);
   s = is_connect ? s_req_server_start : s_req_spaces_before_url;
   old_uf = UF_MAX;
 
@@ -2356,7 +2368,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
       continue;
     }
 
-    u->field_data[uf].off = p - buf;
+    u->field_data[uf].off = (uint16_t)(p - buf);
     u->field_data[uf].len = 1;
 
     u->field_set |= (1 << uf);
@@ -2365,7 +2377,11 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
 
   /* host must be present if there is a schema */
   /* parsing http:///toto will fail */
-  if ((u->field_set & ((1 << UF_SCHEMA) | (1 << UF_HOST))) != 0) {
+  if ((u->field_set & (1 << UF_SCHEMA)) && !(u->field_set & (1 << UF_HOST))) {
+      return 1;
+  }
+
+  if ((u->field_set & (1 << UF_HOST)) != 0) {
     if (http_parse_host(buf, u, found_at) != 0) {
       return 1;
     }
