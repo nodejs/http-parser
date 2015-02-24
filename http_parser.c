@@ -29,6 +29,20 @@
 #include <string.h>
 #include <limits.h>
 
+#define WHILE_FALSE while(0)
+#if defined(_MSC_VER) && !defined(__POCC__)
+#  undef WHILE_FALSE
+#  if (_MSC_VER < 1500)
+#    define WHILE_FALSE while(1, 0)
+#  else
+#    define WHILE_FALSE \
+__pragma(warning(push)) \
+__pragma(warning(disable:4127)) \
+while(0) \
+__pragma(warning(pop))
+#  endif
+#endif
+
 #ifndef ULLONG_MAX
 # define ULLONG_MAX ((uint64_t) -1) /* 2^64-1 */
 #endif
@@ -54,7 +68,7 @@
 #define SET_ERRNO(e)                                                 \
 do {                                                                 \
   parser->http_errno = (e);                                          \
-} while(0)
+} WHILE_FALSE
 
 #define CURRENT_STATE() p_state
 #define UPDATE_STATE(V) p_state = (enum state) (V);
@@ -62,7 +76,7 @@ do {                                                                 \
 do {                                                                 \
   parser->state = CURRENT_STATE();                                   \
   return (V);                                                        \
-} while (0);
+} WHILE_FALSE
 #define REEXECUTE()                                                  \
   goto reexecute;                                                    \
 
@@ -93,7 +107,7 @@ do {                                                                 \
       return (ER);                                                   \
     }                                                                \
   }                                                                  \
-} while (0)
+} WHILE_FALSE
 
 /* Run the notify callback FOR and consume the current byte */
 #define CALLBACK_NOTIFY(FOR)            CALLBACK_NOTIFY_(FOR, p - data + 1)
@@ -122,7 +136,7 @@ do {                                                                 \
     }                                                                \
     FOR##_mark = NULL;                                               \
   }                                                                  \
-} while (0)
+} WHILE_FALSE
   
 /* Run the data callback FOR and consume the current byte */
 #define CALLBACK_DATA(FOR)                                           \
@@ -138,7 +152,7 @@ do {                                                                 \
   if (!FOR##_mark) {                                                 \
     FOR##_mark = p;                                                  \
   }                                                                  \
-} while (0)
+} WHILE_FALSE
 
 /* Don't allow the total size of the HTTP headers (including the status
  * line) to exceed HTTP_MAX_HEADER_SIZE.  This check is here to protect
@@ -158,7 +172,7 @@ do {                                                                 \
     SET_ERRNO(HPE_HEADER_OVERFLOW);                                  \
     goto error;                                                      \
   }                                                                  \
-} while (0)
+} WHILE_FALSE
 
 
 #define PROXY_CONNECTION "proxy-connection"
@@ -444,7 +458,7 @@ do {                                                                 \
     SET_ERRNO(HPE_STRICT);                                           \
     goto error;                                                      \
   }                                                                  \
-} while (0)
+} WHILE_FALSE
 # define NEW_MESSAGE() (http_should_keep_alive(parser) ? start_state : s_dead)
 #else
 # define STRICT_CHECK(cond)
