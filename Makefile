@@ -42,6 +42,10 @@ CFLAGS_LIB = $(CFLAGS_FAST) -fPIC
 
 LDFLAGS_LIB = $(LDFLAGS) -shared
 
+PREFIX = $(DESTDIR)/usr/local
+LIBDIR = $(PREFIX)/lib
+INCLUDEDIR = $(PREFIX)/include
+
 ifneq (darwin,$(PLATFORM))
 # TODO(bnoordhuis) The native SunOS linker expects -h rather than -soname...
 LDFLAGS_LIB += -Wl,-soname=$(SONAME)
@@ -105,6 +109,18 @@ parsertrace_g: http_parser_g.o contrib/parsertrace.c
 tags: http_parser.c http_parser.h test.c
 	ctags $^
 
+install: library
+	install -D $(SONAME) $(LIBDIR)/$(SONAME)
+	-mv http_parser.h $(INCLUDEDIR)/http_parser.h
+ 
+install-strip: release
+	install -D -s $(SONAME) $(LIBDIR)/$(SONAME)
+	-mv http_parser.h $(INCLUDEDIR)/http_parser.h
+ 
+uninstall:
+	-rm $(LIBDIR)/$(SONAME)
+	-rm $(INCLUDEDIR)/http_parser.h
+
 clean:
 	rm -f *.o *.a tags test test_fast test_g \
 		http_parser.tar libhttp_parser.so.* \
@@ -113,4 +129,4 @@ clean:
 contrib/url_parser.c:	http_parser.h
 contrib/parsertrace.c:	http_parser.h
 
-.PHONY: clean package test-run test-run-timed test-valgrind
+.PHONY: clean package test-run test-run-timed test-valgrind install
