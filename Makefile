@@ -113,7 +113,7 @@ install: library
 	install -D $(SONAME) $(LIBDIR)/$(SONAME)
 	-mv http_parser.h $(INCLUDEDIR)/http_parser.h
  
-install-strip: release
+install-strip: library
 	install -D -s $(SONAME) $(LIBDIR)/$(SONAME)
 	-mv http_parser.h $(INCLUDEDIR)/http_parser.h
  
@@ -129,4 +129,4 @@ clean:
 contrib/url_parser.c:	http_parser.h
 contrib/parsertrace.c:	http_parser.h
 
-.PHONY: clean package test-run test-run-timed test-valgrind install
+.PHONY: clean package test-run test-run-timed test-valgrind install install-strip uninstall
