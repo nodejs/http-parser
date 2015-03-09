@@ -110,16 +110,19 @@ tags: http_parser.c http_parser.h test.c
 	ctags $^
 
 install: library
-	install -D $(SONAME) $(LIBDIR)/$(SONAME)
-	-mv http_parser.h $(INCLUDEDIR)/http_parser.h
- 
+        install -D $(SONAME) $(LIBDIR)/$(SONAME)
+        ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.so
+        install -D  http_parser.h $(INCLUDEDIR)/http_parser.h
+
 install-strip: library
-	install -D -s $(SONAME) $(LIBDIR)/$(SONAME)
-	-mv http_parser.h $(INCLUDEDIR)/http_parser.h
- 
+        install -D -s $(SONAME) $(LIBDIR)/$(SONAME)
+        ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.so
+        install -D  http_parser.h $(INCLUDEDIR)/http_parser.h
+
 uninstall:
-	-rm $(LIBDIR)/$(SONAME)
-	-rm $(INCLUDEDIR)/http_parser.h
+        rm $(LIBDIR)/libhttp_parser.so
+        rm $(LIBDIR)/$(SONAME)
+        rm $(INCLUDEDIR)/http_parser.h
 
 clean:
 	rm -f *.o *.a tags test test_fast test_g \
