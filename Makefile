@@ -42,7 +42,7 @@ CFLAGS_LIB = $(CFLAGS_FAST) -fPIC
 
 LDFLAGS_LIB = $(LDFLAGS) -shared
 
-PREFIX = $(DESTDIR)/usr/local
+PREFIX ?= $(DESTDIR)/usr/local
 LIBDIR = $(PREFIX)/lib
 INCLUDEDIR = $(PREFIX)/include
 
