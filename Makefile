@@ -42,6 +42,7 @@ CFLAGS_LIB = $(CFLAGS_FAST) -fPIC
 
 LDFLAGS_LIB = $(LDFLAGS) -shared
 
+INSTALL ?= install
 PREFIX ?= $(DESTDIR)/usr/local
 LIBDIR = $(PREFIX)/lib
 INCLUDEDIR = $(PREFIX)/include
@@ -110,19 +111,19 @@ tags: http_parser.c http_parser.h test.c
 	ctags $^
 
 install: library
-	install -D $(SONAME) $(LIBDIR)/$(SONAME)
+	$(INSTALL) -D  http_parser.h $(INCLUDEDIR)/http_parser.h
+	$(INSTALL) -D $(SONAME) $(LIBDIR)/$(SONAME)
 	ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.so
-	install -D  http_parser.h $(INCLUDEDIR)/http_parser.h
 
 install-strip: library
-	install -D -s $(SONAME) $(LIBDIR)/$(SONAME)
+	$(INSTALL) -D  http_parser.h $(INCLUDEDIR)/http_parser.h
+	$(INSTALL) -D -s $(SONAME) $(LIBDIR)/$(SONAME)
 	ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.so
-	install -D  http_parser.h $(INCLUDEDIR)/http_parser.h
 
 uninstall:
-	rm $(LIBDIR)/libhttp_parser.so
-	rm $(LIBDIR)/$(SONAME)
 	rm $(INCLUDEDIR)/http_parser.h
+	rm $(LIBDIR)/$(SONAME)
+	rm $(LIBDIR)/libhttp_parser.so
 
 clean:
 	rm -f *.o *.a tags test test_fast test_g \
