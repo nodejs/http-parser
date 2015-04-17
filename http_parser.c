@@ -1832,8 +1832,11 @@ reexecute:
 
         parser->nread = 0;
 
-        /* Exit, the rest of the connect is in a different protocol. */
-        if (parser->upgrade) {
+        int hasBody = parser->flags & F_CHUNKED ||
+          (parser->content_length > 0 && parser->content_length != ULLONG_MAX);
+        if (parser->upgrade && (parser->method == HTTP_CONNECT ||
+                                (parser->flags & F_SKIPBODY) || !hasBody)) {
+          /* Exit, the rest of the message is in a different protocol. */
           UPDATE_STATE(NEW_MESSAGE());
           CALLBACK_NOTIFY(message_complete);
           RETURN((p - data) + 1);
@@ -1915,6 +1918,10 @@ reexecute:
       case s_message_done:
         UPDATE_STATE(NEW_MESSAGE());
         CALLBACK_NOTIFY(message_complete);
+        if (parser->upgrade) {
+          /* Exit, the rest of the message is in a different protocol. */
+          RETURN((p - data) + 1);
+        }
         break;
 
       case s_chunk_size_start:
