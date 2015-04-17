@@ -3619,6 +3619,22 @@ main (void)
     "\r\n";
   test_simple(dumbfuck2, HPE_OK);
 
+  const char *corrupted_connection =
+    "GET / HTTP/1.1\r\n"
+    "Host: www.example.com\r\n"
+    "Connection\r\033\065\325eep-Alive\r\n"
+    "Accept-Encoding: gzip\r\n"
+    "\r\n";
+  test_simple(corrupted_connection, HPE_INVALID_HEADER_TOKEN);
+
+  const char *corrupted_header_name =
+    "GET / HTTP/1.1\r\n"
+    "Host: www.example.com\r\n"
+    "X-Some-Header\r\033\065\325eep-Alive\r\n"
+    "Accept-Encoding: gzip\r\n"
+    "\r\n";
+  test_simple(corrupted_header_name, HPE_INVALID_HEADER_TOKEN);
+
 #if 0
   // NOTE(Wed Nov 18 11:57:27 CET 2009) this seems okay. we just read body
   // until EOF.
