@@ -1036,6 +1036,57 @@ const struct message requests[] =
   ,.body= ""
   }
 
+#define UPGRADE_POST_REQUEST 38
+, {.name = "upgrade post request"
+  ,.type= HTTP_REQUEST
+  ,.raw= "POST /demo HTTP/1.1\r\n"
+         "Host: example.com\r\n"
+         "Connection: Upgrade\r\n"
+         "Upgrade: HTTP/2.0\r\n"
+         "Content-Length: 15\r\n"
+         "\r\n"
+         "sweet post body"
+         "Hot diggity dogg"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_POST
+  ,.request_url= "/demo"
+  ,.num_headers= 4
+  ,.upgrade="Hot diggity dogg"
+  ,.headers= { { "Host", "example.com" }
+             , { "Connection", "Upgrade" }
+             , { "Upgrade", "HTTP/2.0" }
+             , { "Content-Length", "15" }
+             }
+  ,.body= "sweet post body"
+  }
+
+#define CONNECT_WITH_BODY_REQUEST 39
+, {.name = "connect with body request"
+  ,.type= HTTP_REQUEST
+  ,.raw= "CONNECT foo.bar.com:443 HTTP/1.0\r\n"
+         "User-agent: Mozilla/1.1N\r\n"
+         "Proxy-authorization: basic aGVsbG86d29ybGQ=\r\n"
+         "Content-Length: 10\r\n"
+         "\r\n"
+         "blarfcicle"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 0
+  ,.method= HTTP_CONNECT
+  ,.request_url= "foo.bar.com:443"
+  ,.num_headers= 3
+  ,.upgrade="blarfcicle"
+  ,.headers= { { "User-agent", "Mozilla/1.1N" }
+             , { "Proxy-authorization", "basic aGVsbG86d29ybGQ=" }
+             , { "Content-Length", "10" }
+             }
+  ,.body= ""
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
@@ -2909,7 +2960,7 @@ test_message (const struct message *message)
     if (msg1len) {
       read = parse(msg1, msg1len);
 
-      if (message->upgrade && parser->upgrade) {
+      if (message->upgrade && parser->upgrade && num_messages > 0) {
         messages[num_messages - 1].upgrade = msg1 + read;
         goto test;
       }
