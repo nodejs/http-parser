@@ -144,7 +144,7 @@ enum flags
 
 
 /* Map for errno-related constants
- * 
+ *
  * The provided argument should be a macro that takes 2 arguments.
  */
 #define HTTP_ERRNO_MAP(XX)                                           \
@@ -160,6 +160,8 @@ enum flags
   XX(CB_body, "the on_body callback failed")                         \
   XX(CB_message_complete, "the on_message_complete callback failed") \
   XX(CB_status, "the on_status callback failed")                     \
+  XX(CB_chunk_header, "the on_chunk_header callback failed")         \
+  XX(CB_chunk_complete, "the on_chunk_complete callback failed")     \
                                                                      \
   /* Parsing-related errors */                                       \
   XX(INVALID_EOF_STATE, "stream ended at an unexpected time")        \
@@ -240,6 +242,11 @@ struct http_parser_settings {
   http_cb      on_headers_complete;
   http_data_cb on_body;
   http_cb      on_message_complete;
+  /* When on_chunk_header is called, the current chunk length is stored
+   * in parser->content_length.
+   */
+  http_cb      on_chunk_header;
+  http_cb      on_chunk_complete;
 };
 
 

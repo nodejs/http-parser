@@ -123,7 +123,7 @@ do {                                                                 \
     FOR##_mark = NULL;                                               \
   }                                                                  \
 } while (0)
-  
+
 /* Run the data callback FOR and consume the current byte */
 #define CALLBACK_DATA(FOR)                                           \
     CALLBACK_DATA_(FOR, p - FOR##_mark, p - data + 1)
@@ -1782,9 +1782,9 @@ reexecute:
 
         if (parser->flags & F_TRAILING) {
           /* End of a chunked request */
-          UPDATE_STATE(NEW_MESSAGE());
-          CALLBACK_NOTIFY(message_complete);
-          break;
+          UPDATE_STATE(s_message_done);
+          CALLBACK_NOTIFY_NOADVANCE(chunk_complete);
+          REEXECUTE();
         }
 
         UPDATE_STATE(s_headers_done);
@@ -1991,8 +1991,10 @@ reexecute:
         if (parser->content_length == 0) {
           parser->flags |= F_TRAILING;
           UPDATE_STATE(s_header_field_start);
+          CALLBACK_NOTIFY(chunk_header);
         } else {
           UPDATE_STATE(s_chunk_data);
+          CALLBACK_NOTIFY(chunk_header);
         }
         break;
       }
@@ -2033,6 +2035,7 @@ reexecute:
         STRICT_CHECK(ch != LF);
         parser->nread = 0;
         UPDATE_STATE(s_chunk_size_start);
+        CALLBACK_NOTIFY(chunk_complete);
         break;
 
       default:
