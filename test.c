@@ -39,6 +39,7 @@
 
 #define MAX_HEADERS 13
 #define MAX_ELEMENT_SIZE 2048
+#define MAX_CHUNKS 16
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
@@ -64,6 +65,10 @@ struct message {
   enum { NONE=0, FIELD, VALUE } last_header_element;
   char headers [MAX_HEADERS][2][MAX_ELEMENT_SIZE];
   int should_keep_alive;
+
+  int num_chunks;
+  int num_chunks_complete;
+  int chunk_lengths[MAX_CHUNKS];
 
   const char *upgrade; // upgraded body
 
@@ -301,6 +306,9 @@ const struct message requests[] =
     { { "Transfer-Encoding" , "chunked" }
     }
   ,.body= "all your base are belong to us"
+  ,.num_chunks= 1
+  ,.num_chunks_complete= 2
+  ,.chunk_lengths= { 0x1e }
   }
 
 #define TWO_CHUNKS_MULT_ZERO_END 9
@@ -327,6 +335,9 @@ const struct message requests[] =
     { { "Transfer-Encoding", "chunked" }
     }
   ,.body= "hello world"
+  ,.num_chunks= 2
+  ,.num_chunks_complete= 3
+  ,.chunk_lengths= { 5, 6 }
   }
 
 #define CHUNKED_W_TRAILING_HEADERS 10
@@ -357,6 +368,9 @@ const struct message requests[] =
     , { "Content-Type", "text/plain" }
     }
   ,.body= "hello world"
+  ,.num_chunks= 2
+  ,.num_chunks_complete= 3
+  ,.chunk_lengths= { 5, 6 }
   }
 
 #define CHUNKED_W_BULLSHIT_AFTER_LENGTH 11
@@ -383,6 +397,9 @@ const struct message requests[] =
     { { "Transfer-Encoding", "chunked" }
     }
   ,.body= "hello world"
+  ,.num_chunks= 2
+  ,.num_chunks_complete= 3
+  ,.chunk_lengths= { 5, 6 }
   }
 
 #define WITH_QUOTES 12
@@ -1195,7 +1212,9 @@ const struct message responses[] =
   ,.body =
          "This is the data in the first chunk\r\n"
          "and this is the second one\r\n"
-
+  ,.num_chunks= 2
+  ,.num_chunks_complete= 3
+  ,.chunk_lengths= { 0x25, 0x1c }
   }
 
 #define NO_CARRIAGE_RET 5
@@ -1349,6 +1368,9 @@ const struct message responses[] =
     , { "Connection", "close" }
     }
   ,.body= ""
+  ,.num_chunks= 0
+  ,.num_chunks_complete= 1
+  ,.chunk_lengths= {}
   }
 
 #define NON_ASCII_IN_STATUS_LINE 10
@@ -1531,6 +1553,8 @@ const struct message responses[] =
     }
   ,.body_size= 0
   ,.body= ""
+  ,.num_chunks= 0
+  ,.num_chunks_complete= 1
   }
 
 #if !HTTP_PARSER_STRICT
@@ -1604,6 +1628,9 @@ const struct message responses[] =
              , { "Transfer-Encoding", "chunked" }
              }
   ,.body= "\n"
+  ,.num_chunks= 1
+  ,.num_chunks_complete= 2
+  ,.chunk_lengths= { 1 }
   }
 
 #define EMPTY_REASON_PHRASE_AFTER_SPACE 20
@@ -1839,6 +1866,32 @@ response_status_cb (http_parser *p, const char *buf, size_t len)
   return 0;
 }
 
+int
+chunk_header_cb (http_parser *p)
+{
+  assert(p == parser);
+  if (p->content_length == 0) {
+    // Terminating chunk.  Don't increment num_chunks in this case.
+    return 0;
+  }
+
+  int chunk_idx = messages[num_messages].num_chunks;
+  ++messages[num_messages].num_chunks;
+  if (chunk_idx < MAX_CHUNKS) {
+    messages[num_messages].chunk_lengths[chunk_idx] = p->content_length;
+  }
+
+  return 0;
+}
+
+int
+chunk_complete_cb (http_parser *p)
+{
+  assert(p == parser);
+  ++messages[num_messages].num_chunks_complete;
+  return 0;
+}
+
 /* These dontcall_* callbacks exist so that we can verify that when we're
  * paused, no additional callbacks are invoked */
 int
@@ -1907,6 +1960,23 @@ dontcall_response_status_cb (http_parser *p, const char *buf, size_t len)
   abort();
 }
 
+int
+dontcall_chunk_header_cb (http_parser *p)
+{
+  if (p) { } // gcc
+  fprintf(stderr, "\n\n*** on_chunk_header() called on paused parser ***\n\n");
+  exit(1);
+}
+
+int
+dontcall_chunk_complete_cb (http_parser *p)
+{
+  if (p) { } // gcc
+  fprintf(stderr, "\n\n*** on_chunk_complete() "
+          "called on paused parser ***\n\n");
+  exit(1);
+}
+
 static http_parser_settings settings_dontcall =
   {.on_message_begin = dontcall_message_begin_cb
   ,.on_header_field = dontcall_header_field_cb
@@ -1916,6 +1986,8 @@ static http_parser_settings settings_dontcall =
   ,.on_body = dontcall_body_cb
   ,.on_headers_complete = dontcall_headers_complete_cb
   ,.on_message_complete = dontcall_message_complete_cb
+  ,.on_chunk_header = dontcall_chunk_header_cb
+  ,.on_chunk_complete = dontcall_chunk_complete_cb
   };
 
 /* These pause_* callbacks always pause the parser and just invoke the regular
@@ -1986,6 +2058,22 @@ pause_response_status_cb (http_parser *p, const char *buf, size_t len)
   return response_status_cb(p, buf, len);
 }
 
+int
+pause_chunk_header_cb (http_parser *p)
+{
+  http_parser_pause(p, 1);
+  *current_pause_parser = settings_dontcall;
+  return chunk_header_cb(p);
+}
+
+int
+pause_chunk_complete_cb (http_parser *p)
+{
+  http_parser_pause(p, 1);
+  *current_pause_parser = settings_dontcall;
+  return chunk_complete_cb(p);
+}
+
 static http_parser_settings settings_pause =
   {.on_message_begin = pause_message_begin_cb
   ,.on_header_field = pause_header_field_cb
@@ -1995,6 +2083,8 @@ static http_parser_settings settings_pause =
   ,.on_body = pause_body_cb
   ,.on_headers_complete = pause_headers_complete_cb
   ,.on_message_complete = pause_message_complete_cb
+  ,.on_chunk_header = pause_chunk_header_cb
+  ,.on_chunk_complete = pause_chunk_complete_cb
   };
 
 static http_parser_settings settings =
@@ -2006,6 +2096,8 @@ static http_parser_settings settings =
   ,.on_body = body_cb
   ,.on_headers_complete = headers_complete_cb
   ,.on_message_complete = message_complete_cb
+  ,.on_chunk_header = chunk_header_cb
+  ,.on_chunk_complete = chunk_complete_cb
   };
 
 static http_parser_settings settings_count_body =
@@ -2017,6 +2109,8 @@ static http_parser_settings settings_count_body =
   ,.on_body = count_body_cb
   ,.on_headers_complete = headers_complete_cb
   ,.on_message_complete = message_complete_cb
+  ,.on_chunk_header = chunk_header_cb
+  ,.on_chunk_complete = chunk_complete_cb
   };
 
 static http_parser_settings settings_null =
@@ -2028,6 +2122,8 @@ static http_parser_settings settings_null =
   ,.on_body = 0
   ,.on_headers_complete = 0
   ,.on_message_complete = 0
+  ,.on_chunk_header = 0
+  ,.on_chunk_complete = 0
   };
 
 void
@@ -2196,6 +2292,18 @@ message_eq (int index, const struct message *expected)
     MESSAGE_CHECK_STR_EQ(expected, m, body);
   }
 
+  MESSAGE_CHECK_NUM_EQ(expected, m, num_chunks);
+  MESSAGE_CHECK_NUM_EQ(expected, m, num_chunks_complete);
+  for (i = 0; i < m->num_chunks && i < MAX_CHUNKS; i++) {
+    MESSAGE_CHECK_NUM_EQ(expected, m, chunk_lengths[i]);
+  }
+
+  MESSAGE_CHECK_NUM_EQ(expected, m, num_chunks);
+  MESSAGE_CHECK_NUM_EQ(expected, m, num_chunks_complete);
+  for (i = 0; i < m->num_chunks && i < MAX_CHUNKS; i++) {
+    MESSAGE_CHECK_NUM_EQ(expected, m, chunk_lengths[i]);
+  }
+
   MESSAGE_CHECK_NUM_EQ(expected, m, num_headers);
 
   int r;
@@ -2243,7 +2351,7 @@ upgrade_message_fix(char *body, const size_t nread, const size_t nmsgs, ...) {
   va_list ap;
   size_t i;
   size_t off = 0;
- 
+
   va_start(ap, nmsgs);
 
   for (i = 0; i < nmsgs; i++) {
@@ -3488,7 +3596,12 @@ main (void)
         , { "Content-Type", "text/plain" }
         }
       ,.body_size= 31337*1024
+      ,.num_chunks= 31337
+      ,.num_chunks_complete= 31338
       };
+    for (i = 0; i < MAX_CHUNKS; ++i) {
+      large_chunked.chunk_lengths[i] = 1024;
+    }
     test_message_count_body(&large_chunked);
     free(msg);
   }
