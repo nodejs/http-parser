@@ -1832,7 +1832,8 @@ reexecute:
 
         parser->nread = 0;
 
-        int hasBody = parser->flags & F_CHUNKED || parser->content_length > 0;
+        int hasBody = parser->flags & F_CHUNKED ||
+          (parser->content_length > 0 && parser->content_length != ULLONG_MAX);
         if (parser->upgrade && (parser->method == HTTP_CONNECT ||
                                 (parser->flags & F_SKIPBODY) || !hasBody)) {
           /* Exit, the rest of the message is in a different protocol. */

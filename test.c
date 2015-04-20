@@ -1052,6 +1052,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
+  ,.request_path= "/demo"
   ,.request_url= "/demo"
   ,.num_headers= 4
   ,.upgrade="Hot diggity dogg"
@@ -2294,7 +2295,7 @@ upgrade_message_fix(char *body, const size_t nread, const size_t nmsgs, ...) {
   va_list ap;
   size_t i;
   size_t off = 0;
- 
+
   va_start(ap, nmsgs);
 
   for (i = 0; i < nmsgs; i++) {
