@@ -306,7 +306,6 @@ const struct message requests[] =
     { { "Transfer-Encoding" , "chunked" }
     }
   ,.body= "all your base are belong to us"
-  ,.num_chunks= 1
   ,.num_chunks_complete= 2
   ,.chunk_lengths= { 0x1e }
   }
@@ -335,7 +334,6 @@ const struct message requests[] =
     { { "Transfer-Encoding", "chunked" }
     }
   ,.body= "hello world"
-  ,.num_chunks= 2
   ,.num_chunks_complete= 3
   ,.chunk_lengths= { 5, 6 }
   }
@@ -368,7 +366,6 @@ const struct message requests[] =
     , { "Content-Type", "text/plain" }
     }
   ,.body= "hello world"
-  ,.num_chunks= 2
   ,.num_chunks_complete= 3
   ,.chunk_lengths= { 5, 6 }
   }
@@ -397,7 +394,6 @@ const struct message requests[] =
     { { "Transfer-Encoding", "chunked" }
     }
   ,.body= "hello world"
-  ,.num_chunks= 2
   ,.num_chunks_complete= 3
   ,.chunk_lengths= { 5, 6 }
   }
@@ -1212,7 +1208,6 @@ const struct message responses[] =
   ,.body =
          "This is the data in the first chunk\r\n"
          "and this is the second one\r\n"
-  ,.num_chunks= 2
   ,.num_chunks_complete= 3
   ,.chunk_lengths= { 0x25, 0x1c }
   }
@@ -1368,7 +1363,6 @@ const struct message responses[] =
     , { "Connection", "close" }
     }
   ,.body= ""
-  ,.num_chunks= 0
   ,.num_chunks_complete= 1
   ,.chunk_lengths= {}
   }
@@ -1553,7 +1547,6 @@ const struct message responses[] =
     }
   ,.body_size= 0
   ,.body= ""
-  ,.num_chunks= 0
   ,.num_chunks_complete= 1
   }
 
@@ -1628,7 +1621,6 @@ const struct message responses[] =
              , { "Transfer-Encoding", "chunked" }
              }
   ,.body= "\n"
-  ,.num_chunks= 1
   ,.num_chunks_complete= 2
   ,.chunk_lengths= { 1 }
   }
@@ -1870,11 +1862,6 @@ int
 chunk_header_cb (http_parser *p)
 {
   assert(p == parser);
-  if (p->content_length == 0) {
-    // Terminating chunk.  Don't increment num_chunks in this case.
-    return 0;
-  }
-
   int chunk_idx = messages[num_messages].num_chunks;
   messages[num_messages].num_chunks++;
   if (chunk_idx < MAX_CHUNKS) {
@@ -1888,6 +1875,14 @@ int
 chunk_complete_cb (http_parser *p)
 {
   assert(p == parser);
+
+  /* Here we want to verify that each chunk_header_cb is matched by a
+   * chunk_complete_cb, so not only should the total number of calls to
+   * both callbacks be the same, but they also should be interleaved
+   * properly */
+  assert(messages[num_messages].num_chunks ==
+         messages[num_messages].num_chunks_complete + 1);
+
   messages[num_messages].num_chunks_complete++;
   return 0;
 }
@@ -2292,13 +2287,7 @@ message_eq (int index, const struct message *expected)
     MESSAGE_CHECK_STR_EQ(expected, m, body);
   }
 
-  MESSAGE_CHECK_NUM_EQ(expected, m, num_chunks);
-  MESSAGE_CHECK_NUM_EQ(expected, m, num_chunks_complete);
-  for (i = 0; i < m->num_chunks && i < MAX_CHUNKS; i++) {
-    MESSAGE_CHECK_NUM_EQ(expected, m, chunk_lengths[i]);
-  }
-
-  MESSAGE_CHECK_NUM_EQ(expected, m, num_chunks);
+  assert(m->num_chunks == m->num_chunks_complete);
   MESSAGE_CHECK_NUM_EQ(expected, m, num_chunks_complete);
   for (i = 0; i < m->num_chunks && i < MAX_CHUNKS; i++) {
     MESSAGE_CHECK_NUM_EQ(expected, m, chunk_lengths[i]);
@@ -3596,7 +3585,6 @@ main (void)
         , { "Content-Type", "text/plain" }
         }
       ,.body_size= 31337*1024
-      ,.num_chunks= 31337
       ,.num_chunks_complete= 31338
       };
     for (i = 0; i < MAX_CHUNKS; i++) {
