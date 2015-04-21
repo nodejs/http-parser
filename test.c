@@ -1876,7 +1876,7 @@ chunk_header_cb (http_parser *p)
   }
 
   int chunk_idx = messages[num_messages].num_chunks;
-  ++messages[num_messages].num_chunks;
+  messages[num_messages].num_chunks++;
   if (chunk_idx < MAX_CHUNKS) {
     messages[num_messages].chunk_lengths[chunk_idx] = p->content_length;
   }
@@ -1888,7 +1888,7 @@ int
 chunk_complete_cb (http_parser *p)
 {
   assert(p == parser);
-  ++messages[num_messages].num_chunks_complete;
+  messages[num_messages].num_chunks_complete++;
   return 0;
 }
 
@@ -3599,7 +3599,7 @@ main (void)
       ,.num_chunks= 31337
       ,.num_chunks_complete= 31338
       };
-    for (i = 0; i < MAX_CHUNKS; ++i) {
+    for (i = 0; i < MAX_CHUNKS; i++) {
       large_chunked.chunk_lengths[i] = 1024;
     }
     test_message_count_body(&large_chunked);
