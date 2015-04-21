@@ -144,7 +144,7 @@ enum flags
 
 
 /* Map for errno-related constants
- *
+ * 
  * The provided argument should be a macro that takes 2 arguments.
  */
 #define HTTP_ERRNO_MAP(XX)                                           \
