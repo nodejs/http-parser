@@ -2243,7 +2243,7 @@ upgrade_message_fix(char *body, const size_t nread, const size_t nmsgs, ...) {
   va_list ap;
   size_t i;
   size_t off = 0;
-
+ 
   va_start(ap, nmsgs);
 
   for (i = 0; i < nmsgs; i++) {
