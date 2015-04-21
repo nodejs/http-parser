@@ -1036,6 +1036,30 @@ const struct message requests[] =
   ,.body= ""
   }
 
+#if !HTTP_PARSER_STRICT
+#define CONNECTION_UPGRADE_REGRESSION 38
+, {.name = "upgrade header with some random words"
+  ,.type= HTTP_REQUEST
+  ,.raw= "GET / HTTP/1.1\r\n"
+         "Upgrade: Yes, please.\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GET
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/"
+  ,.request_url= "/"
+  ,.num_headers= 1
+  ,.upgrade=""
+  ,.headers= { { "Upgrade", "Yes, please." }
+             }
+  ,.body= ""
+  }
+#endif
+
 , {.name= NULL } /* sentinel */
 };
 
