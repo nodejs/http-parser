@@ -1790,10 +1790,15 @@ reexecute:
         UPDATE_STATE(s_headers_done);
 
         /* Set this here so that on_headers_complete() callbacks can see it */
+#if HTTP_PARSER_STRICT
         parser->upgrade =
           ((parser->flags & (F_UPGRADE | F_CONNECTION_UPGRADE)) ==
            (F_UPGRADE | F_CONNECTION_UPGRADE) ||
            parser->method == HTTP_CONNECT);
+#else
+        parser->upgrade = (parser->flags & F_UPGRADE) ||
+            parser->method == HTTP_CONNECT;
+#endif
 
         /* Here we call the headers_complete callback. This is somewhat
          * different than other callbacks because if the user returns 1, we
