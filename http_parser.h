@@ -95,7 +95,7 @@ typedef int (*http_cb) (http_parser*);
   XX(5,  CONNECT,     CONNECT)      \
   XX(6,  OPTIONS,     OPTIONS)      \
   XX(7,  TRACE,       TRACE)        \
-  /* webdav */                      \
+  /* WebDAV */                      \
   XX(8,  COPY,        COPY)         \
   XX(9,  LOCK,        LOCK)         \
   XX(10, MKCOL,       MKCOL)        \
@@ -104,21 +104,24 @@ typedef int (*http_cb) (http_parser*);
   XX(13, PROPPATCH,   PROPPATCH)    \
   XX(14, SEARCH,      SEARCH)       \
   XX(15, UNLOCK,      UNLOCK)       \
+  XX(16, BIND,        BIND)         \
+  XX(17, REBIND,      REBIND)       \
+  XX(18, UNBIND,      UNBIND)       \
   /* subversion */                  \
-  XX(16, REPORT,      REPORT)       \
-  XX(17, MKACTIVITY,  MKACTIVITY)   \
-  XX(18, CHECKOUT,    CHECKOUT)     \
-  XX(19, MERGE,       MERGE)        \
+  XX(19, REPORT,      REPORT)       \
+  XX(20, MKACTIVITY,  MKACTIVITY)   \
+  XX(21, CHECKOUT,    CHECKOUT)     \
+  XX(22, MERGE,       MERGE)        \
   /* upnp */                        \
-  XX(20, MSEARCH,     M-SEARCH)     \
-  XX(21, NOTIFY,      NOTIFY)       \
-  XX(22, SUBSCRIBE,   SUBSCRIBE)    \
-  XX(23, UNSUBSCRIBE, UNSUBSCRIBE)  \
+  XX(23, MSEARCH,     M-SEARCH)     \
+  XX(24, NOTIFY,      NOTIFY)       \
+  XX(25, SUBSCRIBE,   SUBSCRIBE)    \
+  XX(26, UNSUBSCRIBE, UNSUBSCRIBE)  \
   /* RFC-5789 */                    \
-  XX(24, PATCH,       PATCH)        \
-  XX(25, PURGE,       PURGE)        \
+  XX(27, PATCH,       PATCH)        \
+  XX(28, PURGE,       PURGE)        \
   /* CalDAV */                      \
-  XX(26, MKCALENDAR,  MKCALENDAR)   \
+  XX(29, MKCALENDAR,  MKCALENDAR)   \
 
 enum http_method
   {

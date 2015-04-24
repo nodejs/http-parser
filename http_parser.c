@@ -959,6 +959,7 @@ reexecute:
         parser->method = (enum http_method) 0;
         parser->index = 1;
         switch (ch) {
+          case 'B': parser->method = HTTP_BIND; break;
           case 'C': parser->method = HTTP_CONNECT; /* or COPY, CHECKOUT */ break;
           case 'D': parser->method = HTTP_DELETE; break;
           case 'G': parser->method = HTTP_GET; break;
@@ -970,10 +971,10 @@ reexecute:
           case 'P': parser->method = HTTP_POST;
             /* or PROPFIND|PROPPATCH|PUT|PATCH|PURGE */
             break;
-          case 'R': parser->method = HTTP_REPORT; break;
+          case 'R': parser->method = HTTP_REPORT; /* or REBIND */ break;
           case 'S': parser->method = HTTP_SUBSCRIBE; /* or SEARCH */ break;
           case 'T': parser->method = HTTP_TRACE; break;
-          case 'U': parser->method = HTTP_UNLOCK; /* or UNSUBSCRIBE */ break;
+          case 'U': parser->method = HTTP_UNLOCK; /* or UNSUBSCRIBE, UNBIND */ break;
           default:
             SET_ERRNO(HPE_INVALID_METHOD);
             goto error;
@@ -1029,6 +1030,13 @@ reexecute:
             SET_ERRNO(HPE_INVALID_METHOD);
             goto error;
           }
+        } else if (parser->method == HTTP_REPORT) {
+            if (parser->index == 2 && ch == 'B') {
+              parser->method = HTTP_REBIND;
+            } else {
+              SET_ERRNO(HPE_INVALID_METHOD);
+              goto error;
+            }
         } else if (parser->index == 1 && parser->method == HTTP_POST) {
           if (ch == 'R') {
             parser->method = HTTP_PROPFIND; /* or HTTP_PROPPATCH */
@@ -1051,6 +1059,8 @@ reexecute:
           } else if (parser->method == HTTP_UNLOCK) {
             if (ch == 'S') {
               parser->method = HTTP_UNSUBSCRIBE;
+            } else if(ch == 'B') {
+              parser->method = HTTP_UNBIND;
             } else {
               SET_ERRNO(HPE_INVALID_METHOD);
               goto error;
