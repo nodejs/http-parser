@@ -19,7 +19,7 @@
 # IN THE SOFTWARE.
 
 PLATFORM ?= $(shell sh -c 'uname -s | tr "[A-Z]" "[a-z]"')
-SONAME ?= libhttp_parser.so.2.4.2
+SONAME ?= libhttp_parser.so.2.5.0
 
 CC?=gcc
 AR?=ar
