@@ -3693,6 +3693,7 @@ main (void)
     "UNLOCK",
     "BIND",
     "REBIND",
+    "UNBIND",
     "REPORT",
     "MKACTIVITY",
     "CHECKOUT",
