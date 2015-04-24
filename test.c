@@ -3692,6 +3692,7 @@ main (void)
     "PROPPATCH",
     "UNLOCK",
     "BIND",
+    "REBIND",
     "REPORT",
     "MKACTIVITY",
     "CHECKOUT",
