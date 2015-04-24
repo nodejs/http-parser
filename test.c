@@ -3748,6 +3748,7 @@ main (void)
     "BIND",
     "REBIND",
     "UNBIND",
+    "ACL",
     "REPORT",
     "MKACTIVITY",
     "CHECKOUT",
