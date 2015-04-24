@@ -94,7 +94,7 @@ The Special Problem of Upgrade
 ------------------------------
 
 HTTP supports upgrading the connection to a different protocol. An
-increasingly common example of this is the Web Socket protocol which sends
+increasingly common example of this is the WebSocket protocol which sends
 a request like
 
         GET /demo HTTP/1.1
@@ -106,8 +106,8 @@ a request like
 
 followed by non-HTTP data.
 
-(See http://tools.ietf.org/html/draft-hixie-thewebsocketprotocol-75 for more
-information the Web Socket protocol.)
+(See [RFC6455](https://tools.ietf.org/html/rfc6455) for more information the
+WebSocket protocol.)
 
 To support this, the parser will treat this as a normal HTTP message without a
 body, issuing both on_headers_complete and on_message_complete callbacks. However
