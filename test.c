@@ -3743,6 +3743,7 @@ main (void)
     "MOVE",
     "PROPFIND",
     "PROPPATCH",
+    "SEARCH",
     "UNLOCK",
     "BIND",
     "REBIND",
@@ -3756,6 +3757,8 @@ main (void)
     "SUBSCRIBE",
     "UNSUBSCRIBE",
     "PATCH",
+    "PURGE",
+    "MKCALENDAR",
     0 };
   const char **this_method;
   for (this_method = all_methods; *this_method; this_method++) {
