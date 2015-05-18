@@ -2389,7 +2389,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
 
   /* CONNECT requests can only contain "hostname:port" */
   if (is_connect && u->field_set != ((1 << UF_HOST)|(1 << UF_PORT))) {
-	  return 1;
+    return 1;
   }
 
   if (u->field_set & (1 << UF_PORT)) {
