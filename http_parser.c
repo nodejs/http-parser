@@ -2232,6 +2232,7 @@ http_parse_host_char(enum http_host_state s, const char ch) {
 
 static int
 http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
+  assert(u->field_set & (1 << UF_HOST));
   enum http_host_state s;
 
   const char *p;
@@ -2376,7 +2377,12 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
 
   /* host must be present if there is a schema */
   /* parsing http:///toto will fail */
-  if ((u->field_set & ((1 << UF_SCHEMA) | (1 << UF_HOST))) != 0) {
+  if ((u->field_set & (1 << UF_SCHEMA)) &&
+      (u->field_set & (1 << UF_HOST)) == 0) {
+    return 1;
+  }
+
+  if (u->field_set & (1 << UF_HOST)) {
     if (http_parse_host(buf, u, found_at) != 0) {
       return 1;
     }
