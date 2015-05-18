@@ -2376,15 +2376,19 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
 
   /* host must be present if there is a schema */
   /* parsing http:///toto will fail */
-  if ((u->field_set & (1 << UF_SCHEMA)) != 0 && (u->field_set & (1 << UF_HOST)) != 0) {
-    if (http_parse_host(buf, u, found_at) != 0) {
-      return 1;
-    }
+  if ((u->field_set & (1 << UF_SCHEMA)) && (u->field_set & (1 << UF_HOST)) == 0) {
+    return 1;
   }
 
   /* CONNECT requests can only contain "hostname:port" */
   if (is_connect && u->field_set != ((1 << UF_HOST)|(1 << UF_PORT))) {
     return 1;
+  }
+
+  if (u->field_set & (1 << UF_HOST)) {
+    if (http_parse_host(buf, u, found_at) != 0) {
+      return 1;
+    }
   }
 
   if (u->field_set & (1 << UF_PORT)) {
