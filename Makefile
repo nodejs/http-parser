@@ -19,8 +19,13 @@
 # IN THE SOFTWARE.
 
 PLATFORM ?= $(shell sh -c 'uname -s | tr "[A-Z]" "[a-z]"')
+ifeq (darwin,$(PLATFORM))
+SONAME ?= libhttp_parser.2.5.0.dylib
+SOEXT ?= dylib
+else
 SONAME ?= libhttp_parser.so.2.5.0
-
+SOEXT ?= so
+endif
 CC?=gcc
 AR?=ar
 
@@ -113,12 +118,12 @@ tags: http_parser.c http_parser.h test.c
 install: library
 	$(INSTALL) -D  http_parser.h $(INCLUDEDIR)/http_parser.h
 	$(INSTALL) -D $(SONAME) $(LIBDIR)/$(SONAME)
-	ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.so
+	ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.$(SOEXT)
 
 install-strip: library
 	$(INSTALL) -D  http_parser.h $(INCLUDEDIR)/http_parser.h
 	$(INSTALL) -D -s $(SONAME) $(LIBDIR)/$(SONAME)
-	ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.so
+	ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.$(SOEXT)
 
 uninstall:
 	rm $(INCLUDEDIR)/http_parser.h
