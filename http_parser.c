@@ -1857,8 +1857,7 @@ reexecute:
             /* Content-Length header given and non-zero */
             UPDATE_STATE(s_body_identity);
           } else {
-            if (parser->type == HTTP_REQUEST ||
-                !http_message_needs_eof(parser)) {
+            if (!http_message_needs_eof(parser)) {
               /* Assume content-length 0 - read the next */
               UPDATE_STATE(NEW_MESSAGE());
               CALLBACK_NOTIFY(message_complete);
