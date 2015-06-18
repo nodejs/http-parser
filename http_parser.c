@@ -400,6 +400,8 @@ enum http_host_state
   , s_http_host
   , s_http_host_v6
   , s_http_host_v6_end
+  , s_http_host_v6_zone_start
+  , s_http_host_v6_zone
   , s_http_host_port_start
   , s_http_host_port
 };
@@ -2213,6 +2215,23 @@ http_parse_host_char(enum http_host_state s, const char ch) {
         return s_http_host_v6;
       }
 
+      if (s == s_http_host_v6 && ch == '%') {
+        return s_http_host_v6_zone_start;
+      }
+      break;
+
+    case s_http_host_v6_zone:
+      if (ch == ']') {
+        return s_http_host_v6_end;
+      }
+
+    /* FALLTHROUGH */
+    case s_http_host_v6_zone_start:
+      /* RFC 6874 Zone ID consists of 1*( unreserved / pct-encoded) */
+      if (IS_ALPHANUM(ch) || ch == '%' || ch == '.' || ch == '-' || ch == '_' ||
+          ch == '~') {
+        return s_http_host_v6_zone;
+      }
       break;
 
     case s_http_host_port:
@@ -2263,6 +2282,11 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
         u->field_data[UF_HOST].len++;
         break;
 
+      case s_http_host_v6_zone_start:
+      case s_http_host_v6_zone:
+        u->field_data[UF_HOST].len++;
+        break;
+
       case s_http_host_port:
         if (s != s_http_host_port) {
           u->field_data[UF_PORT].off = p - buf;
@@ -2292,6 +2316,8 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
     case s_http_host_start:
     case s_http_host_v6_start:
     case s_http_host_v6:
+    case s_http_host_v6_zone_start:
+    case s_http_host_v6_zone:
     case s_http_host_port_start:
     case s_http_userinfo:
     case s_http_userinfo_start:
