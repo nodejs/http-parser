@@ -2918,6 +2918,59 @@ const struct url_test url_tests[] =
   ,.rv=1 /* s_dead */
   }
 
+, {.name="ipv6 address with Zone ID"
+  ,.url="http://[fe80::a%25eth0]/"
+  ,.is_connect=0
+  ,.u=
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PATH)
+    ,.port=0
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{  8, 14 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{ 23,  1 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
+      }
+    }
+  ,.rv=0
+  }
+
+, {.name="ipv6 address with Zone ID, but '%' is not percent-encoded"
+  ,.url="http://[fe80::a%eth0]/"
+  ,.is_connect=0
+  ,.u=
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_HOST) | (1<<UF_PATH)
+    ,.port=0
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{  8, 12 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{ 21,  1 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
+      }
+    }
+  ,.rv=0
+  }
+
+, {.name="ipv6 address ending with '%'"
+  ,.url="http://[fe80::a%]/"
+  ,.rv=1 /* s_dead */
+  }
+
+, {.name="ipv6 address with Zone ID including bad character"
+  ,.url="http://[fe80::a%$HOME]/"
+  ,.rv=1 /* s_dead */
+  }
+
+, {.name="just ipv6 Zone ID"
+  ,.url="http://[%eth0]/"
+  ,.rv=1 /* s_dead */
+  }
+
 #if HTTP_PARSER_STRICT
 
 , {.name="tab in URL"
