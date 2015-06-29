@@ -137,10 +137,18 @@ There are two types of callbacks:
 Callbacks must return 0 on success. Returning a non-zero value indicates
 error to the parser, making it exit immediately.
 
-For cases where it is necessary to pass local information to/from a callback the `http_parser` object's `data` field can be used. An example of such a case is when using threads to handle a socket connection, parse a request, and then give a response over that socket. By instantiation of a thread-local struct containing relevant data (e.g. accepted socket, allocated memory for callbacks to write into, etc), a parser's callbacks are able to communicate data between the scope of the thread and the scope of the callback in a threadsafe manner. This allows http-parser to be used in multi-threaded contexts.
+For cases where it is necessary to pass local information to/from a callback,
+the `http_parser` object's `data` field can be used.
+An example of such a case is when using threads to handle a socket connection, 
+parse a request, and then give a response over that socket. By instantiation 
+of a thread-local struct containing relevant data (e.g. accepted socket, 
+allocated memory for callbacks to write into, etc), a parser's callbacks are 
+able to communicate data between the scope of the thread and the scope of the 
+callback in a threadsafe manner. This allows http-parser to be used in 
+multi-threaded contexts.
+
 Example:
 ```
-
  typedef struct {
   socket_t sock;
   void* buffer;
@@ -149,30 +157,44 @@ Example:
  
  
 int my_url_callback(http_parser* parser, const char *at, size_t length) {
-  /* access to thread local custom_data_t struct. Use this access save parsed data for later use into thread local buffer, or communicate over socket*/
- parser->data;
- ...
- return 0;
+  /* access to thread local custom_data_t struct.
+  Use this access save parsed data for later use into thread local
+  buffer, or communicate over socket
+  */
+  parser->data;
+  ...
+  return 0;
 }
 
 ...
 
 void http_parser_thread(socket_t sock) {
  int nparsed = 0;
- custom_data_t *my_data = malloc(sizeof(custom_data_t)); /* allocate memory for user data */
- my_data->sock = sock; /* some information for use by callbacks  - achieves thread -> callback information flow */
+ /* allocate memory for user data */
+ custom_data_t *my_data = malloc(sizeof(custom_data_t));
  
- http_parser *parser = malloc(sizeof(http_parser)); /* instantiate a thread local parser */
+ /* some information for use by callbacks.
+ * achieves thread -> callback information flow */
+ my_data->sock = sock;
+ 
+ /* instantiate a thread-local parser */
+ http_parser *parser = malloc(sizeof(http_parser)); 
  http_parser_init(parser, HTTP_REQUEST); /* initialise parser */
- parser->data = my_data; /* this custom data reference is accessible through the reference to the parser supplied to callback functions */
+ /* this custom data reference is accessible through the reference to the
+ parser supplied to callback functions */
+ parser->data = my_data; 
  
  http_parser_settings settings; / * set up callbacks */
  settings.on_url = my_url_callback;
  
- nparsed = http_parser_execute(parser, &settings, buf, recved); /* execute parser */
+ /* execute parser */
+ nparsed = http_parser_execute(parser, &settings, buf, recved);
+ 
  ...
- /* perform action on data copied into thread-local memory from callbacks */
- my_data->buffer; /* parsed information copied from callback  - achieves callback -> thread information flow */
+ /* parsed information copied from callback.
+ can now perform action on data copied into thread-local memory from callbacks.
+ achieves callback -> thread information flow */
+ my_data->buffer; 
  ...
 }
 
