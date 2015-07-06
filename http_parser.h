@@ -229,6 +229,18 @@ struct http_parser {
   void *data; /* A pointer to get hook to the "connection" or "socket" object */
 };
 
+enum {
+	  e_on_message_begin,
+	  e_on_url,
+	  e_on_status,
+	  e_on_header_field,
+	  e_on_header_value,
+	  e_on_header_raw,
+	  e_on_headers_complete,
+	  e_on_body,
+	  e_on_body_raw,
+	  e_on_message_complete,
+};
 
 struct http_parser_settings {
   http_cb      on_message_begin;
@@ -236,8 +248,10 @@ struct http_parser_settings {
   http_data_cb on_status;
   http_data_cb on_header_field;
   http_data_cb on_header_value;
+  http_data_cb on_header_raw;
   http_cb      on_headers_complete;
   http_data_cb on_body;
+  http_data_cb on_body_raw;
   http_cb      on_message_complete;
 };
 
