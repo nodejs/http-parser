@@ -106,8 +106,8 @@ a request like
 
 followed by non-HTTP data.
 
-(See [RFC6455](https://tools.ietf.org/html/rfc6455) for more information the Web
-Socket protocol.)
+(See [RFC6455](https://tools.ietf.org/html/rfc6455) for more information the
+WebSocket protocol.)
 
 To support this, the parser will treat this as a normal HTTP message without a
 body, issuing both on_headers_complete and on_message_complete callbacks. However
