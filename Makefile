@@ -19,6 +19,8 @@
 # IN THE SOFTWARE.
 
 PLATFORM ?= $(shell sh -c 'uname -s | tr "[A-Z]" "[a-z]"')
+HELPER ?=
+BINEXT ?=
 ifeq (darwin,$(PLATFORM))
 SONAME ?= libhttp_parser.2.5.0.dylib
 SOEXT ?= dylib
@@ -26,6 +28,13 @@ else
 SONAME ?= libhttp_parser.so.2.5.0
 SOEXT ?= so
 endif
+
+ifeq (wine,$(PLATFORM))
+CC = winegcc
+BINEXT = .exe.so
+HELPER = wine
+endif
+
 CC?=gcc
 AR?=ar
 
@@ -58,8 +67,8 @@ LDFLAGS_LIB += -Wl,-soname=$(SONAME)
 endif
 
 test: test_g test_fast
-	./test_g
-	./test_fast
+	$(HELPER) test_g$(BINEXT)
+	$(HELPER) test_fast$(BINEXT)
 
 test_g: http_parser_g.o test_g.o
 	$(CC) $(CFLAGS_DEBUG) $(LDFLAGS) http_parser_g.o test_g.o -o $@
@@ -86,7 +95,7 @@ http_parser.o: http_parser.c http_parser.h Makefile
 	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_FAST) -c http_parser.c
 
 test-run-timed: test_fast
-	while(true) do time ./test_fast > /dev/null; done
+	while(true) do time $(HELPER) ./test_fast$(BINEXT) > /dev/null; done
 
 test-valgrind: test_g
 	valgrind ./test_g
@@ -107,10 +116,10 @@ url_parser_g: http_parser_g.o contrib/url_parser.c
 	$(CC) $(CPPFLAGS_DEBUG) $(CFLAGS_DEBUG) $^ -o $@
 
 parsertrace: http_parser.o contrib/parsertrace.c
-	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_FAST) $^ -o parsertrace
+	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_FAST) $^ -o parsertrace$(BINEXT)
 
 parsertrace_g: http_parser_g.o contrib/parsertrace.c
-	$(CC) $(CPPFLAGS_DEBUG) $(CFLAGS_DEBUG) $^ -o parsertrace_g
+	$(CC) $(CPPFLAGS_DEBUG) $(CFLAGS_DEBUG) $^ -o parsertrace_g$(BINEXT)
 
 tags: http_parser.c http_parser.h test.c
 	ctags $^
@@ -133,7 +142,8 @@ uninstall:
 clean:
 	rm -f *.o *.a tags test test_fast test_g \
 		http_parser.tar libhttp_parser.so.* \
-		url_parser url_parser_g parsertrace parsertrace_g
+		url_parser url_parser_g parsertrace parsertrace_g \
+		*.exe *.exe.so
 
 contrib/url_parser.c:	http_parser.h
 contrib/parsertrace.c:	http_parser.h
