@@ -11,6 +11,7 @@ compiler:
 
 script:
   - "make"
+  - "make clean"
   - "make PLATFORM=wine"
 
 notifications:
