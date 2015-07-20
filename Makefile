@@ -24,15 +24,13 @@ BINEXT ?=
 ifeq (darwin,$(PLATFORM))
 SONAME ?= libhttp_parser.2.5.0.dylib
 SOEXT ?= dylib
-else
-SONAME ?= libhttp_parser.so.2.5.0
-SOEXT ?= so
-endif
-
-ifeq (wine,$(PLATFORM))
+else ifeq (wine,$(PLATFORM))
 CC = winegcc
 BINEXT = .exe.so
 HELPER = wine
+else
+SONAME ?= libhttp_parser.so.2.5.0
+SOEXT ?= so
 endif
 
 CC?=gcc
