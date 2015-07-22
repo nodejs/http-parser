@@ -1841,11 +1841,12 @@ reexecute:
 
       case s_headers_done:
       {
+        int hasBody;
         STRICT_CHECK(ch != LF);
 
         parser->nread = 0;
 
-        int hasBody = parser->flags & F_CHUNKED ||
+        hasBody = parser->flags & F_CHUNKED ||
           (parser->content_length > 0 && parser->content_length != ULLONG_MAX);
         if (parser->upgrade && (parser->method == HTTP_CONNECT ||
                                 (parser->flags & F_SKIPBODY) || !hasBody)) {
