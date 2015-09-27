@@ -1000,6 +1000,13 @@ reexecute:
           UPDATE_STATE(s_req_spaces_before_url);
         } else if (ch == matcher[parser->index]) {
           ; /* nada */
+        } else if (parser->method == HTTP_LOCK) {
+          if (parser->index == 1 && ch == 'I') {
+            parser->method = HTTP_LINK;
+          } else {
+            SET_ERRNO(HPE_INVALID_METHOD);
+            goto error;
+          }
         } else if (parser->method == HTTP_CONNECT) {
           if (parser->index == 1 && ch == 'H') {
             parser->method = HTTP_CHECKOUT;
@@ -1066,6 +1073,13 @@ reexecute:
               SET_ERRNO(HPE_INVALID_METHOD);
               goto error;
             }
+          } else {
+            SET_ERRNO(HPE_INVALID_METHOD);
+            goto error;
+          }
+        } else if (parser->method == HTTP_UNLOCK && parser->index == 3) {
+          if (ch == 'I') {
+            parser->method = HTTP_UNLINK;
           } else {
             SET_ERRNO(HPE_INVALID_METHOD);
             goto error;
