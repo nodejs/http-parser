@@ -1101,6 +1101,58 @@ const struct message requests[] =
   ,.body= ""
   }
 
+/* Examples from the Internet draft for LINK/UNLINK methods:
+ * https://tools.ietf.org/id/draft-snell-link-method-01.html#rfc.section.5
+ */
+
+#define LINK_REQUEST 40
+, {.name = "link request"
+  ,.type= HTTP_REQUEST
+  ,.raw= "LINK /images/my_dog.jpg HTTP/1.1\r\n"
+         "Host: example.com\r\n"
+         "Link: <http://example.com/profiles/joe>; rel=\"tag\"\r\n"
+         "Link: <http://example.com/profiles/sally>; rel=\"tag\"\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_LINK
+  ,.request_path= "/images/my_dog.jpg"
+  ,.request_url= "/images/my_dog.jpg"
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.num_headers= 3
+  ,.headers= { { "Host", "example.com" }
+             , { "Link", "<http://example.com/profiles/joe>; rel=\"tag\"" }
+	     , { "Link", "<http://example.com/profiles/sally>; rel=\"tag\"" }
+             }
+  ,.body= ""
+  }
+
+#define UNLINK_REQUEST 41
+, {.name = "link request"
+  ,.type= HTTP_REQUEST
+  ,.raw= "UNLINK /images/my_dog.jpg HTTP/1.1\r\n"
+         "Host: example.com\r\n"
+         "Link: <http://example.com/profiles/sally>; rel=\"tag\"\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_UNLINK
+  ,.request_path= "/images/my_dog.jpg"
+  ,.request_url= "/images/my_dog.jpg"
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.num_headers= 2
+  ,.headers= { { "Host", "example.com" }
+	     , { "Link", "<http://example.com/profiles/sally>; rel=\"tag\"" }
+             }
+  ,.body= ""
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
@@ -3760,6 +3812,8 @@ main (void)
     "PATCH",
     "PURGE",
     "MKCALENDAR",
+    "LINK",
+    "UNLINK",
     0 };
   const char **this_method;
   for (this_method = all_methods; *this_method; this_method++) {
