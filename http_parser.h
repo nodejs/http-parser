@@ -124,6 +124,9 @@ typedef int (*http_cb) (http_parser*);
   XX(29, PURGE,       PURGE)        \
   /* CalDAV */                      \
   XX(30, MKCALENDAR,  MKCALENDAR)   \
+  /* RFC-2068, section 19.6.1.2 */  \
+  XX(31, LINK,        LINK)         \
+  XX(32, UNLINK,      UNLINK)       \
 
 enum http_method
   {
