@@ -26,7 +26,7 @@ extern "C" {
 
 /* Also update SONAME in the Makefile whenever you change these. */
 #define HTTP_PARSER_VERSION_MAJOR 2
-#define HTTP_PARSER_VERSION_MINOR 5
+#define HTTP_PARSER_VERSION_MINOR 6
 #define HTTP_PARSER_VERSION_PATCH 0
 
 #include <sys/types.h>
@@ -152,7 +152,7 @@ enum flags
 
 
 /* Map for errno-related constants
- * 
+ *
  * The provided argument should be a macro that takes 2 arguments.
  */
 #define HTTP_ERRNO_MAP(XX)                                           \
