@@ -101,8 +101,10 @@ test-valgrind: test_g
 libhttp_parser.o: http_parser.c http_parser.h Makefile
 	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_LIB) -c http_parser.c -o libhttp_parser.o
 
-library: libhttp_parser.o
+$(SONAME): libhttp_parser.o
 	$(CC) $(CFLAGS_LIB) $(LDFLAGS_LIB) -o $(SONAME) $<
+
+library: $(SONAME)
 
 package: http_parser.o
 	$(AR) rcs libhttp_parser.a http_parser.o
@@ -122,12 +124,12 @@ parsertrace_g: http_parser_g.o contrib/parsertrace.c
 tags: http_parser.c http_parser.h test.c
 	ctags $^
 
-install: library
+install: $(SONAME)
 	$(INSTALL) -D  http_parser.h "$(DESTDIR)$(INCLUDEDIR)/http_parser.h"
 	$(INSTALL) -D $(SONAME) "$(DESTDIR)$(LIBDIR)/$(SONAME)"
 	ln -s $(SONAME) "$(DESTDIR)$(LIBDIR)/libhttp_parser.$(SOEXT)"
 
-install-strip: library
+install-strip: $(SONAME)
 	$(INSTALL) -D  http_parser.h "$(DESTDIR)$(INCLUDEDIR)/http_parser.h"
 	$(INSTALL) -D -s $(SONAME) "$(DESTDIR)$(LIBDIR)/$(SONAME)"
 	ln -s $(SONAME) "$(DESTDIR)$(LIBDIR)/libhttp_parser.$(SOEXT)"
