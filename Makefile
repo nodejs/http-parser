@@ -102,7 +102,7 @@ libhttp_parser.o: http_parser.c http_parser.h Makefile
 	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_LIB) -c http_parser.c -o libhttp_parser.o
 
 library: libhttp_parser.o
-	$(CC) $(LDFLAGS_LIB) -o $(SONAME) $<
+	$(CC) $(CFLAGS_LIB) $(LDFLAGS_LIB) -o $(SONAME) $<
 
 package: http_parser.o
 	$(AR) rcs libhttp_parser.a http_parser.o
