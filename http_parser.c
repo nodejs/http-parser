@@ -1007,6 +1007,8 @@ reexecute:
             case (HTTP_##meth << 16 | pos << 8 | ch): \
               parser->method = HTTP_##new_meth; break;
 
+            XX(POST,      1, 'U', PUT)
+            XX(POST,      1, 'A', PATCH)
             XX(CONNECT,   1, 'H', CHECKOUT)
             XX(CONNECT,   2, 'P', COPY)
             XX(MKCOL,     1, 'O', MOVE)
@@ -1015,8 +1017,6 @@ reexecute:
             XX(MKCOL,     3, 'A', MKCALENDAR)
             XX(SUBSCRIBE, 1, 'E', SEARCH)
             XX(REPORT,    2, 'B', REBIND)
-            XX(POST,      1, 'U', PUT)
-            XX(POST,      1, 'A', PATCH)
             XX(POST,      1, 'R', PROPFIND)
             XX(PROPFIND,  4, 'P', PROPPATCH)
             XX(PUT,       2, 'R', PURGE)
