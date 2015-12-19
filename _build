@@ -9,4 +9,4 @@ $autowrap || (ipdb3 $autowrap && exit 1)
 
 python setup.py build_ext --inplace
 
-ipython -i test.py
+ipython -i --pdb test.py

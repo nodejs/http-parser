@@ -40,7 +40,7 @@ requests = [UNEXPECTED_HEADER_REQUEST, NORMAL_REQUEST, CHUNKED_REQUEST]
 
 _LOG.info('+++++')
 _LOG.info('Request prep')
-req_delegate = hparser.RequestParserDelegate()
+req_delegate = hparser.ParserDelegate()
 req_parser = hparser.RequestParser(req_delegate)
 
 for request in requests:
@@ -61,7 +61,7 @@ Transfer-Encoding: chunked\r\n\r
 responses = [NORMAL_RESPONSE, CHUNKED_RESPONSE]
 
 _LOG.info('Response prep')
-resp_delegate = hparser.ResponseParserDelegate()
+resp_delegate = hparser.ParserDelegate()
 resp_parser = hparser.ResponseParser(resp_delegate)
 
 for response in responses:

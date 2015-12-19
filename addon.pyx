@@ -27,54 +27,60 @@ cdef int on_message_begin(http_parser.http_parser *parser) except -1:
     return 0
 
 cdef int on_url(http_parser.http_parser *parser, char *data, size_t length) except -1:
+    """ Request only """
     cdef object parser_data = <object> parser.data
+    cdef http_parser.http_method method_int = <http_parser.http_method> parser.method
+    cdef const char* method = http_parser.http_method_str(method_int)
     cdef object url = PyBytes_FromStringAndSize(data, length)
+    parser_data.delegate.on_method(method)
     parser_data.delegate.on_url(url)
     return 0
 
 cdef int on_status(http_parser.http_parser *parser, char *data, size_t length) except -1:
+    """ Response only """
     cdef object parser_data = <object> parser.data
     cdef object status = PyBytes_FromStringAndSize(data, length)
-    # data.delegate.on_status(parser.status_code)
-    parser_data.delegate.on_status(status)
+    parser_data.delegate.on_status(parser.status_code, status)
     return 0
 
 cdef int on_header_field(http_parser.http_parser *parser, char *data, size_t length) except -1:
     cdef object parser_data = <object> parser.data
     cdef object header_field = PyBytes_FromStringAndSize(data, length)
-    # data.delegate.on_header_field(parser.header_field_code)
     parser_data.delegate.on_header_field(header_field)
     return 0
 
 cdef int on_header_value(http_parser.http_parser *parser, char *data, size_t length) except -1:
     cdef object parser_data = <object> parser.data
     cdef object header_value = PyBytes_FromStringAndSize(data, length)
-    # data.delegate.on_header_value(parser.header_value_code)
     parser_data.delegate.on_header_value(header_value)
     return 0
 
 cdef int on_headers_complete(http_parser.http_parser *parser) except -1:
     cdef object parser_data = <object> parser.data
-    parser_data.delegate.on_headers_complete()
+    parser_data.delegate.on_version(parser.http_major, parser.http_minor)
+    parser_data.delegate.on_headers_complete(
+        keep_alive=parser_data.parent.should_keep_alive(),
+        #flags=parser_data._flags_bits,
+    )
     return 0
 
 cdef int on_body(http_parser.http_parser *parser, char *data, size_t length) except -1:
     cdef object parser_data = <object> parser.data
     cdef object body = PyBytes_FromStringAndSize(data, length)
     parser_data.delegate.on_body(
-            body,
-            length,
-            # http_transfer_encoding_chunked(parser),
-            False,
+        body,
+        length,
+        is_chunked=parser_data.has_chunked_flag,
     )
     return 0
 
 cdef int on_message_complete(http_parser.http_parser *parser) except -1:
     cdef object parser_data = <object> parser.data
     parser_data.delegate.on_message_complete(
-            # http_transfer_encoding_chunked(parser),
-            False,
-            http_parser.http_should_keep_alive(parser))
+        is_chunked=parser_data.has_chunked_flag,
+        keep_alive=parser_data.parent.should_keep_alive(),
+        #flags=parser_data._flags_bits,
+    )
     return 0
 
 cdef int on_chunk_header(http_parser.http_parser *parser) except -1:
@@ -87,64 +93,124 @@ cdef int on_chunk_complete(http_parser.http_parser *parser) except -1:
     parser_data.delegate.on_chunk_complete()
     return 0
 
-from vkproxy.utils import trace_calls
-
 
 class ParserDelegate(object):
     def on_message_begin(self):
+        print(self, 'on_message_begin')
+        pass
+
+    def on_method(self, method):
+        """ Request only """
+        print(self, 'on_method', method)
+        pass
+
+    def on_url(self, url):
+        """ Request only """
+        print(self, 'on_url', url)
+        pass
+
+    def on_status(self, code, desc):
+        """ Response only """
+        print(self, 'on_status', code, desc)
         pass
 
     def on_header_field(self, field):
+        print(self, 'on_header_field', field)
         pass
 
     def on_header_value(self, value):
+        print(self, 'on_header_value', value)
         pass
 
-    def on_headers_complete(self):
+    def on_version(self, major, minor):
+        print(self, 'on_version', major, minor)
+        pass
+
+    def on_headers_complete(self, keep_alive):
+        print(self, 'on_headers_complete', keep_alive)
         pass
 
     def on_body(self, data, length, is_chunked):
+        print(self, 'on_body', data, length, is_chunked)
         pass
 
-    def on_message_complete(self, is_chunked, should_keep_alive):
+    def on_message_complete(self, is_chunked, keep_alive):
+        print(self, 'on_message_complete', is_chunked, keep_alive)
         pass
 
     def on_chunk_header(self):
+        print(self, 'on_chunk_header')
         pass
 
     def on_chunk_complete(self):
+        print(self, 'on_chunk_complete')
+        pass
+
+    def on_upgrade(self):
+        print(self, 'on_upgrade')
         pass
 
 
-@trace_calls()
-class RequestParserDelegate(ParserDelegate):
-    def on_url(self, url):
-        pass
-
-
-@trace_calls()
-class ResponseParserDelegate(ParserDelegate):
-    def on_status(self, status):
-        pass
-
-
-cdef class ParserData(object):
+cdef class _ParserData(object):
+    cdef public object parent
     cdef public object delegate
 
-    def __cinit__(self, object delegate):
+    def __cinit__(self, object parent, object delegate):
+        self.parent = parent
         self.delegate = delegate
 
-cdef class HttpEventParser(object):
+    def should_keep_alive(self):
+        return self.parent.should_keep_alive()
+
+    def body_is_final(self):
+        return self.parent.body_is_final()
+
+    @property
+    def _flags_bits(self):
+        return self.parent._flags_bits
+
+    @property
+    def has_chunked_flag(self):
+        return self._flags_bits & http_parser.F_CHUNKED == 0
+
+    @property
+    def has_connection_keep_alive_flag(self):
+        return self._flags_bits & http_parser.F_CONNECTION_KEEP_ALIVE == 0
+
+    @property
+    def has_connection_close_flag(self):
+        return self._flags_bits & http_parser.F_CONNECTION_CLOSE == 0
+
+    @property
+    def has_connection_upgrade_flag(self):
+        return self._flags_bits & http_parser.F_CONNECTION_UPGRADE == 0
+
+    @property
+    def has_trailing_flag(self):
+        return self._flags_bits & http_parser.F_TRAILING == 0
+
+    @property
+    def has_upgrade_flag(self):
+        return self._flags_bits & http_parser.F_UPGRADE == 0
+
+    @property
+    def has_skipbody_flag(self):
+        return self._flags_bits & http_parser.F_SKIPBODY == 0
+
+
+cdef class Parser(object):
     cdef http_parser.http_parser *_parser
     cdef http_parser.http_parser_settings _settings
-    cdef object data
+    cdef public object delegate
+    cdef public object data
 
-    def __cinit__(self, object delegate, http_parser.http_parser_type parser_type):
+    def __cinit__(self, http_parser.http_parser_type parser_type, object delegate):
         # init parser
         self._parser = <http_parser.http_parser *> malloc(sizeof(http_parser.http_parser))
         http_parser.http_parser_init(self._parser, parser_type)
 
-        self.data = ParserData(delegate)
+        self.delegate = delegate
+        self.data = _ParserData(self, delegate)
         self._parser.data = <void *> self.data
 
         # set callbacks
@@ -169,24 +235,103 @@ cdef class HttpEventParser(object):
 
     def execute(self, data):
         data = to_bytes(data)
-        self._execute(data, len(data))
+        return self._execute(data, len(data))
 
-    cdef int _execute(self, char *data, size_t length):
+    cdef int _execute(self, char *data, size_t length) except -1:
         cdef int nparsed
-        cdef http_parser.http_errno errno
 
-        if self._parser == NULL:
-            raise Exception('Parser destroyed or not initialized!')
+        self._assert_parser()
 
         nparsed = http_parser.http_parser_execute(self._parser, &self._settings, data, length)
 
         if nparsed != length:
-            errno = http_parser.HTTP_PARSER_ERRNO(self._parser)
-            name = http_parser.http_errno_name(errno)
-            desc = http_parser.http_errno_description(errno)
-            raise Exception('Parser gave error {errno}/{name}: {desc}'.format(errno=errno, name=name, desc=desc))
+            self._raise_errno_if_needed()
+            raise Exception('Parser did not parse all of data length but gave an OK back?')
 
-        return 0
+        # Check to see if parser exited due to an upgrade
+        if self._parser.upgrade == 1:
+            self.delegate.on_upgrade()
+
+        return nparsed
+
+    cdef int _raise_errno_if_needed(self) except -1:
+        cdef http_parser.http_errno errno = http_parser.HTTP_PARSER_ERRNO(self._parser)
+        cdef const char * name
+        cdef const char * desc
+
+        if errno == http_parser.HPE_OK:
+            return 0
+
+        name = http_parser.http_errno_name(errno)
+        desc = http_parser.http_errno_description(errno)
+        raise Exception('Parser gave error {errno}/{name}: {desc}'.format(errno=<int>errno,
+                                                                            name=name,
+                                                                            desc=desc))
+
+    cdef int _assert_parser(self) except -1:
+        if self._parser == NULL:
+            raise Exception('Parser destroyed or not initialized!')
+
+    def pause(self):
+        self._assert_parser()
+        http_parser.http_parser_pause(self._parser, 1)
+
+    def resume(self):
+        self._assert_parser()
+        http_parser.http_parser_pause(self._parser, 0)
+
+    def body_is_final(self):
+        self._assert_parser()
+        return bool(http_parser.http_body_is_final(self._parser))
+
+    def should_keep_alive(self):
+        self._assert_parser()
+        return bool(http_parser.http_should_keep_alive(self._parser))
+
+    @property
+    def _flags_bits(self):
+        self._assert_parser()
+        return self._parser.flags
+
+    @property
+    def has_chunked_flag(self):
+        return self._flags_bits & http_parser.F_CHUNKED == 0
+
+    @property
+    def has_connection_keep_alive_flag(self):
+        return self._flags_bits & http_parser.F_CONNECTION_KEEP_ALIVE == 0
+
+    @property
+    def has_connection_close_flag(self):
+        return self._flags_bits & http_parser.F_CONNECTION_CLOSE == 0
+
+    @property
+    def has_connection_upgrade_flag(self):
+        return self._flags_bits & http_parser.F_CONNECTION_UPGRADE == 0
+
+    @property
+    def has_trailing_flag(self):
+        return self._flags_bits & http_parser.F_TRAILING == 0
+
+    @property
+    def has_upgrade_flag(self):
+        return self._flags_bits & http_parser.F_UPGRADE == 0
+
+    @property
+    def has_skipbody_flag(self):
+        return self._flags_bits & http_parser.F_SKIPBODY == 0
+
+
+def BothParser(parser_delegate):
+    return Parser(http_parser.HTTP_BOTH, parser_delegate)
+
+
+def RequestParser(parser_delegate):
+    return Parser(http_parser.HTTP_REQUEST, parser_delegate)
+
+
+def ResponseParser(parser_delegate):
+    return Parser(http_parser.HTTP_RESPONSE, parser_delegate)
 
 
 class ParseResult(collections.namedtuple('ParseResult',
@@ -304,8 +449,3 @@ cdef class HttpUrlParser(object):
 
         return ret
 
-def RequestParser(parser_delegate):
-    return HttpEventParser(parser_delegate, http_parser.HTTP_REQUEST)
-
-def ResponseParser(parser_delegate):
-    return HttpEventParser(parser_delegate, http_parser.HTTP_RESPONSE)
