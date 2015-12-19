@@ -5,8 +5,8 @@ import pkg_resources
 data_dir = pkg_resources.resource_filename("autowrap", "data_files/autowrap")
 
 ext = Extension(
-    "hparser",
-    sources=['hparser.cpp'],
+    "parser",
+    sources=['parser.cpp'],
     language="c++",
     include_dirs=['.', data_dir],
     gdb_debug=True,
@@ -22,8 +22,8 @@ ext = Extension(
 )
 
 setup(cmdclass={'build_ext':build_ext},
-      name="hparser",
-      # packages=['c_hparser', 'hparser'],
+      name="parser",
+      # packages=['c_parser', 'parser'],
       version="0.0.1",
       ext_modules=[ext, ext]
      )

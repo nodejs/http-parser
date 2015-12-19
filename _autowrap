@@ -39,7 +39,7 @@ autowrap.Main.run(
     ['http_parser.pxd'],
     ['addon.pyx'],
     [],
-    'hparser.pyx',
+    'parser.pyx',
     extra_inc_dirs=None,
     extra_opts=dict(
         gdb_debug=True,

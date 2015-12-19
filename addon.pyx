@@ -57,7 +57,7 @@ cdef int on_header_value(http_parser.http_parser *parser, char *data, size_t len
 
 cdef int on_headers_complete(http_parser.http_parser *parser) except -1:
     cdef object parser_data = <object> parser.data
-    parser_data.delegate.on_version(parser.http_major, parser.http_minor)
+    parser_data.delegate.on_http_version(parser.http_major, parser.http_minor)
     parser_data.delegate.on_headers_complete(
         keep_alive=parser_data.parent.should_keep_alive(),
         #flags=parser_data._flags_bits,
@@ -119,8 +119,8 @@ class ParserDelegate(object):
         print(self, 'on_header_value', value)
         pass
 
-    def on_version(self, major, minor):
-        print(self, 'on_version', major, minor)
+    def on_http_version(self, major, minor):
+        print(self, 'on_http_version', major, minor)
         pass
 
     def on_headers_complete(self, keep_alive):
@@ -168,31 +168,31 @@ cdef class _ParserData(object):
 
     @property
     def has_chunked_flag(self):
-        return self._flags_bits & http_parser.F_CHUNKED == 0
+        return bool(self._flags_bits & http_parser.F_CHUNKED)
 
     @property
     def has_connection_keep_alive_flag(self):
-        return self._flags_bits & http_parser.F_CONNECTION_KEEP_ALIVE == 0
+        return bool(self._flags_bits & http_parser.F_CONNECTION_KEEP_ALIVE)
 
     @property
     def has_connection_close_flag(self):
-        return self._flags_bits & http_parser.F_CONNECTION_CLOSE == 0
+        return bool(self._flags_bits & http_parser.F_CONNECTION_CLOSE)
 
     @property
     def has_connection_upgrade_flag(self):
-        return self._flags_bits & http_parser.F_CONNECTION_UPGRADE == 0
+        return bool(self._flags_bits & http_parser.F_CONNECTION_UPGRADE)
 
     @property
     def has_trailing_flag(self):
-        return self._flags_bits & http_parser.F_TRAILING == 0
+        return bool(self._flags_bits & http_parser.F_TRAILING)
 
     @property
     def has_upgrade_flag(self):
-        return self._flags_bits & http_parser.F_UPGRADE == 0
+        return bool(self._flags_bits & http_parser.F_UPGRADE)
 
     @property
     def has_skipbody_flag(self):
-        return self._flags_bits & http_parser.F_SKIPBODY == 0
+        return bool(self._flags_bits & http_parser.F_SKIPBODY)
 
 
 cdef class Parser(object):
@@ -292,31 +292,31 @@ cdef class Parser(object):
 
     @property
     def has_chunked_flag(self):
-        return self._flags_bits & http_parser.F_CHUNKED == 0
+        return bool(self._flags_bits & http_parser.F_CHUNKED)
 
     @property
     def has_connection_keep_alive_flag(self):
-        return self._flags_bits & http_parser.F_CONNECTION_KEEP_ALIVE == 0
+        return bool(self._flags_bits & http_parser.F_CONNECTION_KEEP_ALIVE)
 
     @property
     def has_connection_close_flag(self):
-        return self._flags_bits & http_parser.F_CONNECTION_CLOSE == 0
+        return bool(self._flags_bits & http_parser.F_CONNECTION_CLOSE)
 
     @property
     def has_connection_upgrade_flag(self):
-        return self._flags_bits & http_parser.F_CONNECTION_UPGRADE == 0
+        return bool(self._flags_bits & http_parser.F_CONNECTION_UPGRADE)
 
     @property
     def has_trailing_flag(self):
-        return self._flags_bits & http_parser.F_TRAILING == 0
+        return bool(self._flags_bits & http_parser.F_TRAILING)
 
     @property
     def has_upgrade_flag(self):
-        return self._flags_bits & http_parser.F_UPGRADE == 0
+        return bool(self._flags_bits & http_parser.F_UPGRADE)
 
     @property
     def has_skipbody_flag(self):
-        return self._flags_bits & http_parser.F_SKIPBODY == 0
+        return bool(self._flags_bits & http_parser.F_SKIPBODY)
 
 
 def BothParser(parser_delegate):

@@ -5,7 +5,7 @@ $autowrap || (ipdb3 $autowrap && exit 1)
 
 #autowrap_include=$(python -c 'import pkg_resources; print(pkg_resources.resource_filename("autowrap", "data_files"))')
 #cython="cython --fast-fail --line-directives -p -I. -I$autowrap_include/autowrap -t -v --gdb --cplus"
-#$cython hparser.pyx
+#$cython parser.pyx
 
 python setup.py build_ext --inplace
 
