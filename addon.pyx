@@ -26,21 +26,21 @@ cdef int on_message_begin(http_parser.http_parser *parser) except -1:
     parser_data.delegate.on_message_begin()
     return 0
 
-cdef int on_url(http_parser.http_parser *parser, char *data, size_t length) except -1:
+cdef int on_req_url(http_parser.http_parser *parser, char *data, size_t length) except -1:
     """ Request only """
     cdef object parser_data = <object> parser.data
     cdef http_parser.http_method method_int = <http_parser.http_method> parser.method
     cdef const char* method = http_parser.http_method_str(method_int)
     cdef object url = PyBytes_FromStringAndSize(data, length)
-    parser_data.delegate.on_method(method)
-    parser_data.delegate.on_url(url)
+    parser_data.delegate.on_req_method(method)
+    parser_data.delegate.on_req_url(url)
     return 0
 
-cdef int on_status(http_parser.http_parser *parser, char *data, size_t length) except -1:
+cdef int on_resp_status(http_parser.http_parser *parser, char *data, size_t length) except -1:
     """ Response only """
     cdef object parser_data = <object> parser.data
     cdef object status = PyBytes_FromStringAndSize(data, length)
-    parser_data.delegate.on_status(parser.status_code, status)
+    parser_data.delegate.on_resp_status(parser.status_code, status)
     return 0
 
 cdef int on_header_field(http_parser.http_parser *parser, char *data, size_t length) except -1:
@@ -99,19 +99,16 @@ class ParserDelegate(object):
         print(self, 'on_message_begin')
         pass
 
-    def on_method(self, method):
-        """ Request only """
-        print(self, 'on_method', method)
+    def on_req_method(self, method):
+        print(self, 'on_req_method', method)
         pass
 
-    def on_url(self, url):
-        """ Request only """
-        print(self, 'on_url', url)
+    def on_req_url(self, url):
+        print(self, 'on_req_url', url)
         pass
 
-    def on_status(self, code, desc):
-        """ Response only """
-        print(self, 'on_status', code, desc)
+    def on_resp_status(self, code, desc):
+        print(self, 'on_resp_status', code, desc)
         pass
 
     def on_header_field(self, field):
@@ -215,8 +212,8 @@ cdef class Parser(object):
 
         # set callbacks
         self._settings.on_message_begin = <http_cb> on_message_begin
-        self._settings.on_url = <http_data_cb> on_url
-        self._settings.on_status = <http_data_cb> on_status
+        self._settings.on_url = <http_data_cb> on_req_url
+        self._settings.on_status = <http_data_cb> on_resp_status
         self._settings.on_header_field = <http_data_cb> on_header_field
         self._settings.on_header_value = <http_data_cb> on_header_value
         self._settings.on_headers_complete = <http_cb> on_headers_complete
