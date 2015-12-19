@@ -96,55 +96,42 @@ cdef int on_chunk_complete(http_parser.http_parser *parser) except -1:
 
 class ParserDelegate(object):
     def on_message_begin(self):
-        print(self, 'on_message_begin')
         pass
 
     def on_req_method(self, method):
-        print(self, 'on_req_method', method)
         pass
 
     def on_req_url(self, url):
-        print(self, 'on_req_url', url)
         pass
 
     def on_resp_status(self, code, desc):
-        print(self, 'on_resp_status', code, desc)
         pass
 
     def on_header_field(self, field):
-        print(self, 'on_header_field', field)
         pass
 
     def on_header_value(self, value):
-        print(self, 'on_header_value', value)
         pass
 
     def on_http_version(self, major, minor):
-        print(self, 'on_http_version', major, minor)
         pass
 
     def on_headers_complete(self, keep_alive):
-        print(self, 'on_headers_complete', keep_alive)
         pass
 
     def on_body(self, data, length, is_chunked):
-        print(self, 'on_body', data, length, is_chunked)
         pass
 
     def on_message_complete(self, is_chunked, keep_alive):
-        print(self, 'on_message_complete', is_chunked, keep_alive)
         pass
 
     def on_chunk_header(self):
-        print(self, 'on_chunk_header')
         pass
 
     def on_chunk_complete(self):
-        print(self, 'on_chunk_complete')
         pass
 
     def on_upgrade(self):
-        print(self, 'on_upgrade')
         pass
 
 
