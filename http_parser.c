@@ -123,7 +123,7 @@ do {                                                                 \
     FOR##_mark = NULL;                                               \
   }                                                                  \
 } while (0)
-  
+
 /* Run the data callback FOR and consume the current byte */
 #define CALLBACK_DATA(FOR)                                           \
     CALLBACK_DATA_(FOR, p - FOR##_mark, p - data + 1)
@@ -500,6 +500,9 @@ parse_url_char(enum state s, const char ch)
         return s_req_path;
       }
 
+      /* The schema must start with an alpha character. After that, it may
+       * consist of digits, '+', '-' or '.', followed by a ':'.
+       */
       if (IS_ALPHA(ch)) {
         return s_req_schema;
       }
@@ -507,7 +510,7 @@ parse_url_char(enum state s, const char ch)
       break;
 
     case s_req_schema:
-      if (IS_ALPHA(ch)) {
+      if (IS_ALPHANUM(ch) || ch == '+' || ch == '-' || ch == '.') {
         return s;
       }
 
