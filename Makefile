@@ -29,7 +29,7 @@ CC = winegcc
 BINEXT = .exe.so
 HELPER = wine
 else
-SONAME ?= libhttp_parser.so.2.6.1
+SONAME ?= libhttp_parser.so.2.6.2
 SOEXT ?= so
 endif
 
