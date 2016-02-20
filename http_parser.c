@@ -59,16 +59,23 @@ do {                                                                 \
 #define CALLBACK_RAW_ON_RETURN(V)                                    \
  do {                                                                \
    if (HTTP_PARSER_ERRNO(parser) == HPE_OK) {                        \
-     if ((p >= raw_mark) && (raw_mark < data + len) && ((ptrdiff_t)(V) == (ptrdiff_t)(len))) { \
- 	  if (p_state <= s_header_almost_done) {                         \
- 	    if (settings->on_header_raw) {                               \
- 		  settings->on_header_raw(parser, raw_mark, len - (raw_mark - data));   \
- 	    }                                                            \
- 	  } else {                                                       \
- 	    if (settings->on_body_raw) {                                 \
- 		  settings->on_body_raw(parser, raw_mark, len - (raw_mark - data));   \
-   	    }                                                            \
-   	  }                                                              \
+     if ((p >= raw_mark) &&                                          \
+         (raw_mark < data + len) &&                                  \
+         ((ptrdiff_t)(V) == (ptrdiff_t)(len)))                       \
+     {                                                               \
+       if (p_state <= s_header_almost_done) {                        \
+         if (settings->on_header_raw) {                              \
+           settings->on_header_raw(parser,                           \
+                                   raw_mark,                         \
+                                   len - (raw_mark - data));         \
+         }                                                           \
+       } else {                                                      \
+         if (settings->on_body_raw) {                                \
+           settings->on_body_raw(parser,                             \
+                                 raw_mark,                           \
+                                 len - (raw_mark - data));           \
+         }                                                           \
+       }                                                             \
      }                                                               \
    }                                                                 \
  }                                                                   \
@@ -1881,12 +1888,16 @@ reexecute:
         /* Here we call final headers_raw. It's based on different variables,
          * so we can't use CALLBACK_DATA.
          */
-		if ((HTTP_PARSER_ERRNO(parser) == HPE_OK) && (settings->on_header_raw) && (p >= raw_mark) && (raw_mark < data + len)) {
+        if ((HTTP_PARSER_ERRNO(parser) == HPE_OK) && 
+            (settings->on_header_raw) && 
+            (p >= raw_mark) && 
+            (raw_mark < data + len)) 
+        {
           settings->on_header_raw(parser, raw_mark, p - raw_mark + 1);
           raw_mark = p + 1;
-		}
+        }
 
-		/* Here we call the headers_complete callback. This is somewhat
+        /* Here we call the headers_complete callback. This is somewhat
          * different than other callbacks because if the user returns 1, we
          * will interpret that as saying that this message has no body. This
          * is needed for the annoying case of recieving a response to a HEAD

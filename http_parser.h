@@ -245,18 +245,18 @@ struct http_parser {
 };
 
 enum {
-	  e_on_message_begin,
-	  e_on_url,
-	  e_on_status,
-	  e_on_header_field,
-	  e_on_header_value,
-	  e_on_header_raw,
-	  e_on_headers_complete,
-	  e_on_body,
-	  e_on_body_raw,
-	  e_on_message_complete,
-	  e_on_chunk_header,
-	  e_on_chunk_complete,
+  e_on_message_begin,
+  e_on_url,
+  e_on_status,
+  e_on_header_field,
+  e_on_header_value,
+  e_on_header_raw,
+  e_on_headers_complete,
+  e_on_body,
+  e_on_body_raw,
+  e_on_message_complete,
+  e_on_chunk_header,
+  e_on_chunk_complete,
 };
 
 struct http_parser_settings {
