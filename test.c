@@ -3933,6 +3933,11 @@ main (void)
 
   test_simple("GET / HTP/1.1\r\n\r\n", HPE_INVALID_VERSION);
 
+  // Extended characters - see nodejs/test/parallel/test-http-headers-obstext.js
+  test_simple("GET / HTTP/1.1\r\n"
+              "Test: Düsseldorf\r\n",
+              HPE_OK);
+
   // Well-formed but incomplete
   test_simple("GET / HTTP/1.1\r\n"
               "Content-Type: text/plain\r\n"
