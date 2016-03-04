@@ -1153,6 +1153,26 @@ const struct message requests[] =
   ,.body= ""
   }
 
+#define HEADER_OBSTEXT 42
+, {.name = "header obstext"
+  ,.type=HTTP_REQUEST
+  ,.raw= "GET /foo HTTP/1.1\r\n"
+         "X-Foo: Düsseldorf\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_GET
+  ,.request_path= "/foo"
+  ,.request_url= "/foo"
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.num_headers= 1
+  ,.headers= {{"X-Foo", "Düsseldorf"}}
+  ,.body= ""
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
