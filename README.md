@@ -202,7 +202,7 @@ void http_parser_thread(socket_t sock) {
 
 In case you parse HTTP message in chunks (i.e. `read()` request line
 from socket, parse, read half headers, parse, etc) your data callbacks
-may be called more than once. Http-parser guarantees that data pointer is only
+may be called more than once. HTTP-parser guarantees that data pointer is only
 valid for the lifetime of callback. You can also `read()` into a heap allocated
 buffer to avoid copying memory around if this fits your application.
 
