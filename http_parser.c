@@ -362,6 +362,10 @@ enum state
 
 enum header_states
   { h_general = 0
+#if !HTTP_PARSER_STRICT
+  , h_general_rws
+#endif  /* !HTTP_PARSER_STRICT */
+
   , h_C
   , h_CO
   , h_CON
@@ -640,6 +644,9 @@ size_t http_parser_execute (http_parser *parser,
   int8_t unhex_val;
   const char *p = data;
   const char *header_field_mark = 0;
+#if !HTTP_PARSER_STRICT
+  const char *header_field_end_mark = 0;
+#endif  /* !HTTP_PARSER_STRICT */
   const char *header_value_mark = 0;
   const char *url_mark = 0;
   const char *body_mark = 0;
@@ -1261,6 +1268,13 @@ reexecute:
 
         c = TOKEN(ch);
 
+#if !HTTP_PARSER_STRICT
+        /* Skip left-whitespace */
+        if (ch == ' ') {
+          break;
+        }
+#endif  /* !HTTP_PARSER_STRICT */
+
         if (UNLIKELY(!c)) {
           SET_ERRNO(HPE_INVALID_HEADER_TOKEN);
           goto error;
@@ -1307,6 +1321,20 @@ reexecute:
 
           switch (parser->header_state) {
             case h_general:
+#if !HTTP_PARSER_STRICT
+              /* Skip right-whitespace */
+              if (ch == ' ') {
+                parser->header_state = h_general_rws;
+                MARK(header_field_end);
+              }
+              break;
+
+            case h_general_rws:
+              if (ch != ' ') {
+                p--;
+                parser->header_state = h_general;
+              }
+#endif  /* !HTTP_PARSER_STRICT */
               break;
 
             case h_C:
@@ -1421,7 +1449,17 @@ reexecute:
 
         if (ch == ':') {
           UPDATE_STATE(s_header_value_discard_ws);
+#if HTTP_PARSER_STRICT
           CALLBACK_DATA(header_field);
+#else  /* !HTTP_PARSER_STRICT */
+          if (parser->header_state == h_general_rws) {
+            const char* p = header_field_end_mark;
+            CALLBACK_DATA(header_field);
+            parser->header_state = h_general;
+          } else {
+            CALLBACK_DATA(header_field);
+          }
+#endif  /* !HTTP_PARSER_STRICT */
           break;
         }
 
@@ -1532,6 +1570,11 @@ reexecute:
 
           switch (h_state) {
             case h_general:
+#if !HTTP_PARSER_STRICT
+            /* No distinction between h_general and h_general_rws for header
+             * value */
+            case h_general_rws:
+#endif  /* !HTTP_PARSER_STRICT */
             {
               const char* p_cr;
               const char* p_lf;

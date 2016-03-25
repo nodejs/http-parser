@@ -26,8 +26,9 @@
 
 static const char data[] =
     "POST /joyent/http-parser HTTP/1.1\r\n"
+    "DNT  : 1\r\n"
+    "   DNT asd asd asd    : 1\r\n"
     "Host: github.com\r\n"
-    "DNT: 1\r\n"
     "Accept-Encoding: gzip, deflate, sdch\r\n"
     "Accept-Language: ru-RU,ru;q=0.8,en-US;q=0.6,en;q=0.4\r\n"
     "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) "
