@@ -77,6 +77,11 @@ typedef struct http_parser_settings http_parser_settings;
  * HEAD request which may contain 'Content-Length' or 'Transfer-Encoding:
  * chunked' headers that indicate the presence of a body.
  *
+ * Returning `2` from on_headers_complete will tell parser that it should not
+ * expect neither a body nor any futher responses on this connection. This is
+ * useful for handling responses to a CONNECT request which may not contain
+ * `Upgrade` or `Connection: upgrade` headers.
+ *
  * http_data_cb does not return data chunks. It will be called arbitrarily
  * many times for each string. E.G. you might get 10 callbacks for "on_url"
  * each providing just a few characters more data.
