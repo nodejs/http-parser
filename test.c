@@ -3850,11 +3850,10 @@ test_message_connect (const struct message *msg)
 {
   char *buf = (char*) msg->raw;
   size_t buflen = strlen(msg->raw);
-  size_t nread;
 
   parser_init(msg->type);
 
-  nread = parse_connect(buf, buflen);
+  parse_connect(buf, buflen);
 
   if (num_messages != 1) {
     printf("\n*** num_messages != 1 after testing '%s' ***\n\n", msg->name);
