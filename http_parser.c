@@ -2117,14 +2117,14 @@ http_message_needs_eof (const http_parser *parser)
 int
 http_should_keep_alive (const http_parser *parser)
 {
-  if (parser->http_major > 0 && parser->http_minor > 0) {
-    /* HTTP/1.1 */
-    if (parser->flags & F_CONNECTION_CLOSE) {
+  if (parser->http_major < 1 || (parser->http_major == 1 && parser->http_minor == 0)) {
+    /* HTTP/1.0 or earlier */
+    if (!(parser->flags & F_CONNECTION_KEEP_ALIVE)) {
       return 0;
     }
   } else {
-    /* HTTP/1.0 or earlier */
-    if (!(parser->flags & F_CONNECTION_KEEP_ALIVE)) {
+    /* HTTP/1.1 and later */
+    if (parser->flags & F_CONNECTION_CLOSE) {
       return 0;
     }
   }
