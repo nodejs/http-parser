@@ -148,7 +148,7 @@ callback in a threadsafe manner. This allows http-parser to be used in
 multi-threaded contexts.
 
 Example:
-```
+```c
  typedef struct {
   socket_t sock;
   void* buffer;
