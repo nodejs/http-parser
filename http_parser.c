@@ -29,6 +29,12 @@
 #include <string.h>
 #include <limits.h>
 
+#if __cplusplus > 199711L
+# define NULLPTR nullptr
+#else
+# define NULLPTR 0
+#endif
+
 #ifndef ULLONG_MAX
 # define ULLONG_MAX ((uint64_t) -1) /* 2^64-1 */
 #endif
@@ -639,11 +645,11 @@ size_t http_parser_execute (http_parser *parser,
   char c, ch;
   int8_t unhex_val;
   const char *p = data;
-  const char *header_field_mark = 0;
-  const char *header_value_mark = 0;
-  const char *url_mark = 0;
-  const char *body_mark = 0;
-  const char *status_mark = 0;
+  const char *header_field_mark = NULLPTR;
+  const char *header_value_mark = NULLPTR;
+  const char *url_mark = NULLPTR;
+  const char *body_mark = NULLPTR;
+  const char *status_mark = NULLPTR;
   enum state p_state = (enum state) parser->state;
   const unsigned int lenient = parser->lenient_http_headers;
 
@@ -2429,7 +2435,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
 
   if (u->field_set & (1 << UF_PORT)) {
     /* Don't bother with endp; we've already validated the string */
-    unsigned long v = strtoul(buf + u->field_data[UF_PORT].off, NULL, 10);
+    unsigned long v = strtoul(buf + u->field_data[UF_PORT].off, NULLPTR, 10);
 
     /* Ports have a max value of 2^16 */
     if (v > 0xffff) {
