@@ -973,7 +973,7 @@ reexecute:
           UPDATE_STATE(s_req_spaces_before_url);
         } else if (ch == matcher[parser->index]) {
           ; /* nada */
-        } else if (IS_ALPHA(ch)) {
+        } else if ((ch >= 'A' && ch <= 'Z') || ch == '-') {
 
           switch (parser->method << 16 | parser->index << 8 | ch) {
 #define XX(meth, pos, ch, new_meth) \
@@ -982,31 +982,27 @@ reexecute:
 
             XX(POST,      1, 'U', PUT)
             XX(POST,      1, 'A', PATCH)
+            XX(POST,      1, 'R', PROPFIND)
+            XX(PUT,       2, 'R', PURGE)
             XX(CONNECT,   1, 'H', CHECKOUT)
             XX(CONNECT,   2, 'P', COPY)
             XX(MKCOL,     1, 'O', MOVE)
             XX(MKCOL,     1, 'E', MERGE)
+            XX(MKCOL,     1, '-', MSEARCH)
             XX(MKCOL,     2, 'A', MKACTIVITY)
             XX(MKCOL,     3, 'A', MKCALENDAR)
             XX(SUBSCRIBE, 1, 'E', SEARCH)
             XX(REPORT,    2, 'B', REBIND)
-            XX(POST,      1, 'R', PROPFIND)
             XX(PROPFIND,  4, 'P', PROPPATCH)
-            XX(PUT,       2, 'R', PURGE)
             XX(LOCK,      1, 'I', LINK)
             XX(UNLOCK,    2, 'S', UNSUBSCRIBE)
             XX(UNLOCK,    2, 'B', UNBIND)
             XX(UNLOCK,    3, 'I', UNLINK)
 #undef XX
-
             default:
               SET_ERRNO(HPE_INVALID_METHOD);
               goto error;
           }
-        } else if (ch == '-' &&
-                   parser->index == 1 &&
-                   parser->method == HTTP_MKCOL) {
-          parser->method = HTTP_MSEARCH;
         } else {
           SET_ERRNO(HPE_INVALID_METHOD);
           goto error;
