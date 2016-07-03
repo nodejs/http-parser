@@ -1745,6 +1745,32 @@ const struct message responses[] =
   ,.body= ""
   }
 
+#define CONTENT_LENGTH_X 21
+, {.name= "Content-Length-X"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 200 OK\r\n"
+         "Content-Length-X: 0\r\n"
+         "Transfer-Encoding: chunked\r\n"
+         "\r\n"
+         "2\r\n"
+         "OK\r\n"
+         "0\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 200
+  ,.response_status= "OK"
+  ,.num_headers= 2
+  ,.headers= { { "Content-Length-X", "0" }
+             , { "Transfer-Encoding", "chunked" }
+             }
+  ,.body= "OK"
+  ,.num_chunks_complete= 2
+  ,.chunk_lengths= { 2 }
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
