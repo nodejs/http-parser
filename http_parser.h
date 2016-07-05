@@ -218,6 +218,10 @@ enum http_errno {
 /* Get an http_errno value from an http_parser */
 #define HTTP_PARSER_ERRNO(p)            ((enum http_errno) (p)->http_errno)
 
+enum http_parser_settings_flags {
+  SETTINGS_FLAG_DEFAULT = 0,
+  SETTINGS_FLAG_LENIENT_HTTP_HEADERS = 1
+};
 
 struct http_parser {
   /** PRIVATE **/
@@ -226,7 +230,6 @@ struct http_parser {
   unsigned int state : 7;        /* enum state from http_parser.c */
   unsigned int header_state : 7; /* enum header_state from http_parser.c */
   unsigned int index : 7;        /* index into current matcher */
-  unsigned int lenient_http_headers : 1;
 
   uint32_t nread;          /* # bytes read in various scenarios */
   uint64_t content_length; /* # bytes in body (0 if no Content-Length header) */
@@ -264,6 +267,7 @@ struct http_parser_settings {
    */
   http_cb      on_chunk_header;
   http_cb      on_chunk_complete;
+  uint32_t     flags;
 };
 
 
