@@ -170,15 +170,6 @@ do {                                                                 \
 #define KEEP_ALIVE "keep-alive"
 #define CLOSE "close"
 
-
-static const char *method_strings[] =
-  {
-#define XX(num, name, string) #string,
-  HTTP_METHOD_MAP(XX)
-#undef XX
-  };
-
-
 /* Tokens as defined by rfc 2616. Also lowercases them.
  *        token       = 1*<any CHAR except CTLs or separators>
  *     separators     = "(" | ")" | "<" | ">" | "@"
@@ -406,6 +397,118 @@ enum http_host_state
   , s_http_host_port
 };
 
+
+static const char *method_strings[] = {
+    [HTTP_DELETE] = "DELETE",
+    [HTTP_GET] = "GET",
+    [HTTP_HEAD] = "HEAD",
+    [HTTP_POST] = "POST",
+    [HTTP_PUT] = "PUT",
+    [HTTP_CONNECT] = "CONNECT",
+    [HTTP_OPTIONS] = "OPTIONS",
+    [HTTP_TRACE] = "TRACE",
+    [HTTP_COPY] = "COPY",
+    [HTTP_LOCK] = "LOCK",
+    [HTTP_MKCOL] = "MKCOL",
+    [HTTP_MOVE] = "MOVE",
+    [HTTP_PROPFIND] = "PROPFIND",
+    [HTTP_PROPPATCH] = "PROPPATCH",
+    [HTTP_SEARCH] = "SEARCH",
+    [HTTP_UNLOCK] = "UNLOCK",
+    [HTTP_BIND] = "BIND",
+    [HTTP_REBIND] = "REBIND",
+    [HTTP_UNBIND] = "UNBIND",
+    [HTTP_ACL] = "ACL",
+    [HTTP_REPORT] = "REPORT",
+    [HTTP_MKACTIVITY] = "MKACTIVITY",
+    [HTTP_CHECKOUT] = "CHECKOUT",
+    [HTTP_MERGE] = "MERGE",
+    [HTTP_MSEARCH] = "M-SEARCH",
+    [HTTP_NOTIFY] = "NOTIFY",
+    [HTTP_SUBSCRIBE] = "SUBSCRIBE",
+    [HTTP_UNSUBSCRIBE] = "UNSUBSCRIBE",
+    [HTTP_PATCH] = "PATCH",
+    [HTTP_PURGE] = "PURGE",
+    [HTTP_MKCALENDAR] = "MKCALENDAR",
+    [HTTP_LINK] = "LINK",
+    [HTTP_UNLINK] = "UNLINK"
+};
+
+
+static const char *errno_name[] = {
+   [HPE_OK] = "HPE_OK",
+   [HPE_CB_message_begin] = "HPE_CB_message_begin",
+   [HPE_CB_url] = "HPE_CB_url",
+   [HPE_CB_header_field] = "HPE_CB_header_field",
+   [HPE_CB_header_value] = "HPE_CB_header_value",
+   [HPE_CB_headers_complete] = "HPE_CB_headers_complete",
+   [HPE_CB_body] = "HPE_CB_body",
+   [HPE_CB_message_complete] = "HPE_CB_message_complete",
+   [HPE_CB_status] = "HPE_CB_status",
+   [HPE_CB_chunk_header] = "HPE_CB_chunk_header",
+   [HPE_CB_chunk_complete] = "HPE_CB_chunk_complete",
+   [HPE_INVALID_EOF_STATE] = "HPE_INVALID_EOF_STATE",
+   [HPE_HEADER_OVERFLOW] = "HPE_HEADER_OVERFLOW",
+   [HPE_CLOSED_CONNECTION] = "HPE_CLOSED_CONNECTION",
+   [HPE_INVALID_VERSION] = "HPE_INVALID_VERSION",
+   [HPE_INVALID_STATUS] = "HPE_INVALID_STATUS",
+   [HPE_INVALID_METHOD] = "HPE_INVALID_METHOD",
+   [HPE_INVALID_URL] = "HPE_INVALID_URL",
+   [HPE_INVALID_HOST] = "HPE_INVALID_HOST",
+   [HPE_INVALID_PORT] = "HPE_INVALID_PORT",
+   [HPE_INVALID_PATH] = "HPE_INVALID_PATH",
+   [HPE_INVALID_QUERY_STRING] = "HPE_INVALID_QUERY_STRING",
+   [HPE_INVALID_FRAGMENT] = "HPE_INVALID_FRAGMENT",
+   [HPE_LF_EXPECTED] = "HPE_LF_EXPECTED",
+   [HPE_INVALID_HEADER_TOKEN] = "HPE_INVALID_HEADER_TOKEN",
+   [HPE_INVALID_CONTENT_LENGTH] = "HPE_INVALID_CONTENT_LENGTH",
+   [HPE_UNEXPECTED_CONTENT_LENGTH] = "HPE_UNEXPECTED_CONTENT_LENGTH",
+   [HPE_INVALID_CHUNK_SIZE] = "HPE_INVALID_CHUNK_SIZE",
+   [HPE_INVALID_CONSTANT] = "HPE_INVALID_CONSTANT",
+   [HPE_INVALID_INTERNAL_STATE] = "HPE_INVALID_INTERNAL_STATE",
+   [HPE_STRICT] = "HPE_STRICT",
+   [HPE_PAUSED] = "HPE_PAUSED",
+   [HPE_UNKNOWN] = "HPE_UNKNOWN"
+};
+
+
+static const char *errno_description[] = {
+  [HPE_OK] = "success",
+  [HPE_CB_message_begin] = "the on_message_begin callback failed",
+  [HPE_CB_url]= "the on_url callback failed",
+  [HPE_CB_header_field] = "the on_header_field callback failed",
+  [HPE_CB_header_value] = "the on_header_value callback failed",
+  [HPE_CB_headers_complete] = "the on_headers_complete callback failed",
+  [HPE_CB_body] = "the on_body callback failed",
+  [HPE_CB_message_complete] = "the on_message_complete callback failed",
+  [HPE_CB_status] = "the on_status callback failed",
+  [HPE_CB_chunk_header] = "the on_chunk_header callback failed",
+  [HPE_CB_chunk_complete] = "the on_chunk_complete callback failed",
+  [HPE_INVALID_EOF_STATE] = "stream ended at an unexpected time",
+  [HPE_HEADER_OVERFLOW] = "too many header bytes seen; overflow detected",
+  [HPE_CLOSED_CONNECTION] = "data received after completed connection: close message",
+  [HPE_INVALID_VERSION] = "invalid HTTP version",
+  [HPE_INVALID_STATUS] = "invalid HTTP status code",
+  [HPE_INVALID_METHOD] = "invalid HTTP method",
+  [HPE_INVALID_URL] = "invalid URL",
+  [HPE_INVALID_HOST] = "invalid host",
+  [HPE_INVALID_PORT] = "invalid port",
+  [HPE_INVALID_PATH] = "invalid path",
+  [HPE_INVALID_QUERY_STRING] = "invalid query string",
+  [HPE_INVALID_FRAGMENT] = "invalid fragment",
+  [HPE_LF_EXPECTED] = "LF character expected",
+  [HPE_INVALID_HEADER_TOKEN] = "invalid character in header",
+  [HPE_INVALID_CONTENT_LENGTH] = "invalid character in content-length header",
+  [HPE_UNEXPECTED_CONTENT_LENGTH] = "unexpected content-length header",
+  [HPE_INVALID_CHUNK_SIZE] = "invalid character in chunk size header",
+  [HPE_INVALID_CONSTANT] = "invalid constant string",
+  [HPE_INVALID_INTERNAL_STATE] = "encountered unexpected internal state",
+  [HPE_STRICT] = "strict mode assertion failed",
+  [HPE_PAUSED] = "parser is paused",
+  [HPE_UNKNOWN] = "an unknown error occurred"
+};
+
+
 /* Macros for character classes; depends on strict-mode  */
 #define CR                  '\r'
 #define LF                  '\n'
@@ -461,15 +564,6 @@ do {                                                                 \
 
 
 /* Map errno values to strings for human-readable output */
-#define HTTP_STRERROR_GEN(n, s) { "HPE_" #n, s },
-static struct {
-  const char *name;
-  const char *description;
-} http_strerror_tab[] = {
-  HTTP_ERRNO_MAP(HTTP_STRERROR_GEN)
-};
-#undef HTTP_STRERROR_GEN
-
 int http_message_needs_eof(const http_parser *parser);
 
 /* Our URL parser.
@@ -2160,14 +2254,14 @@ http_parser_settings_init(http_parser_settings *settings)
 
 const char *
 http_errno_name(enum http_errno err) {
-  assert(((size_t) err) < ARRAY_SIZE(http_strerror_tab));
-  return http_strerror_tab[err].name;
+  assert(((size_t) err) < ARRAY_SIZE(errno_name));
+  return errno_name[err];
 }
 
 const char *
 http_errno_description(enum http_errno err) {
-  assert(((size_t) err) < ARRAY_SIZE(http_strerror_tab));
-  return http_strerror_tab[err].description;
+  assert(((size_t) err) < ARRAY_SIZE(errno_description));
+  return errno_description[err];
 }
 
 static enum http_host_state

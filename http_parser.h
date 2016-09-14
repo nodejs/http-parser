@@ -43,7 +43,11 @@ typedef unsigned __int32 uint32_t;
 typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
 #else
+#ifdef VMS
+#include <inttypes.h>
+#else
 #include <stdint.h>
+#endif
 #endif
 
 /* Compile with -DHTTP_PARSER_STRICT=0 to make less checks, but run
@@ -89,57 +93,42 @@ typedef struct http_parser_settings http_parser_settings;
 typedef int (*http_data_cb) (http_parser*, const char *at, size_t length);
 typedef int (*http_cb) (http_parser*);
 
-
-/* Request Methods */
-#define HTTP_METHOD_MAP(XX)         \
-  XX(0,  DELETE,      DELETE)       \
-  XX(1,  GET,         GET)          \
-  XX(2,  HEAD,        HEAD)         \
-  XX(3,  POST,        POST)         \
-  XX(4,  PUT,         PUT)          \
-  /* pathological */                \
-  XX(5,  CONNECT,     CONNECT)      \
-  XX(6,  OPTIONS,     OPTIONS)      \
-  XX(7,  TRACE,       TRACE)        \
-  /* WebDAV */                      \
-  XX(8,  COPY,        COPY)         \
-  XX(9,  LOCK,        LOCK)         \
-  XX(10, MKCOL,       MKCOL)        \
-  XX(11, MOVE,        MOVE)         \
-  XX(12, PROPFIND,    PROPFIND)     \
-  XX(13, PROPPATCH,   PROPPATCH)    \
-  XX(14, SEARCH,      SEARCH)       \
-  XX(15, UNLOCK,      UNLOCK)       \
-  XX(16, BIND,        BIND)         \
-  XX(17, REBIND,      REBIND)       \
-  XX(18, UNBIND,      UNBIND)       \
-  XX(19, ACL,         ACL)          \
-  /* subversion */                  \
-  XX(20, REPORT,      REPORT)       \
-  XX(21, MKACTIVITY,  MKACTIVITY)   \
-  XX(22, CHECKOUT,    CHECKOUT)     \
-  XX(23, MERGE,       MERGE)        \
-  /* upnp */                        \
-  XX(24, MSEARCH,     M-SEARCH)     \
-  XX(25, NOTIFY,      NOTIFY)       \
-  XX(26, SUBSCRIBE,   SUBSCRIBE)    \
-  XX(27, UNSUBSCRIBE, UNSUBSCRIBE)  \
-  /* RFC-5789 */                    \
-  XX(28, PATCH,       PATCH)        \
-  XX(29, PURGE,       PURGE)        \
-  /* CalDAV */                      \
-  XX(30, MKCALENDAR,  MKCALENDAR)   \
-  /* RFC-2068, section 19.6.1.2 */  \
-  XX(31, LINK,        LINK)         \
-  XX(32, UNLINK,      UNLINK)       \
-
 enum http_method
-  {
-#define XX(num, name, string) HTTP_##name = num,
-  HTTP_METHOD_MAP(XX)
-#undef XX
-  };
-
+{
+    HTTP_DELETE = 0,
+    HTTP_GET,
+    HTTP_HEAD,
+    HTTP_POST,
+    HTTP_PUT,
+    HTTP_CONNECT,
+    HTTP_OPTIONS,
+    HTTP_TRACE,
+    HTTP_COPY,
+    HTTP_LOCK,
+    HTTP_MKCOL,
+    HTTP_MOVE,
+    HTTP_PROPFIND,
+    HTTP_PROPPATCH,
+    HTTP_SEARCH,
+    HTTP_UNLOCK,
+    HTTP_BIND,
+    HTTP_REBIND,
+    HTTP_UNBIND,
+    HTTP_ACL,
+    HTTP_REPORT,
+    HTTP_MKACTIVITY,
+    HTTP_CHECKOUT,
+    HTTP_MERGE,
+    HTTP_MSEARCH,
+    HTTP_NOTIFY,
+    HTTP_SUBSCRIBE,
+    HTTP_UNSUBSCRIBE,
+    HTTP_PATCH,
+    HTTP_PURGE,
+    HTTP_MKCALENDAR,
+    HTTP_LINK,
+    HTTP_UNLINK
+};
 
 enum http_parser_type { HTTP_REQUEST, HTTP_RESPONSE, HTTP_BOTH };
 
@@ -161,58 +150,42 @@ enum flags
  *
  * The provided argument should be a macro that takes 2 arguments.
  */
-#define HTTP_ERRNO_MAP(XX)                                           \
-  /* No error */                                                     \
-  XX(OK, "success")                                                  \
-                                                                     \
-  /* Callback-related errors */                                      \
-  XX(CB_message_begin, "the on_message_begin callback failed")       \
-  XX(CB_url, "the on_url callback failed")                           \
-  XX(CB_header_field, "the on_header_field callback failed")         \
-  XX(CB_header_value, "the on_header_value callback failed")         \
-  XX(CB_headers_complete, "the on_headers_complete callback failed") \
-  XX(CB_body, "the on_body callback failed")                         \
-  XX(CB_message_complete, "the on_message_complete callback failed") \
-  XX(CB_status, "the on_status callback failed")                     \
-  XX(CB_chunk_header, "the on_chunk_header callback failed")         \
-  XX(CB_chunk_complete, "the on_chunk_complete callback failed")     \
-                                                                     \
-  /* Parsing-related errors */                                       \
-  XX(INVALID_EOF_STATE, "stream ended at an unexpected time")        \
-  XX(HEADER_OVERFLOW,                                                \
-     "too many header bytes seen; overflow detected")                \
-  XX(CLOSED_CONNECTION,                                              \
-     "data received after completed connection: close message")      \
-  XX(INVALID_VERSION, "invalid HTTP version")                        \
-  XX(INVALID_STATUS, "invalid HTTP status code")                     \
-  XX(INVALID_METHOD, "invalid HTTP method")                          \
-  XX(INVALID_URL, "invalid URL")                                     \
-  XX(INVALID_HOST, "invalid host")                                   \
-  XX(INVALID_PORT, "invalid port")                                   \
-  XX(INVALID_PATH, "invalid path")                                   \
-  XX(INVALID_QUERY_STRING, "invalid query string")                   \
-  XX(INVALID_FRAGMENT, "invalid fragment")                           \
-  XX(LF_EXPECTED, "LF character expected")                           \
-  XX(INVALID_HEADER_TOKEN, "invalid character in header")            \
-  XX(INVALID_CONTENT_LENGTH,                                         \
-     "invalid character in content-length header")                   \
-  XX(UNEXPECTED_CONTENT_LENGTH,                                      \
-     "unexpected content-length header")                             \
-  XX(INVALID_CHUNK_SIZE,                                             \
-     "invalid character in chunk size header")                       \
-  XX(INVALID_CONSTANT, "invalid constant string")                    \
-  XX(INVALID_INTERNAL_STATE, "encountered unexpected internal state")\
-  XX(STRICT, "strict mode assertion failed")                         \
-  XX(PAUSED, "parser is paused")                                     \
-  XX(UNKNOWN, "an unknown error occurred")
 
-
-/* Define HPE_* values for each errno value above */
-#define HTTP_ERRNO_GEN(n, s) HPE_##n,
 enum http_errno {
-  HTTP_ERRNO_MAP(HTTP_ERRNO_GEN)
+  HPE_OK = 0,
+  HPE_CB_message_begin,
+  HPE_CB_url,
+  HPE_CB_header_field,
+  HPE_CB_header_value,
+  HPE_CB_headers_complete,
+  HPE_CB_body,
+  HPE_CB_message_complete,
+  HPE_CB_status,
+  HPE_CB_chunk_header,
+  HPE_CB_chunk_complete,
+  HPE_INVALID_EOF_STATE,
+  HPE_HEADER_OVERFLOW,
+  HPE_CLOSED_CONNECTION,
+  HPE_INVALID_VERSION,
+  HPE_INVALID_STATUS,
+  HPE_INVALID_METHOD,
+  HPE_INVALID_URL,
+  HPE_INVALID_HOST,
+  HPE_INVALID_PORT,
+  HPE_INVALID_PATH,
+  HPE_INVALID_QUERY_STRING,
+  HPE_INVALID_FRAGMENT,
+  HPE_LF_EXPECTED,
+  HPE_INVALID_HEADER_TOKEN,
+  HPE_INVALID_CONTENT_LENGTH,
+  HPE_UNEXPECTED_CONTENT_LENGTH,
+  HPE_INVALID_CHUNK_SIZE,
+  HPE_INVALID_CONSTANT,
+  HPE_INVALID_INTERNAL_STATE,
+  HPE_STRICT,
+  HPE_PAUSED,
+  HPE_UNKNOWN
 };
-#undef HTTP_ERRNO_GEN
 
 
 /* Get an http_errno value from an http_parser */
