@@ -18,7 +18,6 @@ dump_url (const char *url, const struct http_parser_url *u)
            i,
            u->field_data[i].off,
            u->field_data[i].len,
-           u->field_data[i].len,
            url + u->field_data[i].off);
   }
 }
