@@ -173,7 +173,7 @@ do {                                                                 \
 
 static const char *method_strings[] =
   {
-#define XX(num, name, string) #string,
+#define XX(num, string) #string,
   HTTP_METHOD_MAP(XX)
 #undef XX
   };
