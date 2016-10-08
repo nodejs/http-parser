@@ -1240,115 +1240,127 @@ reexecute:
       case s_header_field:
       {
         const char* start = p;
-        for (; p != data + len; p++) {
-          ch = *p;
-          c = TOKEN(ch);
+HEADER_FIELD_BEGIN:
+        if ( parser->header_state == h_general ) {
+          for (; p != data + len; p++) {
+            ch = *p;
+            c = TOKEN(ch);
 
-          if (!c)
-            break;
-
-          switch (parser->header_state) {
-            case h_general:
-              break;
-
-            case h_C:
-              parser->index++;
-              parser->header_state = (c == 'o' ? h_CO : h_general);
-              break;
-
-            case h_CO:
-              parser->index++;
-              parser->header_state = (c == 'n' ? h_CON : h_general);
-              break;
-
-            case h_CON:
-              parser->index++;
-              switch (c) {
-                case 'n':
-                  parser->header_state = h_matching_connection;
-                  break;
-                case 't':
-                  parser->header_state = h_matching_content_length;
-                  break;
-                default:
-                  parser->header_state = h_general;
-                  break;
-              }
-              break;
-
-            /* connection */
-
-            case h_matching_connection:
-              parser->index++;
-              if (parser->index > sizeof(CONNECTION)-1
-                  || c != CONNECTION[parser->index]) {
-                parser->header_state = h_general;
-              } else if (parser->index == sizeof(CONNECTION)-2) {
-                parser->header_state = h_connection;
-              }
-              break;
-
-            /* proxy-connection */
-
-            case h_matching_proxy_connection:
-              parser->index++;
-              if (parser->index > sizeof(PROXY_CONNECTION)-1
-                  || c != PROXY_CONNECTION[parser->index]) {
-                parser->header_state = h_general;
-              } else if (parser->index == sizeof(PROXY_CONNECTION)-2) {
-                parser->header_state = h_connection;
-              }
-              break;
-
-            /* content-length */
-
-            case h_matching_content_length:
-              parser->index++;
-              if (parser->index > sizeof(CONTENT_LENGTH)-1
-                  || c != CONTENT_LENGTH[parser->index]) {
-                parser->header_state = h_general;
-              } else if (parser->index == sizeof(CONTENT_LENGTH)-2) {
-                parser->header_state = h_content_length;
-              }
-              break;
-
-            /* transfer-encoding */
-
-            case h_matching_transfer_encoding:
-              parser->index++;
-              if (parser->index > sizeof(TRANSFER_ENCODING)-1
-                  || c != TRANSFER_ENCODING[parser->index]) {
-                parser->header_state = h_general;
-              } else if (parser->index == sizeof(TRANSFER_ENCODING)-2) {
-                parser->header_state = h_transfer_encoding;
-              }
-              break;
-
-            /* upgrade */
-
-            case h_matching_upgrade:
-              parser->index++;
-              if (parser->index > sizeof(UPGRADE)-1
-                  || c != UPGRADE[parser->index]) {
-                parser->header_state = h_general;
-              } else if (parser->index == sizeof(UPGRADE)-2) {
-                parser->header_state = h_upgrade;
-              }
-              break;
-
-            case h_connection:
-            case h_content_length:
-            case h_transfer_encoding:
-            case h_upgrade:
-              if (ch != ' ') parser->header_state = h_general;
-              break;
-
-            default:
-              assert(0 && "Unknown header_state");
+            if (!c)
               break;
           }
-        }
+        } else {
+          for (; p != data + len; p++) {
+            ch = *p;
+            c = TOKEN(ch);
 
+            if (!c)
+              break;
+
+            switch (parser->header_state) {
+              case h_general:
+                --p;
+                goto HEADER_FIELD_BEGIN;
+                break;
+
+              case h_C:
+                parser->index++;
+                parser->header_state = (c == 'o' ? h_CO : h_general);
+                break;
+
+              case h_CO:
+                parser->index++;
+                parser->header_state = (c == 'n' ? h_CON : h_general);
+                break;
+
+              case h_CON:
+                parser->index++;
+                switch (c) {
+                  case 'n':
+                    parser->header_state = h_matching_connection;
+                    break;
+                  case 't':
+                    parser->header_state = h_matching_content_length;
+                    break;
+                  default:
+                    parser->header_state = h_general;
+                    break;
+                }
+                break;
+
+              /* connection */
+
+              case h_matching_connection:
+                parser->index++;
+                if (parser->index > sizeof(CONNECTION)-1
+                    || c != CONNECTION[parser->index]) {
+                  parser->header_state = h_general;
+                } else if (parser->index == sizeof(CONNECTION)-2) {
+                  parser->header_state = h_connection;
+                }
+                break;
+
+              /* proxy-connection */
+
+              case h_matching_proxy_connection:
+                parser->index++;
+                if (parser->index > sizeof(PROXY_CONNECTION)-1
+                    || c != PROXY_CONNECTION[parser->index]) {
+                  parser->header_state = h_general;
+                } else if (parser->index == sizeof(PROXY_CONNECTION)-2) {
+                  parser->header_state = h_connection;
+                }
+                break;
+
+              /* content-length */
+
+              case h_matching_content_length:
+                parser->index++;
+                if (parser->index > sizeof(CONTENT_LENGTH)-1
+                    || c != CONTENT_LENGTH[parser->index]) {
+                  parser->header_state = h_general;
+                } else if (parser->index == sizeof(CONTENT_LENGTH)-2) {
+                  parser->header_state = h_content_length;
+                }
+                break;
+
+              /* transfer-encoding */
+
+              case h_matching_transfer_encoding:
+                parser->index++;
+                if (parser->index > sizeof(TRANSFER_ENCODING)-1
+                    || c != TRANSFER_ENCODING[parser->index]) {
+                  parser->header_state = h_general;
+                } else if (parser->index == sizeof(TRANSFER_ENCODING)-2) {
+                  parser->header_state = h_transfer_encoding;
+                }
+                break;
+
+              /* upgrade */
+
+              case h_matching_upgrade:
+                parser->index++;
+                if (parser->index > sizeof(UPGRADE)-1
+                    || c != UPGRADE[parser->index]) {
+                  parser->header_state = h_general;
+                } else if (parser->index == sizeof(UPGRADE)-2) {
+                  parser->header_state = h_upgrade;
+                }
+                break;
+
+              case h_connection:
+              case h_content_length:
+              case h_transfer_encoding:
+              case h_upgrade:
+                if (ch != ' ') parser->header_state = h_general;
+                break;
+
+              default:
+                assert(0 && "Unknown header_state");
+                break;
+            }
+          }
+        }
         COUNT_HEADER_SIZE(p - start);
 
         if (p == data + len) {
