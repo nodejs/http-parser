@@ -435,6 +435,15 @@ enum http_host_state
   (IS_ALPHANUM(c) || (c) == '.' || (c) == '-' || (c) == '_')
 #endif
 
+#define NEXTHEADERCHAR() \
+  if (UNLIKELY(p+1 == (data+len))) {                          \
+    COUNT_HEADER_SIZE(0);                                     \
+    break;                                                    \
+  }                                                           \
+  ch = *++p;                                                  \
+  ++parser->nread;
+
+
 /**
  * Verify that a char is a valid visible (printable) US-ASCII
  * character or %x80-FF
@@ -781,17 +790,17 @@ reexecute:
       case s_res_H:
         STRICT_CHECK(ch != 'T');
         UPDATE_STATE(s_res_HT);
-        break;
+        NEXTHEADERCHAR();
 
       case s_res_HT:
         STRICT_CHECK(ch != 'T');
         UPDATE_STATE(s_res_HTT);
-        break;
+        NEXTHEADERCHAR();
 
       case s_res_HTT:
         STRICT_CHECK(ch != 'P');
         UPDATE_STATE(s_res_HTTP);
-        break;
+        NEXTHEADERCHAR();
 
       case s_res_HTTP:
         STRICT_CHECK(ch != '/');
@@ -1101,17 +1110,17 @@ reexecute:
       case s_req_http_H:
         STRICT_CHECK(ch != 'T');
         UPDATE_STATE(s_req_http_HT);
-        break;
+        NEXTHEADERCHAR();
 
       case s_req_http_HT:
         STRICT_CHECK(ch != 'T');
         UPDATE_STATE(s_req_http_HTT);
-        break;
+        NEXTHEADERCHAR();
 
       case s_req_http_HTT:
         STRICT_CHECK(ch != 'P');
         UPDATE_STATE(s_req_http_HTTP);
-        break;
+        NEXTHEADERCHAR();
 
       case s_req_http_HTTP:
         STRICT_CHECK(ch != '/');
@@ -1225,7 +1234,7 @@ reexecute:
             parser->header_state = h_general;
             break;
         }
-        break;
+        NEXTHEADERCHAR();
       }
 
       case s_header_field:
