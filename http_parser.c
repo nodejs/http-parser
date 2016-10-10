@@ -481,6 +481,88 @@ static struct {
 
 int http_message_needs_eof(const http_parser *parser);
 
+const char* findCRLF(const char* p, const char* data, size_t len);
+
+
+#ifdef __SSE2__ 
+
+#include <emmintrin.h>
+
+const char* findCRLF(const char* p, const char* data, size_t len) {
+  const char* lastp = MIN(data+len, HTTP_MAX_HEADER_SIZE+p);
+
+  long result = 0;
+  __m128i v1, v2;
+  __m128i vCR = _mm_set_epi32(0x0a0a0a0a, 0x0a0a0a0a,0x0a0a0a0a, 0x0a0a0a0a); // [ c, 0, 0, 0, 0, 0 .. 0 ]
+
+  __m128i vLF = _mm_set_epi32(0x0d0d0d0d, 0x0d0d0d0d,0x0d0d0d0d, 0x0d0d0d0d); // [ c, 0, 0, 0, 0, 0 .. 0 ]
+
+  size_t alignment = (long)p & 15;
+  p -= alignment;
+
+  v1 = *((__m128i*)(p));
+  v2 = _mm_cmpeq_epi8(vCR, v1);
+  v1 = _mm_cmpeq_epi8(vLF, v1);
+  v2 = _mm_or_si128(v1, v2);
+  result = _mm_movemask_epi8(v2);
+
+  v1 = *((__m128i*)(p + 16));
+  v2 = _mm_cmpeq_epi8(vCR, v1);
+  v1 = _mm_cmpeq_epi8(vLF, v1);
+  v2 = _mm_or_si128(v1, v2);
+  result = (_mm_movemask_epi8(v2) << 16 ) | result;
+  result = (result >> alignment) << alignment;
+
+  if ( !result ) {
+    while( !result && lastp >= (p+32) ) {
+      p += 32;
+      v1 = *((__m128i*)(p));
+      v2 = _mm_cmpeq_epi8(vCR, v1);
+      v1 = _mm_cmpeq_epi8(vLF, v1);
+      v2 = _mm_or_si128(v1, v2);
+      result = _mm_movemask_epi8(v2);
+
+      v1 = *((__m128i*)(p+16));
+      v2 = _mm_cmpeq_epi8(vCR, v1);
+      v1 = _mm_cmpeq_epi8(vLF, v1);
+      v2 = _mm_or_si128(v1, v2);
+      result = (_mm_movemask_epi8(v2) << 16 ) | result;
+    }
+    if ( !result ) { return data+len; }
+  }
+  p += __builtin_ctz(result);
+  if ( p >= lastp ) {
+    return data+len;
+  }
+  return p;
+}
+
+#else
+
+const char* findCRLF(const char* p, const char* data, size_t len) {
+  const char* p_cr;
+  const char* p_lf;
+  size_t limit = data + len - p;
+
+  limit = MIN(limit, HTTP_MAX_HEADER_SIZE);
+
+  p_cr = (const char*) memchr(p, CR, limit);
+  p_lf = (const char*) memchr(p, LF, limit);
+  if (p_cr != NULL) {
+    if (p_lf != NULL && p_cr >= p_lf)
+      p = p_lf;
+    else
+      p = p_cr;
+  } else if (UNLIKELY(p_lf != NULL)) {
+    p = p_lf;
+  } else {
+    p = data + len;
+  }
+  return p;
+}
+
+#endif
+
 /* Our URL parser.
  *
  * This is designed to be shared by http_parser_execute() for URL validation,
@@ -1488,24 +1570,7 @@ HEADER_FIELD_BEGIN:
           switch (h_state) {
             case h_general:
             {
-              const char* p_cr;
-              const char* p_lf;
-              size_t limit = data + len - p;
-
-              limit = MIN(limit, HTTP_MAX_HEADER_SIZE);
-
-              p_cr = (const char*) memchr(p, CR, limit);
-              p_lf = (const char*) memchr(p, LF, limit);
-              if (p_cr != NULL) {
-                if (p_lf != NULL && p_cr >= p_lf)
-                  p = p_lf;
-                else
-                  p = p_cr;
-              } else if (UNLIKELY(p_lf != NULL)) {
-                p = p_lf;
-              } else {
-                p = data + len;
-              }
+              p = findCRLF(p, data, len);
               --p;
 
               break;
