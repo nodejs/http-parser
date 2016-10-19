@@ -3841,13 +3841,7 @@ test_message_pause (const struct message *msg)
     }
 
     if (nread < buflen) {
-
-      // Not much do to if we failed a strict-mode check
-      if (HTTP_PARSER_ERRNO(parser) == HPE_STRICT) {
-        parser_free();
-        return;
-      }
-
+      assert (HTTP_PARSER_ERRNO(parser) != HPE_STRICT);
       assert (HTTP_PARSER_ERRNO(parser) == HPE_PAUSED);
     }
 
