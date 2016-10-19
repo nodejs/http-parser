@@ -484,14 +484,14 @@ int http_message_needs_eof(const http_parser *parser);
 const char* findCRLF(const char* p, const char* data, size_t len);
 
 
-#ifdef __SSE2__ 
+#if defined(__SSE2__) && defined(__GNUC__) 
 
 #include <emmintrin.h>
 
 const char* findCRLF(const char* p, const char* data, size_t len) {
   const char* lastp = MIN(data+len, HTTP_MAX_HEADER_SIZE+p);
 
-  long result = 0;
+  int32_t result = 0;
   __m128i v1, v2;
   __m128i vCR = _mm_set_epi32(0x0a0a0a0a, 0x0a0a0a0a,0x0a0a0a0a, 0x0a0a0a0a); // [ c, 0, 0, 0, 0, 0 .. 0 ]
 
