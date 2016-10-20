@@ -481,14 +481,14 @@ static struct {
 
 int http_message_needs_eof(const http_parser *parser);
 
-const char* findCRLF(const char* p, const char* data, size_t len);
+const char* find_crlf(const char* p, const char* data, size_t len);
 
 
 #if defined(__SSE2__) && defined(__GNUC__) 
 
 #include <emmintrin.h>
 
-const char* findCRLF(const char* p, const char* data, size_t len) {
+const char* find_crlf(const char* p, const char* data, size_t len) {
   const char* lastp = MIN(data+len, HTTP_MAX_HEADER_SIZE+p);
 
   int32_t result = 0;
@@ -539,7 +539,7 @@ const char* findCRLF(const char* p, const char* data, size_t len) {
 
 #else
 
-const char* findCRLF(const char* p, const char* data, size_t len) {
+const char* find_crlf(const char* p, const char* data, size_t len) {
   const char* p_cr;
   const char* p_lf;
   size_t limit = data + len - p;
@@ -1322,7 +1322,7 @@ reexecute:
       case s_header_field:
       {
         const char* start = p;
-HEADER_FIELD_BEGIN:
+header_field_begin:
         if ( parser->header_state == h_general ) {
           for (; p != data + len; p++) {
             ch = *p;
@@ -1342,7 +1342,7 @@ HEADER_FIELD_BEGIN:
             switch (parser->header_state) {
               case h_general:
                 --p;
-                goto HEADER_FIELD_BEGIN;
+                goto header_field_begin;
                 break;
 
               case h_C:
@@ -1570,7 +1570,7 @@ HEADER_FIELD_BEGIN:
           switch (h_state) {
             case h_general:
             {
-              p = findCRLF(p, data, len);
+              p = find_crlf(p, data, len);
               --p;
 
               break;
