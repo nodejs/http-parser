@@ -56,8 +56,8 @@ LDFLAGS_LIB = $(LDFLAGS) -shared
 
 INSTALL ?= install
 PREFIX ?= $(DESTDIR)/usr/local
-LIBDIR = $(PREFIX)/lib
-INCLUDEDIR = $(PREFIX)/include
+LIBDIR ?= $(PREFIX)/lib
+INCLUDEDIR ?= $(PREFIX)/include
 
 ifneq (darwin,$(PLATFORM))
 # TODO(bnoordhuis) The native SunOS linker expects -h rather than -soname...
