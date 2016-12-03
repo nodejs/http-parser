@@ -2254,6 +2254,7 @@ http_parse_host_char(enum http_host_state s, const char ch) {
 
 static int
 http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
+  assert(u->field_set & (1 << UF_HOST));
   enum http_host_state s;
 
   const char *p;
