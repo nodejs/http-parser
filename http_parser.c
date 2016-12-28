@@ -435,13 +435,15 @@ enum http_host_state
   (IS_ALPHANUM(c) || (c) == '.' || (c) == '-' || (c) == '_')
 #endif
 
-#define NEXTHEADERCHAR() \
-  if (UNLIKELY(p+1 == (data+len))) {                          \
-    COUNT_HEADER_SIZE(0);                                     \
-    break;                                                    \
-  }                                                           \
-  ch = *++p;                                                  \
-  ++parser->nread;
+#define NEXTHEADERCHAR()                                      \
+  if (1) {                                                    \
+    if (UNLIKELY(p + 1 == data + len)) {                      \
+      COUNT_HEADER_SIZE(0);                                   \
+      break;                                                  \
+    }                                                         \
+    ch = *++p;                                                \
+    ++parser->nread;                                          \
+  } else                                                      \
 
 
 /**
@@ -489,50 +491,54 @@ const char* find_crlf(const char* p, const char* data, size_t len);
 #include <emmintrin.h>
 
 const char* find_crlf(const char* p, const char* data, size_t len) {
-  const char* lastp = MIN(data+len, HTTP_MAX_HEADER_SIZE+p);
+  const char* lastp = MIN(data + len, HTTP_MAX_HEADER_SIZE + p);
 
   int32_t result = 0;
   __m128i v1, v2;
-  __m128i vCR = _mm_set_epi32(0x0a0a0a0a, 0x0a0a0a0a,0x0a0a0a0a, 0x0a0a0a0a); // [ c, 0, 0, 0, 0, 0 .. 0 ]
+  /* [ c, 0, 0, 0, 0, 0 .. 0 ] */
+  __m128i vCR = _mm_set_epi32(0x0a0a0a0a, 0x0a0a0a0a,0x0a0a0a0a, 0x0a0a0a0a);
 
-  __m128i vLF = _mm_set_epi32(0x0d0d0d0d, 0x0d0d0d0d,0x0d0d0d0d, 0x0d0d0d0d); // [ c, 0, 0, 0, 0, 0 .. 0 ]
+  /* [ c, 0, 0, 0, 0, 0 .. 0 ] */
+  __m128i vLF = _mm_set_epi32(0x0d0d0d0d, 0x0d0d0d0d,0x0d0d0d0d, 0x0d0d0d0d);
 
-  size_t alignment = (long)p & 15;
+  size_t alignment = (long) p & 15;
   p -= alignment;
 
-  v1 = *((__m128i*)(p));
+  v1 = *(__m128i*)p;
   v2 = _mm_cmpeq_epi8(vCR, v1);
   v1 = _mm_cmpeq_epi8(vLF, v1);
   v2 = _mm_or_si128(v1, v2);
   result = _mm_movemask_epi8(v2);
 
-  v1 = *((__m128i*)(p + 16));
+  v1 = *(__m128i*)(p + 16);
   v2 = _mm_cmpeq_epi8(vCR, v1);
   v1 = _mm_cmpeq_epi8(vLF, v1);
   v2 = _mm_or_si128(v1, v2);
-  result = (_mm_movemask_epi8(v2) << 16 ) | result;
+  result = _mm_movemask_epi8(v2) << 16 | result;
   result = (result >> alignment) << alignment;
 
-  if ( !result ) {
-    while( !result && lastp >= (p+32) ) {
+  if (!result) {
+    while(!result && lastp >= p+32) {
       p += 32;
-      v1 = *((__m128i*)(p));
+      v1 = *(__m128i*)p;
       v2 = _mm_cmpeq_epi8(vCR, v1);
       v1 = _mm_cmpeq_epi8(vLF, v1);
       v2 = _mm_or_si128(v1, v2);
       result = _mm_movemask_epi8(v2);
 
-      v1 = *((__m128i*)(p+16));
+      v1 = *(__m128i*)(p+16);
       v2 = _mm_cmpeq_epi8(vCR, v1);
       v1 = _mm_cmpeq_epi8(vLF, v1);
       v2 = _mm_or_si128(v1, v2);
-      result = (_mm_movemask_epi8(v2) << 16 ) | result;
+      result = _mm_movemask_epi8(v2) << 16 | result;
     }
-    if ( !result ) { return data+len; }
+    if (!result) {
+      return data + len;
+    }
   }
   p += __builtin_ctz(result);
-  if ( p >= lastp ) {
-    return data+len;
+  if (p >= lastp) {
+    return data + len;
   }
   return p;
 }
@@ -1323,7 +1329,7 @@ reexecute:
       {
         const char* start = p;
 header_field_begin:
-        if ( parser->header_state == h_general ) {
+        if (parser->header_state == h_general) {
           for (; p != data + len; p++) {
             ch = *p;
             c = TOKEN(ch);
@@ -1443,6 +1449,7 @@ header_field_begin:
             }
           }
         }
+
         COUNT_HEADER_SIZE(p - start);
 
         if (p == data + len) {
