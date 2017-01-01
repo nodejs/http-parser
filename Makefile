@@ -129,12 +129,12 @@ install-dirs:
 install: library install-dirs
 	$(INSTALL) http_parser.h $(DESTDIR)$(INCLUDEDIR)/http_parser.h
 	$(INSTALL) $(SONAME) $(DESTDIR)$(LIBDIR)/$(SONAME)
-	ln -s $(LIBDIR)/$(SONAME) $(DESTDIR)$(LIBDIR)/libhttp_parser.$(SOEXT)
+	ln -s $(SONAME) $(DESTDIR)$(LIBDIR)/libhttp_parser.$(SOEXT)
 
 install-strip: library install-dirs
 	$(INSTALL) http_parser.h $(DESTDIR)$(INCLUDEDIR)/http_parser.h
 	$(INSTALL) -s $(SONAME) $(DESTDIR)$(LIBDIR)/$(SONAME)
-	ln -s $(LIBDIR)/$(SONAME) $(DESTDIR)$(LIBDIR)/libhttp_parser.$(SOEXT)
+	ln -s $(SONAME) $(DESTDIR)$(LIBDIR)/libhttp_parser.$(SOEXT)
 
 uninstall:
 	rm $(DESTDIR)$(INCLUDEDIR)/http_parser.h
