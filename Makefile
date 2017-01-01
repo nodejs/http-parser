@@ -122,14 +122,18 @@ parsertrace_g: http_parser_g.o contrib/parsertrace.c
 tags: http_parser.c http_parser.h test.c
 	ctags $^
 
-install: library
-	$(INSTALL) -D  http_parser.h $(INCLUDEDIR)/http_parser.h
-	$(INSTALL) -D $(SONAME) $(LIBDIR)/$(SONAME)
+install-dirs:
+	mkdir -p $(INCLUDEDIR)
+	mkdir -p $(LIBDIR)
+
+install: library install-dirs
+	$(INSTALL) http_parser.h $(INCLUDEDIR)/http_parser.h
+	$(INSTALL) $(SONAME) $(LIBDIR)/$(SONAME)
 	ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.$(SOEXT)
 
-install-strip: library
-	$(INSTALL) -D  http_parser.h $(INCLUDEDIR)/http_parser.h
-	$(INSTALL) -D -s $(SONAME) $(LIBDIR)/$(SONAME)
+install-strip: library install-dirs
+	$(INSTALL) http_parser.h $(INCLUDEDIR)/http_parser.h
+	$(INSTALL) -s $(SONAME) $(LIBDIR)/$(SONAME)
 	ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.$(SOEXT)
 
 uninstall:
