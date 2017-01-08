@@ -486,147 +486,252 @@ int http_message_needs_eof(const http_parser *parser);
 static enum state
 parse_url_char(enum state s, const char ch)
 {
+  /* If current character is space, CR, or LF */
   if (ch == ' ' || ch == '\r' || ch == '\n') {
+    /* Return dead state */
     return s_dead;
   }
+  /* If current character is not space, CR, or LF */
 
 #if HTTP_PARSER_STRICT
+  /* If current character is tab or formfeed */
   if (ch == '\t' || ch == '\f') {
+    /* Return dead state */
     return s_dead;
   }
+  /* If current character is not tab or formfeed */
 #endif
 
   switch (s) {
+    /* If current state is request line after met method name, e.g. `GET ` */
     case s_req_spaces_before_url:
       /* Proxied requests are followed by scheme of an absolute URI (alpha).
        * All methods except CONNECT are followed by '/' or '*'.
        */
 
+      /* If current character is `/` or `*` */
       if (ch == '/' || ch == '*') {
+        /* Return next state */
         return s_req_path;
       }
+      /* If current character is not `/` or `*` */
 
+      /* If current character is alphabetic */
       if (IS_ALPHA(ch)) {
+        /* Return next state */
         return s_req_schema;
       }
+      /* If current character is not alphabetic */
 
+      /* Break to return dead state */
       break;
 
+    /* If current state is request schema */
     case s_req_schema:
+      /* If current character is alphabetic */
       if (IS_ALPHA(ch)) {
+        /* Stay in the state */
         return s;
       }
+      /* If current character is not alphabetic */
 
+      /* If current character is `:` */
       if (ch == ':') {
+        /* Return next state */
         return s_req_schema_slash;
       }
+      /* If current character is not `:` */
 
+      /* Break to return dead state */
       break;
 
+    /* If current state is request schema before meet the first slash  */
     case s_req_schema_slash:
+      /* If current character is `/` */
       if (ch == '/') {
+        /* Return next state */
         return s_req_schema_slash_slash;
       }
+      /* If current character is not `/` */
 
+      /* Break to return dead state */
       break;
 
+    /* If current state is request schema before meet the second slash */
     case s_req_schema_slash_slash:
+      /* If current character is `/` */
       if (ch == '/') {
+        /* Return next state */
         return s_req_server_start;
       }
+      /* If current character is not `/` */
 
+      /* Break to return dead state */
       break;
 
+    /* If current state is request server after met `@` */
     case s_req_server_with_at:
+      /* If current character is `@` */
       if (ch == '@') {
+        /* Return dead state */
         return s_dead;
       }
+      /* If current character is not `@` */
 
     /* FALLTHROUGH */
+    /* If current state is request server */
     case s_req_server_start:
     case s_req_server:
+      /* If current character is `/`.
+       * It means start of request path.
+       */
       if (ch == '/') {
+        /* Return next state */
         return s_req_path;
       }
+      /* If current character is not `/` */
 
+      /* If current character is `?`.
+       * It means start of query string.
+       */
       if (ch == '?') {
+        /* Return next state */
         return s_req_query_string_start;
       }
+      /* If current character is not `?` */
 
+      /* If current character is `@` */
       if (ch == '@') {
+        /* Return next state */
         return s_req_server_with_at;
       }
+      /* If current character is not `@` */
 
+      /* If current character is one of these */
       if (IS_USERINFO_CHAR(ch) || ch == '[' || ch == ']') {
+        /* Stay in the state */
         return s_req_server;
       }
+      /* If current character is not one of these */
 
+      /* Break to return dead state */
       break;
 
+    /* If current state is request path */
     case s_req_path:
+      /* If current character is normal URL character */
       if (IS_URL_CHAR(ch)) {
+        /* Stay in the state */
         return s;
       }
+      /* If current character is not normal URL character */
 
       switch (ch) {
+        /* If current character is `?`.
+         * It means start of query string.
+         */
         case '?':
+          /* Return next state */
           return s_req_query_string_start;
 
+        /* If current character is `#`.
+         * It means start of fragment string.
+         */
         case '#':
+          /* Return next state */
           return s_req_fragment_start;
       }
+      /* If current character is none of above */
 
+      /* Break to return dead state */
       break;
 
+    /* If current state is request query string */
     case s_req_query_string_start:
     case s_req_query_string:
+      /* If current character is normal URL character */
       if (IS_URL_CHAR(ch)) {
+        /* Stay in the state */
         return s_req_query_string;
       }
+      /* If current character is not normal URL character */
 
       switch (ch) {
+        /* If current character is `?`.
+         * It means a literal `?`.
+         */
         case '?':
+          /* Stay in the state */
           /* allow extra '?' in query string */
           return s_req_query_string;
 
+        /* If current character is `#`.
+         * It means start of fragment string.
+         */
         case '#':
+          /* Return next state */
           return s_req_fragment_start;
       }
+      /* If current character is none of above */
 
+      /* Break to return dead state */
       break;
 
+    /* If current state is request fragment string start */
     case s_req_fragment_start:
+      /* If current character is normal URL character */
       if (IS_URL_CHAR(ch)) {
+        /* Return next state */
         return s_req_fragment;
       }
+      /* If current character is not normal URL character */
 
       switch (ch) {
+        /* If current character is `?` */
         case '?':
+          /* Return next state */
           return s_req_fragment;
 
+        /* If current character is `#` */
         case '#':
+          /* Stay in the state */
           return s;
       }
+      /* If current character is none of above */
 
+      /* Break to return dead state */
       break;
 
+    /* If current state is fragment string */
     case s_req_fragment:
+      /* If current character is normal URL character */
       if (IS_URL_CHAR(ch)) {
+        /* Stay in the state */
         return s;
       }
+      /* If current character is not normal URL character */
 
       switch (ch) {
+        /* If current character is `?` or `#`.
+         * It means a literal `?` or `#`.
+         */
         case '?':
         case '#':
+          /* Stay in the state */
           return s;
       }
+      /* If current character is none of above */
 
+      /* Break to return dead state */
       break;
 
+    /* If current state is none of above */
     default:
+      /* Break to return dead state */
       break;
   }
 
+  /* Return dead state */
   /* We should never fall out of the switch above unless there's an error */
   return s_dead;
 }
@@ -636,49 +741,81 @@ size_t http_parser_execute (http_parser *parser,
                             const char *data,
                             size_t len)
 {
+  /* c: Current character token.
+   * ch: Current character.
+   */
   char c, ch;
+
+  /* Chunk size of a request with header `Transfer-Encoding: chunked` */
   int8_t unhex_val;
+
+  /* Current character pointer */
   const char *p = data;
+
+  /* Marked data pointers */
   const char *header_field_mark = 0;
   const char *header_value_mark = 0;
   const char *url_mark = 0;
   const char *body_mark = 0;
   const char *status_mark = 0;
+
+  /* Parser state */
   enum state p_state = (enum state) parser->state;
+
+  /* Whether be lenient on header characters */
   const unsigned int lenient = parser->lenient_http_headers;
 
+  /* If have error */
   /* We're in an error state. Don't bother doing anything. */
   if (HTTP_PARSER_ERRNO(parser) != HPE_OK) {
+    /* Return parsed number of bytes */
     return 0;
   }
 
+  /* If data length is zero */
   if (len == 0) {
     switch (CURRENT_STATE()) {
+      /* If current state is consume remaining data */
       case s_body_identity_eof:
+        /* Call callback */
         /* Use of CALLBACK_NOTIFY() here would erroneously return 1 byte read if
          * we got paused.
          */
         CALLBACK_NOTIFY_NOADVANCE(message_complete);
+
+        /* Return parsed number of bytes */
         return 0;
 
+      /* If current state is one of these */
       case s_dead:
       case s_start_req_or_res:
       case s_start_res:
       case s_start_req:
+        /* Return parsed number of bytes */
         return 0;
 
+      /* If current state is none of above */
       default:
+        /* Set error number */
         SET_ERRNO(HPE_INVALID_EOF_STATE);
+
+        /* Return parsed number of bytes */
         return 1;
     }
   }
 
 
+  /* If current state is header field */
   if (CURRENT_STATE() == s_header_field)
+    /* Set header field mark */
     header_field_mark = data;
+  /* If current state is header value */
   if (CURRENT_STATE() == s_header_value)
+    /* Set header value mark */
     header_value_mark = data;
+
   switch (CURRENT_STATE()) {
+  /* If current state is one of these */
   case s_req_path:
   case s_req_schema:
   case s_req_schema_slash:
@@ -690,281 +827,567 @@ size_t http_parser_execute (http_parser *parser,
   case s_req_query_string:
   case s_req_fragment_start:
   case s_req_fragment:
+    /* Set url mark */
     url_mark = data;
     break;
+  /* If current state is response line after met the first character of the
+   * status message.
+   */
   case s_res_status:
+    /* Set status mark */
     status_mark = data;
     break;
   default:
     break;
   }
 
+  /* For each character in the data */
   for (p=data; p != data + len; p++) {
+    /* Get current character */
     ch = *p;
 
+    /* If current state is parsing header */
     if (PARSING_HEADER(CURRENT_STATE()))
+      /* Increase already-read counter `parser->nread`.
+       * Ensure the counter is within limit.
+       */
       COUNT_HEADER_SIZE(1);
 
 reexecute:
     switch (CURRENT_STATE()) {
 
+      /* If current state is dead state */
       case s_dead:
         /* this state is used after a 'Connection: close' message
          * the parser will error out if it reads another message
          */
-        if (LIKELY(ch == CR || ch == LF))
-          break;
 
+        /* If current character is CR or LF */
+        if (LIKELY(ch == CR || ch == LF))
+          /* Done with current character */
+          break;
+        /* If current character is not CR or LF */
+
+        /* Set error number */
         SET_ERRNO(HPE_CLOSED_CONNECTION);
+
+        /* Goto error handler */
         goto error;
 
+      /* If current state is start of request or response */
       case s_start_req_or_res:
       {
+        /* If current character is CR or LF */
         if (ch == CR || ch == LF)
+          /* Done with current character */
           break;
+        /* If current character is not CR or LF */
+
+        /* Reset flags */
         parser->flags = 0;
+
+        /* Reset unread content length */
         parser->content_length = ULLONG_MAX;
 
+        /* If current character is `H`.
+         * It means start of either request or response.
+         */
         if (ch == 'H') {
+          /* Update state */
           UPDATE_STATE(s_res_or_resp_H);
 
+          /* Call callback */
           CALLBACK_NOTIFY(message_begin);
+        /* If current character is not `H`.
+         * It means start of request.
+         */
         } else {
+          /* Set parser type */
           parser->type = HTTP_REQUEST;
+
+          /* Update state */
           UPDATE_STATE(s_start_req);
+
+          /* Re-parse with new state */
           REEXECUTE();
         }
 
+        /* Done with current character */
         break;
       }
 
+      /* If current state is start of request or response after met `H` */
       case s_res_or_resp_H:
+        /* If current character is `T`.
+         * It means the method name might be `HTTP`.
+         */
         if (ch == 'T') {
+          /* Set parser type */
           parser->type = HTTP_RESPONSE;
+
+          /* Update state */
           UPDATE_STATE(s_res_HT);
+        /* If current character is not `T`.
+         * It means the method name will not be `HTTP`.
+         */
         } else {
+          /* If current character is not `E`.
+           * It means the method name will not be `HEAD`.
+           */
           if (UNLIKELY(ch != 'E')) {
+            /* Set error number */
             SET_ERRNO(HPE_INVALID_CONSTANT);
+
+            /* Goto error handler */
             goto error;
           }
+          /* If current character is `E`.
+           * It means the method name might be `HEAD`.
+           */
 
+          /* Set parser type */
           parser->type = HTTP_REQUEST;
+
+          /* Set method type */
           parser->method = HTTP_HEAD;
+
+          /* Set parser index */
           parser->index = 2;
+
+          /* Update state */
           UPDATE_STATE(s_req_method);
         }
+
+        /* Done with current character */
         break;
 
+      /* If current state is response line start */
       case s_start_res:
       {
+        /* Reset flags */
         parser->flags = 0;
+
+        /* Reset unread content length */
         parser->content_length = ULLONG_MAX;
 
         switch (ch) {
+          /* If current character is `H` */
           case 'H':
+            /* Update state */
             UPDATE_STATE(s_res_H);
+
+            /* Done with current character */
             break;
 
+          /* If current character is CR or LF */
           case CR:
           case LF:
+            /* Done with current character */
             break;
 
+          /* If current character is none of above */
           default:
+            /* Set error number */
             SET_ERRNO(HPE_INVALID_CONSTANT);
+
+            /* Goto error handler */
             goto error;
         }
 
+        /* Call callback */
         CALLBACK_NOTIFY(message_begin);
+
+        /* Done with current character */
         break;
       }
 
+      /* If current state is response line after met `H` */
       case s_res_H:
+        /* Ensure current character is `T`.
+         * Ensure current characters are `HT`.
+         */
         STRICT_CHECK(ch != 'T');
+
+        /* Update state */
         UPDATE_STATE(s_res_HT);
+
+        /* Done with current character */
         break;
 
+      /* If current state is response line after met `HT` */
       case s_res_HT:
+        /* Ensure current character is `T`.
+         * Ensure current characters are `HTT`.
+         */
         STRICT_CHECK(ch != 'T');
+
+        /* Update state */
         UPDATE_STATE(s_res_HTT);
+
+        /* Done with current character */
         break;
 
+      /* If current state is response line after met `HTT` */
       case s_res_HTT:
+        /* Ensure current character is `P`.
+         * Ensure current characters are `HTTP`.
+         */
         STRICT_CHECK(ch != 'P');
+
+        /* Update state */
         UPDATE_STATE(s_res_HTTP);
+
+        /* Done with current character */
         break;
 
+      /* If current state is response line after met `HTTP` */
       case s_res_HTTP:
+        /* Ensure current character is `/`.
+         * Ensure current characters are `HTTP/`.
+         */
         STRICT_CHECK(ch != '/');
+
+        /* Update state */
         UPDATE_STATE(s_res_first_http_major);
+
+        /* Done with current character */
         break;
 
+      /* If current state is response line after met `HTTP/` */
       case s_res_first_http_major:
+        /* If current character is not digit */
         if (UNLIKELY(ch < '0' || ch > '9')) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_VERSION);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is digit */
 
+        /* Set HTTP major version */
         parser->http_major = ch - '0';
+
+        /* Update state */
         UPDATE_STATE(s_res_http_major);
+
+        /* Done with current character */
         break;
 
+      /* If current state is response line after met `HTTP/[0-9]` */
       /* major HTTP version or dot */
       case s_res_http_major:
       {
+        /* If current character is `.` */
         if (ch == '.') {
+          /* Update state */
           UPDATE_STATE(s_res_first_http_minor);
+
+          /* Done with current character */
           break;
         }
+        /* If current character is not `.` */
 
+        /* If current character is not digit */
         if (!IS_NUM(ch)) {
+          /* Set error */
           SET_ERRNO(HPE_INVALID_VERSION);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is digit.
+         * It means one more digit for the HTTP major number.
+         */
 
+        /* Update HTTP major number */
         parser->http_major *= 10;
         parser->http_major += ch - '0';
 
+        /* If the HTTP major number is greater than 999 */
         if (UNLIKELY(parser->http_major > 999)) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_VERSION);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If the HTTP major number is not greater than 999 */
 
+        /* Done with current character */
         break;
       }
 
+      /* If current state is response line after met `HTTP/[0-9][.]` */
       /* first digit of minor HTTP version */
       case s_res_first_http_minor:
+        /* If current character is not digit */
         if (UNLIKELY(!IS_NUM(ch))) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_VERSION);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is digit */
 
+        /* Set HTTP minor number */
         parser->http_minor = ch - '0';
+
+        /* Update state */
         UPDATE_STATE(s_res_http_minor);
+
+        /* Done with current character */
         break;
 
+      /* If current state is response line after met `HTTP/[0-9][.][0-9]` */
       /* minor HTTP version or end of request line */
       case s_res_http_minor:
       {
+        /* If current character is space */
         if (ch == ' ') {
+          /* Update state */
           UPDATE_STATE(s_res_first_status_code);
+
+          /* Done with current character */
           break;
         }
+        /* If current character is not space */
 
+        /* If current character is not digit */
         if (UNLIKELY(!IS_NUM(ch))) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_VERSION);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is digit.
+         * It means one more digit for the HTTP minor number.
+         */
 
+        /* Update HTTP minor number */
         parser->http_minor *= 10;
         parser->http_minor += ch - '0';
 
+        /* If the HTTP minor number is greater than 999 */
         if (UNLIKELY(parser->http_minor > 999)) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_VERSION);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If the HTTP minor number is not greater than 999 */
 
+        /* Done with current character */
         break;
       }
 
+      /* If current state is response line after met `HTTP/[0-9][.][0-9][ ]` */
       case s_res_first_status_code:
       {
+        /* If current character is not digit */
         if (!IS_NUM(ch)) {
+          /* If current character is space */
           if (ch == ' ') {
+            /* Done with current character */
             break;
           }
+          /* If current character is not space. */
 
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_STATUS);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is digit. */
+
+        /* Set status code */
         parser->status_code = ch - '0';
+
+        /* Update state */
         UPDATE_STATE(s_res_status_code);
+
+        /* Done with current character */
         break;
       }
 
+      /* If current state is response line after met
+       * `HTTP/[0-9][.][0-9][ ][0-9]`
+       */
       case s_res_status_code:
       {
+        /* If current character is not digit */
         if (!IS_NUM(ch)) {
           switch (ch) {
+            /* If current character is space */
             case ' ':
+              /* Update state */
               UPDATE_STATE(s_res_status_start);
+
               break;
+            /* If current character is CR */
             case CR:
+              /* Update state */
               UPDATE_STATE(s_res_line_almost_done);
+
               break;
+            /* If current character is LF */
             case LF:
+              /* Update state */
               UPDATE_STATE(s_header_field_start);
+
               break;
+            /* If current character is none of above */
             default:
+              /* Set error number */
               SET_ERRNO(HPE_INVALID_STATUS);
+
+              /* Goto error handler */
               goto error;
           }
+
+          /* Done with current character */
           break;
         }
+        /* If current character is digit.
+         * It means one more digit for the status code.
+         */
 
+        /* Update status code */
         parser->status_code *= 10;
         parser->status_code += ch - '0';
 
+        /* If the status code is greater than 999 */
         if (UNLIKELY(parser->status_code > 999)) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_STATUS);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If the status code is not greater than 999 */
 
+        /* Done with current character */
         break;
       }
 
+      /* If current state is response after met status code and a space,
+       * e.g. `HTTP/1.1 200 `.
+       */
       case s_res_status_start:
       {
+        /* If current character is CR */
         if (ch == CR) {
+          /* Update state */
           UPDATE_STATE(s_res_line_almost_done);
+
+          /* Done with current character */
           break;
         }
+        /* If current character is not CR */
 
+        /* If current character is LF */
         if (ch == LF) {
+          /* Update state */
           UPDATE_STATE(s_header_field_start);
+
+          /* Done with current character */
           break;
         }
+        /* If current character is not LF */
 
+        /* Mark */
         MARK(status);
+
+        /* Update state */
         UPDATE_STATE(s_res_status);
+
+        /* Reset parser index */
         parser->index = 0;
+
+        /* Done with current character */
         break;
       }
 
+      /* If current state is response line after met the first character of
+       * the status message, e.g. `HTTP/1.1 200 O`.
+       */
       case s_res_status:
+        /* If current character is CR */
         if (ch == CR) {
+          /* Update state */
           UPDATE_STATE(s_res_line_almost_done);
+
+          /* Call callback */
           CALLBACK_DATA(status);
+
+          /* Done with current character */
           break;
         }
+        /* If current character is not CR */
 
+        /* If current character is LF */
         if (ch == LF) {
+          /* Update state */
           UPDATE_STATE(s_header_field_start);
+
+          /* Call callback */
           CALLBACK_DATA(status);
+
+          /* Done with current character */
           break;
         }
+        /* If current character is not LF */
 
+        /* Done with current character */
         break;
 
+      /* If current state is response line after met CR */
       case s_res_line_almost_done:
+        /* Ensure current character is LF */
         STRICT_CHECK(ch != LF);
+
+        /* Update state */
         UPDATE_STATE(s_header_field_start);
+
+        /* Done with current character */
         break;
 
+      /* If current state is request line start */
       case s_start_req:
       {
+        /* If current character is CR or LF */
         if (ch == CR || ch == LF)
+          /* Done with current character */
           break;
+        /* If current character is not CR or LF */
+
+        /* Reset flags */
         parser->flags = 0;
+
+        /* Reset unread content length */
         parser->content_length = ULLONG_MAX;
 
+        /* If current character is not alphabetic */
         if (UNLIKELY(!IS_ALPHA(ch))) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_METHOD);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is alphabetic */
 
+        /* Reset method */
         parser->method = (enum http_method) 0;
+
+        /* Set parser index */
         parser->index = 1;
+
+        /* Map current character to the first possible HTTP method */
         switch (ch) {
           case 'A': parser->method = HTTP_ACL; break;
           case 'B': parser->method = HTTP_BIND; break;
@@ -984,31 +1407,70 @@ reexecute:
           case 'T': parser->method = HTTP_TRACE; break;
           case 'U': parser->method = HTTP_UNLOCK; /* or UNSUBSCRIBE, UNBIND, UNLINK */ break;
           default:
+            /* Set error number */
             SET_ERRNO(HPE_INVALID_METHOD);
+
+            /* Goto error handler */
             goto error;
         }
+
+        /* Update state */
         UPDATE_STATE(s_req_method);
 
+        /* Call callback */
         CALLBACK_NOTIFY(message_begin);
 
+        /* Done with current character */
         break;
       }
 
+      /* If current state is request line after met the first character */
       case s_req_method:
       {
+        /* HTTP method name to be matched */
         const char *matcher;
+
+        /* If current character is `\0` */
         if (UNLIKELY(ch == '\0')) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_METHOD);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is not `\0` */
 
+        /* Get HTTP method name to be matched */
         matcher = method_strings[parser->method];
+
+        /* If current character is space,
+         * and the HTTP method name is matched.
+         */
         if (ch == ' ' && matcher[parser->index] == '\0') {
+          /* Update state */
           UPDATE_STATE(s_req_spaces_before_url);
+        /* If current character is matched */
         } else if (ch == matcher[parser->index]) {
+          /* Done with current character */
           ; /* nada */
+        /* If current character is not matched.
+         * If current character is alphabetic.
+         * This means current character still has the chance of matching an
+         * alternative method name with the same matched prefix.
+         */
         } else if (IS_ALPHA(ch)) {
 
+          /* Combine the method value, the parser index and current character
+           * into a int, to be used as the lookup key of the alternative
+           * methods table implemented in the switch block below.
+           *
+           * If the key is found in the alternative methods table, the
+           * alternative method is used for the next matching.
+           *
+           * `<< 16` means put the method value in the third byte of the int.
+           * `<< 8` means put the parser index in the second byte of the int.
+           * Current character is put in the first byte of the int.
+           */
           switch (parser->method << 16 | parser->index << 8 | ch) {
 #define XX(meth, pos, ch, new_meth) \
             case (HTTP_##meth << 16 | pos << 8 | ch): \
@@ -1033,64 +1495,118 @@ reexecute:
             XX(UNLOCK,    3, 'I', UNLINK)
 #undef XX
 
+            /* If an alternative method is not found */
             default:
+              /* Set error number */
               SET_ERRNO(HPE_INVALID_METHOD);
+
+              /* Goto error handler */
               goto error;
           }
+        /* If current character is not matched.
+         * If current character is not alphabetic.
+         * If current character is `-`,
+         * and the parser index is 1,
+         * and the method is HTTP_MKCOL.
+         */
         } else if (ch == '-' &&
                    parser->index == 1 &&
                    parser->method == HTTP_MKCOL) {
+          /* Set the method be HTTP_MSEARCH */
           parser->method = HTTP_MSEARCH;
+        /* If current character is none of above */
         } else {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_METHOD);
+
+          /* Goto error handler */
           goto error;
         }
 
+        /* Increment the parser index */
         ++parser->index;
+
+        /* Done with current character */
         break;
       }
 
+      /* If current state is request line after met HTTP method */
       case s_req_spaces_before_url:
       {
+        /* If current character is space.
+         * Done with current character.
+         */
         if (ch == ' ') break;
+        /* If current character is not space */
 
+        /* Mark */
         MARK(url);
+
+        /* If the HTTP method is HTTP_CONNECT */
         if (parser->method == HTTP_CONNECT) {
+          /* Update state */
           UPDATE_STATE(s_req_server_start);
         }
 
+        /* Decide next state.
+         * Update state.
+         */
         UPDATE_STATE(parse_url_char(CURRENT_STATE(), ch));
+
+        /* If current state is dead state */
         if (UNLIKELY(CURRENT_STATE() == s_dead)) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_URL);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current state is not dead state */
 
+        /* Done with current character */
         break;
       }
 
+      /* If current state is one of these */
       case s_req_schema:
       case s_req_schema_slash:
       case s_req_schema_slash_slash:
       case s_req_server_start:
       {
         switch (ch) {
+          /* If current character is space, CR, or LF */
           /* No whitespace allowed here */
           case ' ':
           case CR:
           case LF:
+            /* Set error number */
             SET_ERRNO(HPE_INVALID_URL);
+
+            /* Goto error handler */
             goto error;
+          /* If current character is not space, CR, or LF */
           default:
+            /* Decide next state.
+             * Update state.
+             */
             UPDATE_STATE(parse_url_char(CURRENT_STATE(), ch));
+
+            /* If current state is dead state */
             if (UNLIKELY(CURRENT_STATE() == s_dead)) {
+              /* Set error number */
               SET_ERRNO(HPE_INVALID_URL);
+
+              /* Goto error handler */
               goto error;
             }
+            /* If current state is not dead state */
         }
 
+        /* Done with current character */
         break;
       }
 
+      /* If current state is one of these */
       case s_req_server:
       case s_req_server_with_at:
       case s_req_path:
@@ -1100,705 +1616,1509 @@ reexecute:
       case s_req_fragment:
       {
         switch (ch) {
+          /* If current character is space.
+           * It means end of request path, and what follows might be HTTP
+           * protocol version, e.g. `GET / ` followed by `GET / HTTP/1.1`.
+           */
           case ' ':
+            /* Update state */
             UPDATE_STATE(s_req_http_start);
+
+            /* Call callback */
             CALLBACK_DATA(url);
+
+            /* Done with current character */
             break;
+          /* If current character is CR or LF.
+           * It means the HTTP protocol version is absent,
+           * e.g. `GET /[\r][\n]` instead of `GET / HTTP/1.1[\r][\n]`.
+           */
           case CR:
           case LF:
+            /* Use default HTTP major number */
             parser->http_major = 0;
+
+            /* Use default HTTP minor number */
             parser->http_minor = 9;
+
+            /* Update state */
             UPDATE_STATE((ch == CR) ?
               s_req_line_almost_done :
               s_header_field_start);
+
+            /* Call callback */
             CALLBACK_DATA(url);
+
+            /* Done with current character */
             break;
+          /* If current character is none of above */
           default:
+            /* Decide next state.
+             * Update state.
+             */
             UPDATE_STATE(parse_url_char(CURRENT_STATE(), ch));
+
+            /* If current state is dead state */
             if (UNLIKELY(CURRENT_STATE() == s_dead)) {
+              /* Set error number */
               SET_ERRNO(HPE_INVALID_URL);
+
+              /* Goto error handler */
               goto error;
             }
+            /* If current state is not dead state */
         }
+
+        /* Done with current character */
         break;
       }
 
+      /* If current state is request line after met request path, e.g. `GET / `
+       */
       case s_req_http_start:
         switch (ch) {
+          /* If current character is `H`.
+           * It might be HTTP protocol version, e.g. `HTTP/1.1` of
+           * `GET / HTTP/1.1`
+           */
           case 'H':
+            /* Update state */
             UPDATE_STATE(s_req_http_H);
+
+            /* Done with current character */
             break;
+          /* If current character is space, e.g. `GET /  ` */
           case ' ':
+            /* Done with current character */
             break;
+          /* If current character is none of above */
           default:
+            /* Set error number */
             SET_ERRNO(HPE_INVALID_CONSTANT);
+
+            /* Goto error handler */
             goto error;
         }
+        /* Done with current character */
         break;
 
+      /* If current state is request line protocol version after met 'H',
+       * e.g. `GET / H`.
+       */
       case s_req_http_H:
+        /* Ensure current character is `T` .
+         * Ensure current characters are `HT`.
+         */
         STRICT_CHECK(ch != 'T');
+
+        /* Update state */
         UPDATE_STATE(s_req_http_HT);
+
+        /* Done with current character */
         break;
 
+      /* If current state is request line protocol version after met 'HT',
+       * e.g. `GET / HT`.
+       */
       case s_req_http_HT:
+        /* Ensure current character is `T` .
+         * Ensure current characters are `HTT`.
+         */
         STRICT_CHECK(ch != 'T');
+
+        /* Update state */
         UPDATE_STATE(s_req_http_HTT);
+
+        /* Done with current character */
         break;
 
+      /* If current state is request line protocol version after met 'HTT',
+       * e.g. `GET / HTT`.
+       */
       case s_req_http_HTT:
+        /* Ensure current character is `P` .
+         * Ensure current characters are `HTTP`.
+         */
         STRICT_CHECK(ch != 'P');
+
+        /* Update state */
         UPDATE_STATE(s_req_http_HTTP);
+
+        /* Done with current character */
         break;
 
+      /* If current state is request line protocol version after met 'HTTP',
+       * e.g. `GET / HTTP`.
+       */
       case s_req_http_HTTP:
+        /* Ensure current character is `/` .
+         * Ensure current characters are `HTTP/`.
+         */
         STRICT_CHECK(ch != '/');
+
+        /* Update state */
         UPDATE_STATE(s_req_first_http_major);
+
+        /* Done with current character */
         break;
 
+      /* If current state is request line protocol version after met 'HTTP/',
+       * e.g. `GET / HTTP/`.
+       */
       /* first digit of major HTTP version */
       case s_req_first_http_major:
+        /* If current character is not digit */
         if (UNLIKELY(ch < '1' || ch > '9')) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_VERSION);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is digit */
 
+        /* Set HTTP major number */
         parser->http_major = ch - '0';
+
+        /* Update state */
         UPDATE_STATE(s_req_http_major);
+
+        /* Done with current character */
         break;
 
+      /* If current state is request line protocol version after met
+       * `HTTP/[0-9]`, e.g. `GET / HTTP/1`.
+       */
       /* major HTTP version or dot */
       case s_req_http_major:
       {
+        /* If current character is `.` */
         if (ch == '.') {
+          /* Update state */
           UPDATE_STATE(s_req_first_http_minor);
+
+          /* Done with current character */
           break;
         }
+        /* If current character is not `.` */
 
+        /* If current character is not digit */
         if (UNLIKELY(!IS_NUM(ch))) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_VERSION);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is digit.
+         * It means one more digit for the HTTP major number.
+         */
 
+        /* Update HTTP major number */
         parser->http_major *= 10;
         parser->http_major += ch - '0';
 
+        /* If the HTTP major number is greater than 999 */
         if (UNLIKELY(parser->http_major > 999)) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_VERSION);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If the HTTP major number is not greater than 999 */
 
+        /* Done with current character */
         break;
       }
 
+      /* If current state is request line protocol version after met
+       * `HTTP/[0-9][.]`, e.g. `GET / HTTP/1.`.
+       */
       /* first digit of minor HTTP version */
       case s_req_first_http_minor:
+        /* If current character is not digit */
         if (UNLIKELY(!IS_NUM(ch))) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_VERSION);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is digit */
 
+        /* Set HTTP minor number */
         parser->http_minor = ch - '0';
+
+        /* Update state */
         UPDATE_STATE(s_req_http_minor);
+
+        /* Done with current character */
         break;
 
+      /* If current state is request line protocol version after met
+       * `HTTP/[0-9][.][0-9]`, e.g. `GET / HTTP/1.1`.
+       */
       /* minor HTTP version or end of request line */
       case s_req_http_minor:
       {
+        /* If current character is CR */
         if (ch == CR) {
+        /* Update state */
           UPDATE_STATE(s_req_line_almost_done);
-          break;
-        }
 
-        if (ch == LF) {
-          UPDATE_STATE(s_header_field_start);
+          /* Done with current character */
           break;
         }
+        /* If current character is not CR */
+
+        /* If current character is LF */
+        if (ch == LF) {
+        /* Update state */
+          UPDATE_STATE(s_header_field_start);
+
+          /* Done with current character */
+          break;
+        }
+        /* If current character is not LF */
 
         /* XXX allow spaces after digit? */
 
+        /* If current character is not digit */
         if (UNLIKELY(!IS_NUM(ch))) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_VERSION);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is digit.
+         * It means one more digit for the HTTP minor number.
+         */
 
+        /* Update HTTP minor number */
         parser->http_minor *= 10;
         parser->http_minor += ch - '0';
 
+        /* If the HTTP major number is greater than 999 */
         if (UNLIKELY(parser->http_minor > 999)) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_VERSION);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If the HTTP major number is not greater than 999 */
 
+        /* Done with current character */
         break;
       }
 
+      /* If current state is request line after met CR, e.g.
+       * `GET / HTTP/1.1[\r]`
+       */
       /* end of request line */
       case s_req_line_almost_done:
       {
+        /* If current character is not LF */
         if (UNLIKELY(ch != LF)) {
+          /* Set error number */
           SET_ERRNO(HPE_LF_EXPECTED);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is LF */
 
+        /* Update state */
         UPDATE_STATE(s_header_field_start);
+
+        /* Done with current character */
         break;
       }
 
+      /* If current state is header field start */
       case s_header_field_start:
       {
+        /* If current character is CR.
+         * It means end of headers section.
+         */
         if (ch == CR) {
+          /* Update state */
           UPDATE_STATE(s_headers_almost_done);
+
+          /* Done with current character */
           break;
         }
+        /* If current character is not CR */
 
+        /* If current character is LF.
+         * It means end of headers section.
+         */
         if (ch == LF) {
+          /* Update state */
           /* they might be just sending \n instead of \r\n so this would be
            * the second \n to denote the end of headers*/
           UPDATE_STATE(s_headers_almost_done);
+
+          /* Re-parse with new state */
           REEXECUTE();
         }
+        /* If current character is not LF */
 
+        /* Map current character to token */
         c = TOKEN(ch);
 
+        /* If current character is not valid token */
         if (UNLIKELY(!c)) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_HEADER_TOKEN);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is valid token */
 
+        /* Mark */
         MARK(header_field);
 
+        /* Reset parser index */
         parser->index = 0;
+
+        /* Update state */
         UPDATE_STATE(s_header_field);
 
         switch (c) {
+          /* If the token is `c`.
+           * It might be header `Connection` or `Content-Length`.
+           */
           case 'c':
+            /* Set header state */
             parser->header_state = h_C;
+
+            /* Done with current character */
             break;
 
+          /* If the token is `p`.
+           * It might be header `Proxy-Connection`.
+           */
           case 'p':
+            /* Set header state */
             parser->header_state = h_matching_proxy_connection;
+
+            /* Done with current character */
             break;
 
+          /* If the token is `t`.
+           * It might be header `Transfer-Encoding`.
+           */
           case 't':
+            /* Set header state */
             parser->header_state = h_matching_transfer_encoding;
+
+            /* Done with current character */
             break;
 
+          /* If the token is `u`.
+           * It might be header `Upgrade`.
+           */
           case 'u':
+            /* Set header state */
             parser->header_state = h_matching_upgrade;
+
+            /* Done with current character */
             break;
 
+          /* If the token is none of above.
+           * It is a general header (as far as this parser is concerned).
+           */
           default:
+            /* Set header state */
             parser->header_state = h_general;
+
+            /* Done with current character */
             break;
         }
+
+        /* Done with current character */
         break;
       }
 
+      /* If current state is header name start */
       case s_header_field:
       {
+        /* Store start character pointer */
         const char* start = p;
+
+        /* For each character */
         for (; p != data + len; p++) {
+          /* Get current character */
           ch = *p;
+
+          /* Map current character to token */
           c = TOKEN(ch);
 
+          /* If current character is not valid token.
+           * It might be the `:` character after header name is met.
+           */
           if (!c)
+            /* Break the loop */
             break;
+          /* If current character is valid token */
 
           switch (parser->header_state) {
+            /* If the header state is general */
             case h_general:
+              /* Done with current character */
               break;
 
+            /* If the header state is after met `c` */
             case h_C:
+              /* Increment parser index */
               parser->index++;
+
+              /* Update header state */
               parser->header_state = (c == 'o' ? h_CO : h_general);
+
+              /* Done with current character */
               break;
 
+            /* If the header state is after met `co` */
             case h_CO:
+              /* Increment parser index */
               parser->index++;
+
+              /* Update header state */
               parser->header_state = (c == 'n' ? h_CON : h_general);
+
+              /* Done with current character */
               break;
 
+            /* If the header state is after met `con` */
             case h_CON:
+              /* Increment parser index */
               parser->index++;
+
               switch (c) {
+                /* If the token is `n`.
+                 * It might be header `Connection`.
+                 */
                 case 'n':
+                  /* Update header state */
                   parser->header_state = h_matching_connection;
+
+                  /* Done with current character */
                   break;
+                /* If the token is `t`.
+                 * It might be header `Content-Length`.
+                 */
                 case 't':
+                  /* Update header state */
                   parser->header_state = h_matching_content_length;
+
+                  /* Done with current character */
                   break;
+                /* If the token is none of above.
+                 * It is a general header.
+                 */
                 default:
+                  /* Update header state */
                   parser->header_state = h_general;
+
+                  /* Done with current character */
                   break;
               }
+
+              /* Done with current character */
               break;
 
             /* connection */
 
+            /* If the header state is matching `Connection` */
             case h_matching_connection:
+              /* Increment parser index */
               parser->index++;
+
+              /* If the header name is longer than `Connection`,
+               * or current character is not matched with `Connection`.
+               * It is a general header.
+               */
               if (parser->index > sizeof(CONNECTION)-1
                   || c != CONNECTION[parser->index]) {
+                /* Update header state */
                 parser->header_state = h_general;
+              /* If the last character of `Connection` is matched */
               } else if (parser->index == sizeof(CONNECTION)-2) {
+                /* Update header state */
                 parser->header_state = h_connection;
               }
+
+              /* Done with current character */
               break;
 
             /* proxy-connection */
 
+            /* If the header state is matching `Proxy-Connection` */
             case h_matching_proxy_connection:
+              /* Increment parser index */
               parser->index++;
+
+              /* If the header name is longer than `Proxy-Connection`,
+               * or current character is not matched with `Proxy-Connection`.
+               * It is a general header.
+               */
               if (parser->index > sizeof(PROXY_CONNECTION)-1
                   || c != PROXY_CONNECTION[parser->index]) {
+                /* Update header state */
                 parser->header_state = h_general;
+              /* If the last character of `Proxy-Connection` is matched */
               } else if (parser->index == sizeof(PROXY_CONNECTION)-2) {
+                /* Update header state */
                 parser->header_state = h_connection;
               }
+
+              /* Done with current character */
               break;
 
             /* content-length */
 
+            /* If the header state is matching `Content-Length` */
             case h_matching_content_length:
+              /* Increment parser index */
               parser->index++;
+
+              /* If the header name is longer than `Content-Length`,
+               * or current character is not matched with `Content-Length`.
+               * It is a general header.
+               */
               if (parser->index > sizeof(CONTENT_LENGTH)-1
                   || c != CONTENT_LENGTH[parser->index]) {
+                /* Update header state */
                 parser->header_state = h_general;
+              /* If the last character of `Content-Length` is matched */
               } else if (parser->index == sizeof(CONTENT_LENGTH)-2) {
+                /* Update header state */
                 parser->header_state = h_content_length;
               }
+
+              /* Done with current character */
               break;
 
             /* transfer-encoding */
 
+            /* If the header state is matching `Transfer-Encoding` */
             case h_matching_transfer_encoding:
+              /* Increment parser index */
               parser->index++;
+
+              /* If the header name is longer than `Transfer-Encoding`,
+               * or current character is not matched with `Transfer-Encoding`.
+               * It is a general header.
+               */
               if (parser->index > sizeof(TRANSFER_ENCODING)-1
                   || c != TRANSFER_ENCODING[parser->index]) {
+                /* Update header state */
                 parser->header_state = h_general;
+              /* If the last character of `Transfer-Encoding` is matched */
               } else if (parser->index == sizeof(TRANSFER_ENCODING)-2) {
+                /* Update header state */
                 parser->header_state = h_transfer_encoding;
               }
+
+              /* Done with current character */
               break;
 
             /* upgrade */
 
+            /* If the header state is matching `Upgrade` */
             case h_matching_upgrade:
+              /* Increment parser index */
               parser->index++;
+
+              /* If the header name is longer than `Upgrade`,
+               * or current character is not matched with `Upgrade`.
+               * It is a general header.
+               */
               if (parser->index > sizeof(UPGRADE)-1
                   || c != UPGRADE[parser->index]) {
+                /* Update header state */
                 parser->header_state = h_general;
+              /* If the last character of `Upgrade` is matched */
               } else if (parser->index == sizeof(UPGRADE)-2) {
+                /* Update header state */
                 parser->header_state = h_upgrade;
               }
+
+              /* Done with current character */
               break;
 
+            /* If the header state is have matched one of these prefixes,
+             * before a `:` or space to end the matched header name. */
             case h_connection:
             case h_content_length:
             case h_transfer_encoding:
             case h_upgrade:
+              /* If current character is not space.
+               * It is a general header.
+               */
               if (ch != ' ') parser->header_state = h_general;
+              /* If current character is space.
+               * It means a special header name has been matched.
+               */
+
+              /* Done with current character */
               break;
 
+            /* If the header state is none of above */
             default:
+              /* Assert error */
               assert(0 && "Unknown header_state");
+
+              /* Done with current character */
               break;
           }
         }
 
+        /* Increase already-read counter `parser->nread`.
+         * Ensure the counter is within limit.
+         */
         COUNT_HEADER_SIZE(p - start);
 
+        /* If current character pointer reached data end */
         if (p == data + len) {
+          /* Decrement current character pointer, so that the last increment by
+           * the outer for loop will not make the pointer overrun.
+           */
           --p;
+
+          /* Done with current character */
           break;
         }
+        /* If current character pointer not reached data end */
 
+        /* If current character is `:` */
         if (ch == ':') {
+          /* Update state */
           UPDATE_STATE(s_header_value_discard_ws);
+
+          /* Call callback */
           CALLBACK_DATA(header_field);
+
+          /* Done with current character */
           break;
         }
+        /* If current character is not `:` */
 
+        /* Set error number */
         SET_ERRNO(HPE_INVALID_HEADER_TOKEN);
+
+        /* Goto error handler */
         goto error;
       }
 
+      /* If current state is discard whitespace before header value */
       case s_header_value_discard_ws:
+        /* If current character is space or tab.
+         * Done with current character.
+         */
         if (ch == ' ' || ch == '\t') break;
+        /* If current character is not space or tab */
 
+        /* If current character is CR.
+         * It means there will be a CRLF before start of the header value.
+         */
         if (ch == CR) {
+          /* Update state */
           UPDATE_STATE(s_header_value_discard_ws_almost_done);
-          break;
-        }
 
-        if (ch == LF) {
-          UPDATE_STATE(s_header_value_discard_lws);
+          /* Done with current character */
           break;
         }
+        /* If current character is not CR */
+
+        /* If current character is LF.
+         * It means there will be a CRLF before start of the header value.
+         */
+        if (ch == LF) {
+          /* Update state */
+          UPDATE_STATE(s_header_value_discard_lws);
+
+          /* Done with current character */
+          break;
+        }
+        /* If current character is not LF */
 
         /* FALLTHROUGH */
 
+      /* If current state is header value start */
       case s_header_value_start:
       {
+        /* Mark */
         MARK(header_value);
 
+        /* Update state */
         UPDATE_STATE(s_header_value);
+
+        /* Reset parser index */
         parser->index = 0;
 
+        /* Get lowercase current character */
         c = LOWER(ch);
 
         switch (parser->header_state) {
+          /* If the header state is `Upgrade` */
           case h_upgrade:
+            /* Add flag */
             parser->flags |= F_UPGRADE;
+
+            /* Update header state */
             parser->header_state = h_general;
+
+            /* Done with current character */
             break;
 
+          /* If the header state is `Transfer-Encoding` */
           case h_transfer_encoding:
+            /* If current character is `c`.
+             * It might be `Transfer-Encoding: chunked`.
+             */
             /* looking for 'Transfer-Encoding: chunked' */
             if ('c' == c) {
+              /* Update header state */
               parser->header_state = h_matching_transfer_encoding_chunked;
+            /* If current character is not `c`.
+             * It is a general header.
+             */
             } else {
+              /* Update header state */
               parser->header_state = h_general;
             }
+
+            /* Done with current character */
             break;
 
+          /* If the header state is `Content-Length` */
           case h_content_length:
+            /* If current character is not digit */
             if (UNLIKELY(!IS_NUM(ch))) {
+              /* Set error number */
               SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
+
+              /* Goto error handler */
               goto error;
             }
+            /* If current character is digit */
 
+            /* If have flag `F_CONTENTLENGTH` */
             if (parser->flags & F_CONTENTLENGTH) {
+              /* Set error number */
               SET_ERRNO(HPE_UNEXPECTED_CONTENT_LENGTH);
+
+              /* Goto error handler */
               goto error;
             }
+            /* If not have flag `F_CONTENTLENGTH` */
 
+            /* Add flag */
             parser->flags |= F_CONTENTLENGTH;
+
+            /* Set unread content length */
             parser->content_length = ch - '0';
+
+            /* Done with current character */
             break;
 
+          /* If the header state is `Connection` */
           case h_connection:
+            /* If current character is `k`.
+             * It might be `Connection: keep-alive`.
+             */
             /* looking for 'Connection: keep-alive' */
             if (c == 'k') {
+              /* Update header state */
               parser->header_state = h_matching_connection_keep_alive;
+            /* If current character is `c`.
+             * It might be `Connection: close`.
+             */
             /* looking for 'Connection: close' */
             } else if (c == 'c') {
+              /* Update header state */
               parser->header_state = h_matching_connection_close;
+            /* If current character is `u`.
+             * It might be `Connection: upgrade`.
+             */
             } else if (c == 'u') {
+              /* Update header state */
               parser->header_state = h_matching_connection_upgrade;
+            /* If current character is none of above.
+             * It is a general header.
+             */
             } else {
+              /* Update header state */
               parser->header_state = h_matching_connection_token;
             }
+
+            /* Done with current character */
             break;
 
+          /* If the header state is `Connection` after met multi-value
+           * separator `,`, e.g. `Connection: keep-alive,`.
+           */
           /* Multi-value `Connection` header */
           case h_matching_connection_token_start:
+            /* Done with current character */
             break;
 
+          /* If the header state is none of above.
+           * It is a general header.
+           */
           default:
+            /* Update header state */
             parser->header_state = h_general;
+
+            /* Done with current character */
             break;
         }
+
+        /* Done with current character */
         break;
       }
 
+      /* If current state is header value */
       case s_header_value:
       {
+        /* Store start character pointer */
         const char* start = p;
+
+        /* Store original header state */
         enum header_states h_state = (enum header_states) parser->header_state;
+
+        /* For each character */
         for (; p != data + len; p++) {
+          /* Get current character */
           ch = *p;
+
+          /* If current character is CR.
+           * It means end of header value.
+           */
           if (ch == CR) {
+            /* Update state */
             UPDATE_STATE(s_header_almost_done);
+
+            /* Restore original header state */
             parser->header_state = h_state;
+
+            /* Call callback */
             CALLBACK_DATA(header_value);
+
+            /* Done with current character */
             break;
           }
+          /* If current character is not CR */
 
+          /* If current character is LF.
+           * It means end of header value.
+           */
           if (ch == LF) {
+            /* Update state */
             UPDATE_STATE(s_header_almost_done);
+
+            /* Increase already-read counter `parser->nread`.
+             * Ensure the counter is within limit.
+             */
             COUNT_HEADER_SIZE(p - start);
+
+            /* Restore original header state */
             parser->header_state = h_state;
+
+            /* Call callback */
             CALLBACK_DATA_NOADVANCE(header_value);
+
+            /* Re-parse with new state */
             REEXECUTE();
           }
+          /* If current character is not LF */
 
+          /* If not lenient on header characters,
+           * and current character is not valid header character.
+           */
           if (!lenient && !IS_HEADER_CHAR(ch)) {
+            /* Set error number */
             SET_ERRNO(HPE_INVALID_HEADER_TOKEN);
+
+            /* Goto error handler */
             goto error;
           }
+          /* If lenient on header characters,
+           * or current character is valid header character.
+           */
 
+          /* Get lowercase current character */
           c = LOWER(ch);
 
           switch (h_state) {
+            /* If the header state is after met a general header name */
             case h_general:
             {
+              /* Pointer of the next CR */
               const char* p_cr;
+
+              /* Pointer of the next LF */
               const char* p_lf;
+
+              /* Get remaining data length */
               size_t limit = data + len - p;
 
+              /* Get length limit for the `memchr` call below */
               limit = MIN(limit, HTTP_MAX_HEADER_SIZE);
 
+              /* Find the next CR */
               p_cr = (const char*) memchr(p, CR, limit);
+
+              /* Find the next LF */
               p_lf = (const char*) memchr(p, LF, limit);
+
+              /* If the next CR is found */
               if (p_cr != NULL) {
+                /* If the next LF is found,
+                 * and the next LF is before the next CR.
+                 */
                 if (p_lf != NULL && p_cr >= p_lf)
+                  /* Use remaining data before the next LF as header value */
                   p = p_lf;
+                /* If the next LF is not found,
+                 * or the next LF is after the next CR.
+                 */
                 else
+                  /* Use remaining data before the next CR as header value */
                   p = p_cr;
+              /* If the next CR is not found.
+               * If the next LF is found.
+               */
               } else if (UNLIKELY(p_lf != NULL)) {
+                /* Use remaining data before the next LF as header value */
                 p = p_lf;
+              /* If the next CR is not found.
+               * If the next LF is not found.
+               */
               } else {
+                /* Use all remaining data as header value */
                 p = data + len;
               }
+
+              /* Decrement current character pointer, so that the last
+               * increment by the outer for loop will not make the pointer
+               * overrun.
+               */
               --p;
 
+              /* Done with current character */
               break;
             }
 
+            /* If the header state is after met `Connection:` or
+             * `Transfer-Encoding:`
+             */
             case h_connection:
             case h_transfer_encoding:
+              /* Assert error */
               assert(0 && "Shouldn't get here.");
+
+              /* Done with current character */
               break;
 
+            /* If the header state is after met `Content-Length:` */
             case h_content_length:
             {
+              /* Unread content length */
               uint64_t t;
 
+              /* If current character is space.
+               * Done with current character.
+               */
               if (ch == ' ') break;
+              /* If current character is not space */
 
+              /* If current character is not digit */
               if (UNLIKELY(!IS_NUM(ch))) {
+                /* Set error number */
                 SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
+
+                /* Restore original header state */
                 parser->header_state = h_state;
+
+                /* Goto error handler */
                 goto error;
               }
+              /* If current character is digit */
 
+              /* Get unread content length */
               t = parser->content_length;
+
+              /* Update unread content length */
               t *= 10;
               t += ch - '0';
 
+              /* If unread content length is too large */
               /* Overflow? Test against a conservative limit for simplicity. */
               if (UNLIKELY((ULLONG_MAX - 10) / 10 < parser->content_length)) {
+                /* Set error number */
                 SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
+
+                /* Restore original header state */
                 parser->header_state = h_state;
+
+                /* Goto error handler */
                 goto error;
               }
+              /* If unread content length is not too large */
 
+              /* Set unread content length */
               parser->content_length = t;
+
+              /* Done with current character */
               break;
             }
 
+            /* If the header state is matching `Transfer-Encoding: chunked`
+             * after met `Transfer-Encoding: `.
+             */
             /* Transfer-Encoding: chunked */
             case h_matching_transfer_encoding_chunked:
+              /* Increment parser index */
               parser->index++;
+
+              /* If the header value is longer than `chunked`,
+               * or current character is not matched with `chunked`.
+               * It is a general header value.
+               */
               if (parser->index > sizeof(CHUNKED)-1
                   || c != CHUNKED[parser->index]) {
+                /* Update header state */
                 h_state = h_general;
+              /* If the last character of `chunked` is matched */
               } else if (parser->index == sizeof(CHUNKED)-2) {
+                /* Update header state */
                 h_state = h_transfer_encoding_chunked;
               }
+
+              /* Done with current character */
               break;
 
+            /* If the header state is `Connection` after met multi-value
+             * separator `,`, e.g. `Connection: keep-alive,`.
+             */
             case h_matching_connection_token_start:
+              /* If current character is `k`.
+               * It might be `Connection: some-value,keep-alive`.
+               */
               /* looking for 'Connection: keep-alive' */
               if (c == 'k') {
+                /* Update header state */
                 h_state = h_matching_connection_keep_alive;
+              /* If current character is `c`.
+               * It might be `Connection: some-value,close`.
+               */
               /* looking for 'Connection: close' */
               } else if (c == 'c') {
+                /* Update header state */
                 h_state = h_matching_connection_close;
+              /* If current character is `u`.
+               * It might be `Connection: some-value,upgrade`.
+               */
               } else if (c == 'u') {
+                /* Update header state */
                 h_state = h_matching_connection_upgrade;
+              /* If current character is valid token.
+               * It is a general header value.
+               */
               } else if (STRICT_TOKEN(c)) {
+                /* Update header state */
                 h_state = h_matching_connection_token;
+              /* If current character is space or tab */
               } else if (c == ' ' || c == '\t') {
                 /* Skip lws */
+              /* If current character is none of above.
+               * It is a general header.
+               */
               } else {
+                /* Update header state */
                 h_state = h_general;
               }
+
+              /* Done with current character */
               break;
 
+            /* If the header state is matching `Connection: keep-alive` after
+             * met `Connection: `.
+             */
             /* looking for 'Connection: keep-alive' */
             case h_matching_connection_keep_alive:
+              /* Increment parser index */
               parser->index++;
+
+              /* If the header value is longer than `keep-alive`,
+               * or current character is not matched with `keep-alive`.
+               * It is a general header value.
+               */
               if (parser->index > sizeof(KEEP_ALIVE)-1
                   || c != KEEP_ALIVE[parser->index]) {
+                /* Update header state */
                 h_state = h_matching_connection_token;
+              /* If the last character of `keep-alive` is matched */
               } else if (parser->index == sizeof(KEEP_ALIVE)-2) {
+                /* Update header state */
                 h_state = h_connection_keep_alive;
               }
+
+              /* Done with current character */
               break;
 
+            /* If the header state is matching `Connection: close` after met
+             * `Connection: `.
+             */
             /* looking for 'Connection: close' */
             case h_matching_connection_close:
+              /* Increment parser index */
               parser->index++;
+
+              /* If the header value is longer than `close`,
+               * or current character is not matched with `close`.
+               * It is a general header value.
+               */
               if (parser->index > sizeof(CLOSE)-1 || c != CLOSE[parser->index]) {
+                /* Update header state */
                 h_state = h_matching_connection_token;
+              /* If the last character of `close` is matched */
               } else if (parser->index == sizeof(CLOSE)-2) {
+                /* Update header state */
                 h_state = h_connection_close;
               }
+
+              /* Done with current character */
               break;
 
+            /* If the header state is matching `Connection: upgrade` after met
+             * `Connection: `.
+             */
             /* looking for 'Connection: upgrade' */
             case h_matching_connection_upgrade:
+              /* Increment parser index */
               parser->index++;
+
+              /* If the header value is longer than `upgrade`,
+               * or current character is not matched with `upgrade`.
+               * It is a general header value.
+               */
               if (parser->index > sizeof(UPGRADE) - 1 ||
                   c != UPGRADE[parser->index]) {
+                /* Update header state */
                 h_state = h_matching_connection_token;
+              /* If the last character of `upgrade` is matched */
               } else if (parser->index == sizeof(UPGRADE)-2) {
+                /* Update header state */
                 h_state = h_connection_upgrade;
               }
+
+              /* Done with current character */
               break;
 
+            /* If the header state is matching `Connection: some-value` after
+             * met `Connection: `.
+             */
             case h_matching_connection_token:
+              /* If current character is `,`.
+               * It means multi-value separator.
+               */
               if (ch == ',') {
+                /* Update header state */
                 h_state = h_matching_connection_token_start;
+
+                /* Reset parser index */
                 parser->index = 0;
               }
+
+              /* Done with current character */
               break;
 
+            /* If the header state is after met `Transfer-Encoding: chunked` */
             case h_transfer_encoding_chunked:
+              /* If current character is not space.
+               * It is a general header value.
+               * Update header state.
+               */
               if (ch != ' ') h_state = h_general;
+
+              /* Done with current character */
               break;
 
+            /* If the header state is after met `Connection: keep-alive`,
+             * `Connection: close`, or `Connection: upgrade`.
+             */
             case h_connection_keep_alive:
             case h_connection_close:
             case h_connection_upgrade:
+              /* If current character is `,` */
               if (ch == ',') {
+                /* If the header state is after met `Connection: keep-alive` */
                 if (h_state == h_connection_keep_alive) {
+                  /* Add flag */
                   parser->flags |= F_CONNECTION_KEEP_ALIVE;
+                /* If the header state is after met `Connection: close` */
                 } else if (h_state == h_connection_close) {
+                  /* Add flag */
                   parser->flags |= F_CONNECTION_CLOSE;
+                /* If the header state is after met `Connection: upgrade` */
                 } else if (h_state == h_connection_upgrade) {
+                  /* Add flag */
                   parser->flags |= F_CONNECTION_UPGRADE;
                 }
+
+                /* Update header state */
                 h_state = h_matching_connection_token_start;
+
+                /* Reset parser index */
                 parser->index = 0;
+              /* If current character is not `,`.
+               * If current character is not space.
+               * It is a general header value.
+               */
               } else if (ch != ' ') {
+                /* Update header state */
                 h_state = h_matching_connection_token;
               }
+
+              /* Done with current character */
               break;
 
+            /* If the header state is none of above.
+             * It is a general header value.
+             */
             default:
+              /* Update state */
               UPDATE_STATE(s_header_value);
+
+              /* Update header state */
               h_state = h_general;
+
+              /* Done with current character */
               break;
           }
         }
+
+        /* Restore original header state */
         parser->header_state = h_state;
 
+        /* Increase already-read counter `parser->nread`.
+         * Ensure the counter is within limit.
+         */
         COUNT_HEADER_SIZE(p - start);
 
+        /* If current character pointer reached data end */
         if (p == data + len)
+          /* Decrement current character pointer, so that the last increment by
+           * the outer for loop will not make the pointer overrun.
+           */
           --p;
+
+        /* Done with current character */
         break;
       }
 
+      /* If current state is header value after met CR */
       case s_header_almost_done:
       {
+        /* If current character is not LF */
         if (UNLIKELY(ch != LF)) {
+          /* Set error number */
           SET_ERRNO(HPE_LF_EXPECTED);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is LF */
 
+        /* Update state */
         UPDATE_STATE(s_header_value_lws);
+
+        /* Done with current character */
         break;
       }
 
+      /* If current state is header value after met CRLF */
       case s_header_value_lws:
       {
+        /* If current character is space or tab.
+         * It means continuation of the header value after CRLF.
+         */
         if (ch == ' ' || ch == '\t') {
+          /* Update state */
           UPDATE_STATE(s_header_value_start);
+
+          /* Re-parse with new state */
           REEXECUTE();
         }
+        /* If current character is not space or tab.
+         * It means end of header value.
+         */
 
         /* finished the header */
         switch (parser->header_state) {
+          /* If the header state is after met `Connection: keep-alive` */
           case h_connection_keep_alive:
+            /* Add flag */
             parser->flags |= F_CONNECTION_KEEP_ALIVE;
+
             break;
+          /* If the header state is after met `Connection: close` */
           case h_connection_close:
+            /* Add flag */
             parser->flags |= F_CONNECTION_CLOSE;
+
             break;
+          /* If the header state is after met `Transfer-Encoding: chunked` */
           case h_transfer_encoding_chunked:
+            /* Add flag */
             parser->flags |= F_CHUNKED;
+
             break;
+          /* If the header state is after met `Connection: upgrade` */
           case h_connection_upgrade:
+            /* Add flag */
             parser->flags |= F_CONNECTION_UPGRADE;
+
             break;
+          /* If the header state is none of above */
           default:
             break;
         }
 
+        /* Update state */
         UPDATE_STATE(s_header_field_start);
+
+        /* Re-parse with new state */
         REEXECUTE();
       }
 
+      /* If current state is discard whitespace before header value, and met
+       * CR.
+       */
       case s_header_value_discard_ws_almost_done:
       {
+        /* Ensure current character is LF */
         STRICT_CHECK(ch != LF);
+
+        /* Update state */
         UPDATE_STATE(s_header_value_discard_lws);
+
+        /* Done with current character */
         break;
       }
 
+      /* If current state is discard whitespace before header value, and met
+       * CRLF.
+       */
       case s_header_value_discard_lws:
       {
+        /* If current character is space or tab.
+         * It means the header value continues after the CRLF met.
+         */
         if (ch == ' ' || ch == '\t') {
+          /* Update state */
           UPDATE_STATE(s_header_value_discard_ws);
+
+          /* Done with current character */
           break;
+        /* If current character is not space or tab.
+         * It means the header value is empty and the next header starts.
+         */
         } else {
           switch (parser->header_state) {
+            /* If the header state is `Connection: keep-alive` */
             case h_connection_keep_alive:
+              /* Add flag */
               parser->flags |= F_CONNECTION_KEEP_ALIVE;
               break;
+            /* If the header state is `Connection: close` */
             case h_connection_close:
+              /* Add flag */
               parser->flags |= F_CONNECTION_CLOSE;
               break;
+            /* If the header state is `Connection: upgrade` */
             case h_connection_upgrade:
+              /* Add flag */
               parser->flags |= F_CONNECTION_UPGRADE;
               break;
+            /* If the header state is `Transfer-Encoding: chunked` */
             case h_transfer_encoding_chunked:
+              /* Add flag */
               parser->flags |= F_CHUNKED;
               break;
             default:
               break;
           }
 
+          /* Mark */
           /* header value was empty */
           MARK(header_value);
+
+          /* Update state */
           UPDATE_STATE(s_header_field_start);
+
+          /* Call callback */
           CALLBACK_DATA_NOADVANCE(header_value);
+
+          /* Re-parse with new state */
           REEXECUTE();
         }
       }
 
+      /* If current state is headers almost done, after met CR or LF */
       case s_headers_almost_done:
       {
+        /* Ensure current character is LF */
         STRICT_CHECK(ch != LF);
 
+        /* If have flag `F_TRAILING`.
+         * It means end of a chunked request.
+         */
         if (parser->flags & F_TRAILING) {
+          /* Update state */
           /* End of a chunked request */
           UPDATE_STATE(s_message_done);
+
+          /* Call callback */
           CALLBACK_NOTIFY_NOADVANCE(chunk_complete);
+
+          /* Re-parse with new state */
           REEXECUTE();
         }
+        /* If not have flag `F_TRAILING` */
 
+        /* If have both `F_CHUNKED` and `F_CONTENTLENGTH` flags */
         /* Cannot use chunked encoding and a content-length header together
            per the HTTP specification. */
         if ((parser->flags & F_CHUNKED) &&
             (parser->flags & F_CONTENTLENGTH)) {
+          /* Set error number */
           SET_ERRNO(HPE_UNEXPECTED_CONTENT_LENGTH);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If not have both `F_CHUNKED` and `F_CONTENTLENGTH` flags */
 
+        /* Update state */
         UPDATE_STATE(s_headers_done);
 
+        /* Decide whether `upgrade` is on */
         /* Set this here so that on_headers_complete() callbacks can see it */
         parser->upgrade =
           ((parser->flags & (F_UPGRADE | F_CONNECTION_UPGRADE)) ==
            (F_UPGRADE | F_CONNECTION_UPGRADE) ||
            parser->method == HTTP_CONNECT);
 
+        /* If have `on_headers_complete` callback */
         /* Here we call the headers_complete callback. This is somewhat
          * different than other callbacks because if the user returns 1, we
          * will interpret that as saying that this message has no body. This
@@ -1809,68 +3129,137 @@ reexecute:
          * we have to simulate it by handling a change in errno below.
          */
         if (settings->on_headers_complete) {
+          /* Call `on_headers_complete` callback */
           switch (settings->on_headers_complete(parser)) {
+            /* If callback returns 0 */
             case 0:
+              /* Do nothing */
               break;
 
+            /* If callback returns 2.
+             * It means to turn on `upgrade`, and skip body.
+             */
             case 2:
+              /* Set `upgrade` be 1 */
               parser->upgrade = 1;
 
+              /* Fall through */
+
+            /* If callback returns 1.
+             * It means to skip body.
+             */
             case 1:
+              /* Add flag `F_SKIPBODY` */
               parser->flags |= F_SKIPBODY;
               break;
 
+            /* If callback returns none of above */
             default:
+              /* Set error number */
               SET_ERRNO(HPE_CB_headers_complete);
+
+              /* Set parser state be current state.
+               * Return parsed number of bytes.
+               */
               RETURN(p - data); /* Error */
           }
         }
 
+        /* If have error */
         if (HTTP_PARSER_ERRNO(parser) != HPE_OK) {
+          /* Set parser state be current state.
+           * Return parsed number of bytes.
+           */
           RETURN(p - data);
         }
+        /* If not have error */
 
+        /* Re-parse with new state */
         REEXECUTE();
       }
 
+      /* If current state is headers done */
       case s_headers_done:
       {
+        /* Whether has body */
         int hasBody;
+
+        /* Ensure current character is LF */
         STRICT_CHECK(ch != LF);
 
+        /* Reset already-read counter */
         parser->nread = 0;
 
+        /* Decide whether has body */
         hasBody = parser->flags & F_CHUNKED ||
           (parser->content_length > 0 && parser->content_length != ULLONG_MAX);
+
+        /* If `upgrade` is on,
+         * and not need process body.
+         */
         if (parser->upgrade && (parser->method == HTTP_CONNECT ||
                                 (parser->flags & F_SKIPBODY) || !hasBody)) {
           /* Exit, the rest of the message is in a different protocol. */
+          /* Update state */
           UPDATE_STATE(NEW_MESSAGE());
+
+          /* Call callback */
           CALLBACK_NOTIFY(message_complete);
+
+          /* Set parser state be current state.
+           * Return parsed number of bytes.
+           */
           RETURN((p - data) + 1);
         }
+        /* If `upgrade` is not on,
+         * or need process body.
+         */
 
+        /* If `F_SKIPBODY` flag is on */
         if (parser->flags & F_SKIPBODY) {
+          /* Update state */
           UPDATE_STATE(NEW_MESSAGE());
+
+          /* Call callback */
           CALLBACK_NOTIFY(message_complete);
+        /* If `F_SKIPBODY` flag is not on.
+         * If `F_CHUNKED` flag is on.
+         */
         } else if (parser->flags & F_CHUNKED) {
           /* chunked encoding - ignore Content-Length header */
+          /* Update state */
           UPDATE_STATE(s_chunk_size_start);
+        /* If `F_SKIPBODY` flag is not on.
+         * If `F_CHUNKED` flag is not on.
+         */
         } else {
+          /* If unread content length is 0 */
           if (parser->content_length == 0) {
             /* Content-Length header given but zero: Content-Length: 0\r\n */
+            /* Update state */
             UPDATE_STATE(NEW_MESSAGE());
+
+            /* Call callback */
             CALLBACK_NOTIFY(message_complete);
+          /* If unread content length is not 0 */
           } else if (parser->content_length != ULLONG_MAX) {
             /* Content-Length header given and non-zero */
+            /* Update state */
             UPDATE_STATE(s_body_identity);
+          /* If `Content-Length` header is not given */
           } else {
+            /* If not need consume remaining data */
             if (!http_message_needs_eof(parser)) {
               /* Assume content-length 0 - read the next */
+              /* Update state */
               UPDATE_STATE(NEW_MESSAGE());
+
+              /* Call callback */
               CALLBACK_NOTIFY(message_complete);
+            /* If need consume remaining data */
             } else {
               /* Read body until EOF */
+              /* Update state */
               UPDATE_STATE(s_body_identity_eof);
             }
           }
@@ -1879,26 +3268,37 @@ reexecute:
         break;
       }
 
+      /* If current state is read body */
       case s_body_identity:
       {
+        /* Get number of bytes to read */
         uint64_t to_read = MIN(parser->content_length,
                                (uint64_t) ((data + len) - p));
 
+        /* Ensure content length is given and non-zero */
         assert(parser->content_length != 0
             && parser->content_length != ULLONG_MAX);
 
+        /* Mark */
         /* The difference between advancing content_length and p is because
          * the latter will automaticaly advance on the next loop iteration.
          * Further, if content_length ends up at 0, we want to see the last
          * byte again for our message complete callback.
          */
         MARK(body);
+
+        /* Deduct number of bytes to read from the unread content length */
         parser->content_length -= to_read;
+
+        /* Move forward current character pointer */
         p += to_read - 1;
 
+        /* If the unread content length is 0 */
         if (parser->content_length == 0) {
+          /* Update state */
           UPDATE_STATE(s_message_done);
 
+          /* Call callback */
           /* Mimic CALLBACK_DATA_NOADVANCE() but with one extra byte.
            *
            * The alternative to doing this is to wait for the next byte to
@@ -1909,151 +3309,295 @@ reexecute:
            * important for applications, but let's keep it for now.
            */
           CALLBACK_DATA_(body, p - body_mark + 1, p - data);
+
+          /* Re-parse with new state */
           REEXECUTE();
         }
+        /* If the unread content length is not 0 */
 
         break;
       }
 
+      /* If current state is consume remaining data */
       /* read until EOF */
       case s_body_identity_eof:
+        /* Mark */
         MARK(body);
+
+        /* Move forward current character pointer */
         p = data + len - 1;
 
         break;
 
+      /* If current state is message done */
       case s_message_done:
+        /* Update state */
         UPDATE_STATE(NEW_MESSAGE());
+
+        /* Call callback */
         CALLBACK_NOTIFY(message_complete);
+
+        /* If `upgrade` is on */
         if (parser->upgrade) {
+          /* Set parser state be current state.
+           * Return parsed number of bytes.
+           */
           /* Exit, the rest of the message is in a different protocol. */
           RETURN((p - data) + 1);
         }
+        /* If `upgrade` is not on */
+
         break;
 
+      /* If current state is chunk size start */
       case s_chunk_size_start:
       {
+        /* Ensure already-read counter is 1.
+         * The 1 was incremented at the beginning of the for loop.
+         */
         assert(parser->nread == 1);
+
+        /* Ensure have flag `F_CHUNKED` */
         assert(parser->flags & F_CHUNKED);
 
+        /* Map current character as hex digit to decimal value,
+         * e.g. maps character 'A' to int 10.
+         */
         unhex_val = unhex[(unsigned char)ch];
+
+        /* If current character is not hex digit */
         if (UNLIKELY(unhex_val == -1)) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_CHUNK_SIZE);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is hex digit */
 
+        /* Set unread content length */
         parser->content_length = unhex_val;
+
+        /* Update state */
         UPDATE_STATE(s_chunk_size);
+
+        /* Done with current character */
         break;
       }
 
+      /* If current state is chunk size after met the first digit */
       case s_chunk_size:
       {
+        /* Unread content length */
         uint64_t t;
 
+        /* Ensure have flag `F_CHUNKED` */
         assert(parser->flags & F_CHUNKED);
 
+        /* If current character is CR.
+         * It means end of chunk size.
+         */
         if (ch == CR) {
+          /* Update state */
           UPDATE_STATE(s_chunk_size_almost_done);
+
+          /* Done with current character */
           break;
         }
+        /* If current character is not CR */
 
+        /* Map current character as hex digit to decimal value,
+         * e.g. maps character 'A' to int 10.
+         */
         unhex_val = unhex[(unsigned char)ch];
 
+        /* If current character is not hex digit */
         if (unhex_val == -1) {
+          /* If current character is `;` or space.
+           * It means chunk parameters.
+           */
           if (ch == ';' || ch == ' ') {
+            /* Update state */
             UPDATE_STATE(s_chunk_parameters);
+
+            /* Done with current character */
             break;
           }
+          /* If current character is not `;` or space */
 
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_CHUNK_SIZE);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If current character is hex digit */
 
+        /* Get unread content length */
         t = parser->content_length;
+
+        /* Update unread content length */
         t *= 16;
         t += unhex_val;
 
+        /* If unread content length is too large */
         /* Overflow? Test against a conservative limit for simplicity. */
         if (UNLIKELY((ULLONG_MAX - 16) / 16 < parser->content_length)) {
+          /* Set error number */
           SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
+
+          /* Goto error handler */
           goto error;
         }
+        /* If unread content length is not too large */
 
+        /* Set unread content length */
         parser->content_length = t;
+
+        /* Done with current character */
         break;
       }
 
+      /* If current state is chunk parameters */
       case s_chunk_parameters:
       {
+        /* Ensure have flag `F_CHUNKED` */
         assert(parser->flags & F_CHUNKED);
+
+        /* If current character is CR.
+         * It means end of chunk parameters.
+         */
         /* just ignore this shit. TODO check for overflow */
         if (ch == CR) {
+          /* Update state */
           UPDATE_STATE(s_chunk_size_almost_done);
+
+          /* Done with current character */
           break;
         }
+        /* If current character is not CR */
+
+        /* Done with current character */
         break;
       }
 
+      /* If current state is chunk size almost done after met CR */
       case s_chunk_size_almost_done:
       {
+        /* Ensure have flag `F_CHUNKED` */
         assert(parser->flags & F_CHUNKED);
+
+        /* Ensure current character is LF */
         STRICT_CHECK(ch != LF);
 
+        /* Reset already-read counter */
         parser->nread = 0;
 
+        /* If unread content length is 0 */
         if (parser->content_length == 0) {
+          /* Add flag */
           parser->flags |= F_TRAILING;
+
+          /* Update state */
           UPDATE_STATE(s_header_field_start);
+        /* If unread content length is not 0 */
         } else {
+          /* Update state */
           UPDATE_STATE(s_chunk_data);
         }
+
+        /* Call callback */
         CALLBACK_NOTIFY(chunk_header);
+
+        /* Done with current character */
         break;
       }
 
+      /* If current state is chunk data */
       case s_chunk_data:
       {
+        /* Get number of bytes to read */
         uint64_t to_read = MIN(parser->content_length,
                                (uint64_t) ((data + len) - p));
 
+        /* Ensure have flag `F_CHUNKED` */
         assert(parser->flags & F_CHUNKED);
+
+        /* Ensure content length is given and non-zero */
         assert(parser->content_length != 0
             && parser->content_length != ULLONG_MAX);
 
+        /* Mark */
         /* See the explanation in s_body_identity for why the content
          * length and data pointers are managed this way.
          */
         MARK(body);
+
+        /* Deduct number of bytes to read from the unread content length */
         parser->content_length -= to_read;
+
+        /* Move forward current character pointer */
         p += to_read - 1;
 
+        /* If unread content length is 0 */
         if (parser->content_length == 0) {
+          /* Update state */
           UPDATE_STATE(s_chunk_data_almost_done);
         }
 
+        /* Done with current character */
         break;
       }
 
+      /* If current state is chunk data almost done */
       case s_chunk_data_almost_done:
+        /* Ensure have flag `F_CHUNKED` */
         assert(parser->flags & F_CHUNKED);
+
+        /* Ensure unread content length is 0 */
         assert(parser->content_length == 0);
+
+        /* Ensure current character is CR */
         STRICT_CHECK(ch != CR);
+
+        /* Update state */
         UPDATE_STATE(s_chunk_data_done);
+
+        /* Call callback */
         CALLBACK_DATA(body);
+
+        /* Done with current character */
         break;
 
+      /* If current state is chunk data done */
       case s_chunk_data_done:
+        /* Ensure have flag `F_CHUNKED` */
         assert(parser->flags & F_CHUNKED);
+
+        /* Ensure current character is LF */
         STRICT_CHECK(ch != LF);
+
+        /* Reset already-read counter */
         parser->nread = 0;
+
+        /* Update state */
         UPDATE_STATE(s_chunk_size_start);
+
+        /* Call callback */
         CALLBACK_NOTIFY(chunk_complete);
+
+        /* Done with current character */
         break;
 
+      /* If current state is none of above */
       default:
+        /* Assert error */
         assert(0 && "unhandled state");
+
+        /* Set error number */
         SET_ERRNO(HPE_INVALID_INTERNAL_STATE);
+
+        /* Goto error handler */
         goto error;
     }
   }
@@ -2068,25 +3612,36 @@ reexecute:
    * value that's in-bounds).
    */
 
+  /* Ensure at most one of these is marked */
   assert(((header_field_mark ? 1 : 0) +
           (header_value_mark ? 1 : 0) +
           (url_mark ? 1 : 0)  +
           (body_mark ? 1 : 0) +
           (status_mark ? 1 : 0)) <= 1);
 
+  /* Call callback for the marked one */
   CALLBACK_DATA_NOADVANCE(header_field);
   CALLBACK_DATA_NOADVANCE(header_value);
   CALLBACK_DATA_NOADVANCE(url);
   CALLBACK_DATA_NOADVANCE(body);
   CALLBACK_DATA_NOADVANCE(status);
 
+  /* Set parser state be current state.
+   * Return parsed number of bytes.
+   */
   RETURN(len);
 
+/* Error handler */
 error:
+  /* If error number is not set */
   if (HTTP_PARSER_ERRNO(parser) == HPE_OK) {
+    /* Set error number be `HPE_UNKNOWN` */
     SET_ERRNO(HPE_UNKNOWN);
   }
 
+  /* Set parser state be current state.
+   * Return parsed number of bytes.
+   */
   RETURN(p - data);
 }
 
@@ -2144,17 +3699,29 @@ http_method_str (enum http_method m)
 void
 http_parser_init (http_parser *parser, enum http_parser_type t)
 {
+  /* Get `data` pointer */
   void *data = parser->data; /* preserve application data */
+
+  /* Zeroize the `http_parser` struct */
   memset(parser, 0, sizeof(*parser));
+
+  /* Set back `data` pointer */
   parser->data = data;
+
+  /* Store parser type */
   parser->type = t;
+
+  /* Set initial state */
   parser->state = (t == HTTP_REQUEST ? s_start_req : (t == HTTP_RESPONSE ? s_start_res : s_start_req_or_res));
+
+  /* Set initial error number */
   parser->http_errno = HPE_OK;
 }
 
 void
 http_parser_settings_init(http_parser_settings *settings)
 {
+  /* Zeroize the `http_parser_settings` struct */
   memset(settings, 0, sizeof(*settings));
 }
 
