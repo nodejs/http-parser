@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+
+import autowrap.Main
+
+
+def run_cython(inc_dirs, extra_opts, out):
+    from Cython.Compiler.Main import compile, CompilationOptions
+    from Cython.Compiler.Options import directive_defaults
+    directive_defaults["boundscheck"] = False
+    directive_defaults["wraparound"] = False
+    options = dict(include_path=inc_dirs,
+                   compiler_directives=directive_defaults,
+                   cplus=True)
+    if extra_opts is not None:
+        options.update(extra_opts)
+    options = CompilationOptions(**options)
+    compile(out, options=options)
+
+
+def create_wrapper_code(decls, instance_map, addons, converters, out, extra_inc_dirs, extra_opts, include_boost=True):
+    cimports, manual_code = autowrap.Main.collect_manual_code(addons)
+    autowrap.Main.register_converters(converters)
+    inc_dirs = autowrap.generate_code(decls, instance_map, out, False, manual_code, cimports, include_boost)
+
+    if extra_inc_dirs is not None:
+        inc_dirs += extra_inc_dirs
+
+    run_cython(inc_dirs, extra_opts, out)
+    return inc_dirs
+
+
+def run(pxds, addons, converters, out, extra_inc_dirs=None, extra_opts=None):
+    decls, instance_map = autowrap.parse(pxds, ".")
+    return create_wrapper_code(decls, instance_map, addons, converters, out, extra_inc_dirs,
+                               extra_opts)
+
+
+autowrap.Main.run(
+    ['http_parser.pxd'],
+    ['addon.pyx'],
+    [],
+    'parser.pyx',
+    extra_inc_dirs=None,
+    extra_opts=dict(
+        gdb_debug=True,
+        compiler_directives=dict(
+            # boundscheck=False,
+            # wraparound=False,
+
+            embedsignature=True,
+            # profile=True,
+            linetrace=True,
+            language_level=3,
+        ),
+    ),
+)
+
