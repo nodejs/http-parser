@@ -210,6 +210,53 @@ enum http_method
 #undef XX
   };
 
+// HEADER_NAME, LOWERCASE_HEADER_NAME, FLAG
+// FLAG is used to determine action to be taken if multiple
+// instances of same header comes.
+//  0 = first instance is winner
+//  1 = header values are pushed to array
+//  2 = header values are joined with ', '
+// headers list is taken from:
+// https://mxr.mozilla.org/mozilla/source/netwerk/protocol/http/src/nsHttpHeaderArray.cpp
+#define HTTP_HEADER_MAP(XX)                           \
+  XX(Accept,              accept,              accept,0) \
+  XX(Accept-Encoding,     accept-encoding,     accept_encoding,0) \
+  XX(Accept-Language,     accept-language,     accept_language,0) \
+  XX(Transfer-Encoding,   transfer-encoding,   transfer_encoding,0) \
+  XX(Date,                date,                date,0) \
+  XX(Cache-Control,       cache-control,       cache_control,0) \
+  XX(Connection,          connection,          connection,0) \
+  XX(Content-Encoding,    content-encoding,    content_encoding,0) \
+  XX(Vary,                vary,                vary,0) \
+  XX(Cookie,              cookie,              cookie,0) \
+  XX(Origin,              origin,              origin,0) \
+  XX(Upgrade,             upgrade,             upgrade,0) \
+  XX(Expect,              expect,              expect,0) \
+  XX(If-Match,            if-match,            if_match,0) \
+  XX(If-None-Match,       if-none-match,       if_none_match,0) \
+  XX(X-Forwarded-For,     x-forwarded-for,     x_forwarded_for,0) \
+  XX(X-Forwarded-Host,    x-forwarded-host,    x_forwarded_host,0) \
+  XX(X-Forwarded-Proto,   x-forwarded-proto,   x_forwarded_proto,0) \
+  XX(Set-Cookie,          set-cookie,          set_cookie,1) \
+  XX(Content-Type,        content-type,        content_type,2) \
+  XX(Content-Length,      content-length,      content_length,2) \
+  XX(User-Agent,          user-agent,          user_agent,2) \
+  XX(Referer,             referer,             referer,2) \
+  XX(Host,                host,                host,2) \
+  XX(Authorization,       authorization,       authorization,2) \
+  XX(Proxy-Authorization, proxy-authorization, proxy_authorization,2) \
+  XX(If-Modified-Since,   if-modified-since,   if_modified_since,2) \
+  XX(If-Unmodified-Since, if-unmodified-since, if_unmodified_since,2) \
+  XX(From,                from,                from,2) \
+  XX(Location,            location,            location,2) \
+  XX(Max-Forwards,        max-forwards,        max_forwards,2) \
+  XX(Retry-After,         retry-after,         retry_after,2) \
+  XX(ETag,                etag,                etag,2) \
+  XX(Last-Modified,       last-modified,       last_modified,2) \
+  XX(Server,              server,              server,2) \
+  XX(Age,                 age,                 age,2) \
+  XX(Expires,             expires,             expires,2) \
+
 
 enum http_parser_type { HTTP_REQUEST, HTTP_RESPONSE, HTTP_BOTH };
 
@@ -297,6 +344,7 @@ struct http_parser {
   unsigned int header_state : 7; /* enum header_state from http_parser.c */
   unsigned int index : 7;        /* index into current matcher */
   unsigned int lenient_http_headers : 1;
+  unsigned int traditional_case_http_headers : 1;
 
   uint32_t nread;          /* # bytes read in various scenarios */
   uint64_t content_length; /* # bytes in body (0 if no Content-Length header) */

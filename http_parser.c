@@ -162,14 +162,40 @@ do {                                                                 \
 
 
 #define PROXY_CONNECTION "proxy-connection"
-#define CONNECTION "connection"
+#define ACCEPT "accept"
+#define CONTENT_ "content-"
 #define CONTENT_LENGTH "content-length"
-#define TRANSFER_ENCODING "transfer-encoding"
 #define UPGRADE "upgrade"
 #define CHUNKED "chunked"
 #define KEEP_ALIVE "keep-alive"
 #define CLOSE "close"
+#define IF_ "if-"
+#define PROXY_ "proxy-"
+#define X_FORWARDED_ "x-forwarded-"
 
+
+#define case_header(tag, string)                          \
+      case h_matching_##tag:                                    \
+        parser->index++;                                        \
+        if (parser->index > sizeof(string) - 1                  \
+            || c != string[parser->index]) {                    \
+          parser->header_state = h_general;                     \
+        } else if (parser->index == sizeof(string) - 2) {       \
+          parser->header_state = h_##tag;                       \
+        }
+
+#define case_header_with_dash(tag, string)                \
+        case_header(tag, string)                          \
+        else if (c == '-') {                                    \
+            checkForTraditionalCase = true;                     \
+        } else if (checkForTraditionalCase) {                   \
+            parser->traditional_case_http_headers &= (c != ch); \
+            checkForTraditionalCase = false;                    \
+         }
+
+#define default_h_general \
+        default:  \
+        parser->header_state = h_general;
 
 static const char *method_strings[] =
   {
@@ -362,21 +388,34 @@ enum state
 
 enum header_states
   { h_general = 0
+#define XX(headerName, lowerCaseHeaderName, enum_name, flag) , h_##enum_name
+  HTTP_HEADER_MAP(XX)
+#undef XX
+  , h_complete_accept
+  , h_A
   , h_C
   , h_CO
   , h_CON
-
-  , h_matching_connection
+  , h_E
+  , h_EX
+  , h_EXP
+  , h_L
+  , h_R
+  , h_RE
+  , h_S
+  , h_SE
+  , h_U
+  , h_matching_accept_
+  , h_matching_content_
+  , h_matching_if_
+  , h_matching_if_m
+  , h_matching_proxy_
   , h_matching_proxy_connection
-  , h_matching_content_length
-  , h_matching_transfer_encoding
-  , h_matching_upgrade
+  , h_matching_x_forwarded_
 
-  , h_connection
-  , h_content_length
-  , h_transfer_encoding
-  , h_upgrade
-
+#define XX(headerName, lowerCaseHeaderName, enum_name, flag) , h_matching_##enum_name
+  HTTP_HEADER_MAP(XX)
+#undef XX
   , h_matching_transfer_encoding_chunked
   , h_matching_connection_token_start
   , h_matching_connection_keep_alive
@@ -1271,13 +1310,60 @@ reexecute:
         parser->index = 0;
         UPDATE_STATE(s_header_field);
 
+        parser->traditional_case_http_headers = ch != c;
+
         switch (c) {
+
+          case 'a':
+            parser->header_state = h_A;
+            break;
+
           case 'c':
             parser->header_state = h_C;
             break;
 
+          case 'd':
+            parser->header_state = h_matching_date;
+            break;
+
+          case 'e':
+            parser->header_state = h_E;
+            break;
+
+          case 'f':
+            parser->header_state = h_matching_from;
+            break;
+
+          case 'h':
+            parser->header_state = h_matching_host;
+            break;
+
+          case 'i':
+            parser->header_state = h_matching_if_;
+            break;
+
+          case 'l':
+            parser->header_state = h_L;
+            break;
+
+          case 'm':
+            parser->header_state = h_matching_max_forwards;
+            break;
+
+          case 'o':
+            parser->header_state = h_matching_origin;
+            break;
+
           case 'p':
-            parser->header_state = h_matching_proxy_connection;
+            parser->header_state = h_matching_proxy_;
+            break;
+
+          case 'r':
+            parser->header_state = h_R;
+            break;
+
+          case 's':
+            parser->header_state = h_S;
             break;
 
           case 't':
@@ -1285,10 +1371,19 @@ reexecute:
             break;
 
           case 'u':
-            parser->header_state = h_matching_upgrade;
+            parser->header_state = h_U;
+            break;
+
+          case 'v':
+            parser->header_state = h_matching_vary;
+            break;
+
+          case 'x':
+            parser->header_state = h_matching_x_forwarded_;
             break;
 
           default:
+            parser->traditional_case_http_headers = false;
             parser->header_state = h_general;
             break;
         }
@@ -1297,26 +1392,62 @@ reexecute:
 
       case s_header_field:
       {
+        bool checkForTraditionalCase = false;
         const char* start = p;
         for (; p != data + len; p++) {
           ch = *p;
           c = TOKEN(ch);
 
-          if (!c)
+          if (!c) {
+            if (parser->header_state == h_complete_accept) {
+              parser->header_state = h_accept;
+            }
             break;
+          }
 
           switch (parser->header_state) {
             case h_general:
               break;
+            case h_A:
+              parser->index++;
+              switch (c) {
+                case 'c':
+                  parser->header_state = h_complete_accept;
+                  break;
+                case 'g':
+                  parser->header_state = h_matching_age;
+                  break;
+                case 'u':
+                  parser->header_state = h_matching_authorization;
+                  break;
+                default_h_general
+              }
+              break;
 
             case h_C:
               parser->index++;
-              parser->header_state = (c == 'o' ? h_CO : h_general);
+              switch (c) {
+                case 'o':
+                  parser->header_state = h_CO;
+                  break;
+                case 'a':
+                  parser->header_state = h_matching_cache_control;
+                  break;
+                default_h_general
+              }
               break;
 
             case h_CO:
               parser->index++;
-              parser->header_state = (c == 'n' ? h_CON : h_general);
+              switch (c) {
+                case 'n':
+                  parser->header_state = h_CON;
+                  break;
+                case 'o':
+                  parser->header_state = h_matching_cookie;
+                  break;
+                default_h_general
+              }
               break;
 
             case h_CON:
@@ -1326,78 +1457,294 @@ reexecute:
                   parser->header_state = h_matching_connection;
                   break;
                 case 't':
-                  parser->header_state = h_matching_content_length;
+                  parser->header_state = h_matching_content_;
                   break;
-                default:
-                  parser->header_state = h_general;
-                  break;
+                default_h_general
               }
               break;
 
-            /* connection */
-
-            case h_matching_connection:
+            case h_E:
               parser->index++;
-              if (parser->index > sizeof(CONNECTION)-1
-                  || c != CONNECTION[parser->index]) {
-                parser->header_state = h_general;
-              } else if (parser->index == sizeof(CONNECTION)-2) {
-                parser->header_state = h_connection;
+              switch (c) {
+                case 't':
+                  parser->header_state = h_matching_etag;
+                  break;
+                case 'x':
+                  parser->header_state = h_EX;
+                  break;
+                default_h_general
               }
               break;
 
-            /* proxy-connection */
+            case h_EX:
+              parser->index++;
+              parser->header_state = c == 'p' ? h_EXP : h_general;
+              break;
 
+            case h_EXP:
+              parser->index++;
+              switch (c) {
+                case 'e':
+                  parser->header_state = h_matching_expect;
+                  break;
+                case 'i':
+                  parser->header_state = h_matching_expires;
+                  break;
+                default_h_general
+              }
+              break;
+
+            case h_L:
+              parser->index++;
+              switch (c) {
+                case 'a':
+                  parser->header_state = h_matching_last_modified;
+                  break;
+                case 'o':
+                  parser->header_state = h_matching_location;
+                  break;
+                default_h_general
+              }
+              break;
+
+            case h_R:
+              parser->index++;
+              parser->header_state = c == 'e' ? h_RE : h_general;
+              break;
+
+            case h_RE:
+              parser->index++;
+              switch (c) {
+                case 'f':
+                  parser->header_state = h_matching_referer;
+                  break;
+                case 't':
+                  parser->header_state = h_matching_retry_after;
+                  break;
+                default_h_general
+              }
+              break;
+
+            case h_S:
+              parser->index++;
+              parser->header_state = c == 'e' ? h_SE : h_general;
+              break;
+
+            case h_SE:
+              parser->index++;
+              switch (c) {
+                case 'r':
+                  parser->header_state = h_matching_server;
+                  break;
+                case 't':
+                  parser->header_state = h_matching_set_cookie;
+                  break;
+                default_h_general
+              }
+              break;
+
+            case h_U:
+              parser->index++;
+              switch (c) {
+                case 'p':
+                  parser->header_state = h_matching_upgrade;
+                  break;
+                case 's':
+                  parser->header_state = h_matching_user_agent;
+                  break;
+                default_h_general
+              }
+              break;
+
+            case h_complete_accept:
+              parser->index++;
+              if (parser->index == sizeof(ACCEPT) - 1) {
+                parser->header_state = c == '-' ? h_matching_accept_ : h_general;
+              } else if (c != ACCEPT[parser->index]) {
+                parser->header_state = h_general;
+              }
+              break;
+
+              // prefix cases
+            case h_matching_accept_:
+              parser->index++;
+              switch (c) {
+                case 'e':
+                  parser->traditional_case_http_headers &= (c != ch);
+                  parser->header_state = h_matching_accept_encoding;
+                  break;
+                case 'l':
+                  parser->traditional_case_http_headers &= (c != ch);
+                  parser->header_state = h_matching_accept_language;
+                  break;
+                default_h_general
+              }
+              break;
+
+            case h_matching_content_:
+              parser->index++;
+              if (parser->index == sizeof(CONTENT_) - 1) {
+                switch (c) {
+                  case 'e':
+                    parser->traditional_case_http_headers &= (c != ch);
+                    parser->header_state = h_matching_content_encoding;
+                    break;
+                  case 'l':
+                    parser->traditional_case_http_headers &= (c != ch);
+                    parser->header_state = h_matching_content_length;
+                    break;
+                  case 't':
+                    parser->traditional_case_http_headers &= (c != ch);
+                    parser->header_state = h_matching_content_type;
+                    break;
+                    default_h_general
+                }
+              } else if (parser->index > sizeof(CONTENT_) - 1
+                  || c != CONTENT_[parser->index]) {
+                parser->header_state = h_general;
+              }
+              break;
+
+            case h_matching_if_:
+              parser->index++;
+              if (parser->index == sizeof(IF_) - 1) {
+                switch (c) {
+                  case 'm':
+                    parser->traditional_case_http_headers &= (c != ch);
+                    parser->header_state = h_matching_if_m;
+                    break;
+                  case 'n':
+                    parser->traditional_case_http_headers &= (c != ch);
+                    parser->header_state = h_matching_if_none_match;
+                    break;
+                  case 'u':
+                    parser->traditional_case_http_headers &= (c != ch);
+                    parser->header_state = h_matching_if_unmodified_since;
+                    break;
+                    default_h_general
+                }
+              } else if (parser->index > sizeof(IF_) - 1
+                  || c != IF_[parser->index]) {
+                parser->header_state = h_general;
+              }
+              break;
+
+            case h_matching_if_m:
+              switch (c) {
+                case 'a':
+                  parser->header_state = h_matching_if_match;
+                  break;
+                case 'o':
+                  parser->header_state = h_matching_if_modified_since;
+                  break;
+                default_h_general
+              }
+              break;
+
+
+            case h_matching_proxy_:
+              parser->index++;
+              if (parser->index == sizeof(PROXY_) - 1) {
+                switch (c) {
+                  case 'a':
+                    parser->traditional_case_http_headers &= (c != ch);
+                    parser->header_state = h_matching_proxy_authorization;
+                    break;
+                  case 'c':
+                    parser->traditional_case_http_headers &= (c != ch);
+                    parser->header_state = h_matching_proxy_connection;
+                    break;
+                    default_h_general
+                }
+              } else if (parser->index > sizeof(PROXY_) - 1
+                  || c != PROXY_[parser->index]) {
+                parser->header_state = h_general;
+              }
+              break;
+
+            case h_matching_x_forwarded_:
+              parser->index++;
+              if (parser->index == sizeof(X_FORWARDED_) - 1) {
+                switch (c) {
+                  case 'f':
+                    parser->traditional_case_http_headers &= (c != ch);
+                    parser->header_state = h_matching_x_forwarded_for;
+                    break;
+                  case 'h':
+                    parser->traditional_case_http_headers &= (c != ch);
+                    parser->header_state = h_matching_x_forwarded_host;
+                    break;
+                  case 'p':
+                    parser->traditional_case_http_headers &= (c != ch);
+                    parser->header_state = h_matching_x_forwarded_proto;
+                    break;
+                    default_h_general
+                }
+              } else if (parser->index > sizeof(X_FORWARDED_) - 1
+                  || c != X_FORWARDED_[parser->index]) {
+                parser->header_state = h_general;
+              } else if (c == '-') {
+                // check traditional casing'F' in X-Forwarded
+                checkForTraditionalCase = true;
+              } else if (checkForTraditionalCase) {
+                parser->traditional_case_http_headers &= (c != ch);
+                checkForTraditionalCase = false;
+              }
+              break; 
+
+              // special handling cases
+              /* proxy-connection */
             case h_matching_proxy_connection:
               parser->index++;
-              if (parser->index > sizeof(PROXY_CONNECTION)-1
+              if (parser->index > sizeof(PROXY_CONNECTION) - 1
                   || c != PROXY_CONNECTION[parser->index]) {
                 parser->header_state = h_general;
-              } else if (parser->index == sizeof(PROXY_CONNECTION)-2) {
+              } else if (parser->index == sizeof(PROXY_CONNECTION) - 2) {
                 parser->header_state = h_connection;
               }
               break;
 
-            /* content-length */
+            case_header(accept_encoding, "accept-encoding") break;
+            case_header(accept_language, "accept-language") break;
+            case_header(age, "age") break;
+            case_header(authorization, "authorization") break;
+            case_header(connection, "connection") break;
+            case_header(content_encoding, "content-encoding") break;
+            case_header(content_length, "content-length") break;
+            case_header(content_type, "content-type") break;
+            case_header(cookie, "cookie") break;
+            case_header(date, "date") break;
+            case_header(etag, "etag") break;
+            case_header(expect, "expect") break;
+            case_header(expires, "expires") break;
+            case_header(from, "from") break;
+            case_header(host, "host") break;
+            case_header(if_match, "if-match") break;
+            case_header(location, "location") break;
+            case_header(origin, "origin") break;
+            case_header(proxy_authorization, "proxy-authorization") break;
+            case_header(referer, "referer") break;
+            case_header(server, "server") break;
+            case_header(upgrade, "upgrade") break;
+            case_header(vary, "vary") break;
+            case_header(x_forwarded_for, "x-forwarded-for") break;
+            case_header(x_forwarded_host, "x-forwarded-host") break;
+            case_header(x_forwarded_proto, "x-forwarded-proto") break;
+            case_header_with_dash(cache_control, "cache-control") break;
+            case_header_with_dash(if_modified_since, "if-modified-since") break;
+            case_header_with_dash(if_none_match, "if-none-match") break;
+            case_header_with_dash(if_unmodified_since, "if-unmodified-since") break;
+            case_header_with_dash(last_modified, "last-modified") break;
+            case_header_with_dash(max_forwards, "max-forwards") break;
+            case_header_with_dash(retry_after, "retry-after") break;
+            case_header_with_dash(set_cookie, "set-cookie") break;
+            case_header_with_dash(transfer_encoding, "transfer-encoding") break;
+            case_header_with_dash(user_agent, "user-agent") break;
 
-            case h_matching_content_length:
-              parser->index++;
-              if (parser->index > sizeof(CONTENT_LENGTH)-1
-                  || c != CONTENT_LENGTH[parser->index]) {
-                parser->header_state = h_general;
-              } else if (parser->index == sizeof(CONTENT_LENGTH)-2) {
-                parser->header_state = h_content_length;
-              }
-              break;
-
-            /* transfer-encoding */
-
-            case h_matching_transfer_encoding:
-              parser->index++;
-              if (parser->index > sizeof(TRANSFER_ENCODING)-1
-                  || c != TRANSFER_ENCODING[parser->index]) {
-                parser->header_state = h_general;
-              } else if (parser->index == sizeof(TRANSFER_ENCODING)-2) {
-                parser->header_state = h_transfer_encoding;
-              }
-              break;
-
-            /* upgrade */
-
-            case h_matching_upgrade:
-              parser->index++;
-              if (parser->index > sizeof(UPGRADE)-1
-                  || c != UPGRADE[parser->index]) {
-                parser->header_state = h_general;
-              } else if (parser->index == sizeof(UPGRADE)-2) {
-                parser->header_state = h_upgrade;
-              }
-              break;
-
-            case h_connection:
-            case h_content_length:
-            case h_transfer_encoding:
-            case h_upgrade:
+            // If there is extra character after matching known header
+#define XX(headerName, lowerCaseHeaderName, enum_name, flag) case h_##enum_name :
+              HTTP_HEADER_MAP(XX)
+#undef XX
               if (ch != ' ') parser->header_state = h_general;
               break;
 
