@@ -174,28 +174,24 @@ do {                                                                 \
 #define X_FORWARDED_ "x-forwarded-"
 
 
-#define case_header(tag, string)                          \
-      case h_matching_##tag:                                    \
-        parser->index++;                                        \
-        if (parser->index > sizeof(string) - 1                  \
-            || c != string[parser->index]) {                    \
-          parser->header_state = h_general;                     \
-        } else if (parser->index == sizeof(string) - 2) {       \
-          parser->header_state = h_##tag;                       \
+#define case_header(tag, string)                                  \
+      case h_matching_##tag:                                      \
+        parser->index++;                                          \
+        if (parser->index > sizeof(string) - 1                    \
+            || c != string[parser->index]) {                      \
+          parser->header_state = h_general;                       \
+        } else if (parser->index == sizeof(string) - 2) {         \
+          parser->header_state = h_##tag;                         \
         }
 
-#define case_header_with_dash(tag, string)                \
-        case_header(tag, string)                          \
-        else if (c == '-') {                                    \
-            checkForTraditionalCase = true;                     \
-        } else if (checkForTraditionalCase) {                   \
-            parser->traditional_case_http_headers &= (c != ch); \
-            checkForTraditionalCase = false;                    \
-         }
-
-#define default_h_general \
-        default:  \
-        parser->header_state = h_general;
+#define case_header_with_dash(tag, string)                        \
+        case_header(tag, string)                                  \
+        else if (c == '-') {                                      \
+          check_for_traditional_case = 1;                         \
+        } else if (check_for_traditional_case) {                  \
+          parser->traditional_case_http_headers &= (c != ch);     \
+          check_for_traditional_case = 0;                         \
+        }
 
 static const char *method_strings[] =
   {
@@ -1310,7 +1306,7 @@ reexecute:
         parser->index = 0;
         UPDATE_STATE(s_header_field);
 
-        parser->traditional_case_http_headers = ch != c;
+        parser->traditional_case_http_headers = (ch != c);
 
         switch (c) {
 
@@ -1383,7 +1379,7 @@ reexecute:
             break;
 
           default:
-            parser->traditional_case_http_headers = false;
+            parser->traditional_case_http_headers = 0;
             parser->header_state = h_general;
             break;
         }
@@ -1392,7 +1388,7 @@ reexecute:
 
       case s_header_field:
       {
-        bool checkForTraditionalCase = false;
+        unsigned int check_for_traditional_case = 0;
         const char* start = p;
         for (; p != data + len; p++) {
           ch = *p;
@@ -1420,7 +1416,8 @@ reexecute:
                 case 'u':
                   parser->header_state = h_matching_authorization;
                   break;
-                default_h_general
+                default:
+                  parser->header_state = h_general;
               }
               break;
 
@@ -1433,7 +1430,8 @@ reexecute:
                 case 'a':
                   parser->header_state = h_matching_cache_control;
                   break;
-                default_h_general
+                default:
+                  parser->header_state = h_general;
               }
               break;
 
@@ -1446,7 +1444,8 @@ reexecute:
                 case 'o':
                   parser->header_state = h_matching_cookie;
                   break;
-                default_h_general
+                default:
+                  parser->header_state = h_general;
               }
               break;
 
@@ -1459,7 +1458,8 @@ reexecute:
                 case 't':
                   parser->header_state = h_matching_content_;
                   break;
-                default_h_general
+                default:
+                  parser->header_state = h_general;
               }
               break;
 
@@ -1472,13 +1472,14 @@ reexecute:
                 case 'x':
                   parser->header_state = h_EX;
                   break;
-                default_h_general
+                default:
+                  parser->header_state = h_general;
               }
               break;
 
             case h_EX:
               parser->index++;
-              parser->header_state = c == 'p' ? h_EXP : h_general;
+              parser->header_state = (c == 'p' ? h_EXP : h_general);
               break;
 
             case h_EXP:
@@ -1490,7 +1491,8 @@ reexecute:
                 case 'i':
                   parser->header_state = h_matching_expires;
                   break;
-                default_h_general
+                default:
+                  parser->header_state = h_general;
               }
               break;
 
@@ -1503,13 +1505,14 @@ reexecute:
                 case 'o':
                   parser->header_state = h_matching_location;
                   break;
-                default_h_general
+                default:
+                  parser->header_state = h_general;
               }
               break;
 
             case h_R:
               parser->index++;
-              parser->header_state = c == 'e' ? h_RE : h_general;
+              parser->header_state = (c == 'e' ? h_RE : h_general);
               break;
 
             case h_RE:
@@ -1521,13 +1524,14 @@ reexecute:
                 case 't':
                   parser->header_state = h_matching_retry_after;
                   break;
-                default_h_general
+                default:
+                  parser->header_state = h_general;
               }
               break;
 
             case h_S:
               parser->index++;
-              parser->header_state = c == 'e' ? h_SE : h_general;
+              parser->header_state = (c == 'e' ? h_SE : h_general);
               break;
 
             case h_SE:
@@ -1539,7 +1543,8 @@ reexecute:
                 case 't':
                   parser->header_state = h_matching_set_cookie;
                   break;
-                default_h_general
+                default:
+                  parser->header_state = h_general;
               }
               break;
 
@@ -1552,20 +1557,21 @@ reexecute:
                 case 's':
                   parser->header_state = h_matching_user_agent;
                   break;
-                default_h_general
+                default:
+                  parser->header_state = h_general;
               }
               break;
 
             case h_complete_accept:
               parser->index++;
               if (parser->index == sizeof(ACCEPT) - 1) {
-                parser->header_state = c == '-' ? h_matching_accept_ : h_general;
+                parser->header_state = (c == '-' ? h_matching_accept_ : h_general);
               } else if (c != ACCEPT[parser->index]) {
                 parser->header_state = h_general;
               }
               break;
 
-              // prefix cases
+              /* prefix cases */
             case h_matching_accept_:
               parser->index++;
               switch (c) {
@@ -1577,7 +1583,8 @@ reexecute:
                   parser->traditional_case_http_headers &= (c != ch);
                   parser->header_state = h_matching_accept_language;
                   break;
-                default_h_general
+                default:
+                  parser->header_state = h_general;
               }
               break;
 
@@ -1597,7 +1604,8 @@ reexecute:
                     parser->traditional_case_http_headers &= (c != ch);
                     parser->header_state = h_matching_content_type;
                     break;
-                    default_h_general
+                  default:
+                    parser->header_state = h_general;
                 }
               } else if (parser->index > sizeof(CONTENT_) - 1
                   || c != CONTENT_[parser->index]) {
@@ -1621,7 +1629,8 @@ reexecute:
                     parser->traditional_case_http_headers &= (c != ch);
                     parser->header_state = h_matching_if_unmodified_since;
                     break;
-                    default_h_general
+                  default:
+                    parser->header_state = h_general;
                 }
               } else if (parser->index > sizeof(IF_) - 1
                   || c != IF_[parser->index]) {
@@ -1637,7 +1646,8 @@ reexecute:
                 case 'o':
                   parser->header_state = h_matching_if_modified_since;
                   break;
-                default_h_general
+                default:
+                  parser->header_state = h_general;
               }
               break;
 
@@ -1654,7 +1664,8 @@ reexecute:
                     parser->traditional_case_http_headers &= (c != ch);
                     parser->header_state = h_matching_proxy_connection;
                     break;
-                    default_h_general
+                  default:
+                    parser->header_state = h_general;
                 }
               } else if (parser->index > sizeof(PROXY_) - 1
                   || c != PROXY_[parser->index]) {
@@ -1678,22 +1689,23 @@ reexecute:
                     parser->traditional_case_http_headers &= (c != ch);
                     parser->header_state = h_matching_x_forwarded_proto;
                     break;
-                    default_h_general
+                  default:
+                    parser->header_state = h_general;
                 }
               } else if (parser->index > sizeof(X_FORWARDED_) - 1
                   || c != X_FORWARDED_[parser->index]) {
                 parser->header_state = h_general;
               } else if (c == '-') {
-                // check traditional casing'F' in X-Forwarded
-                checkForTraditionalCase = true;
-              } else if (checkForTraditionalCase) {
+                /* check traditional casing'F' in X-Forwarded */
+                check_for_traditional_case = 1;
+              } else if (check_for_traditional_case) {
                 parser->traditional_case_http_headers &= (c != ch);
-                checkForTraditionalCase = false;
+                check_for_traditional_case = 0;
               }
               break; 
 
-              // special handling cases
-              /* proxy-connection */
+              /* special handling cases
+                 proxy-connection */
             case h_matching_proxy_connection:
               parser->index++;
               if (parser->index > sizeof(PROXY_CONNECTION) - 1
@@ -1741,7 +1753,7 @@ reexecute:
             case_header_with_dash(transfer_encoding, "transfer-encoding") break;
             case_header_with_dash(user_agent, "user-agent") break;
 
-            // If there is extra character after matching known header
+            /* If there is extra character after matching known header */
 #define XX(headerName, lowerCaseHeaderName, enum_name, flag) case h_##enum_name :
               HTTP_HEADER_MAP(XX)
 #undef XX
