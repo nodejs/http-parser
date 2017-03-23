@@ -2144,7 +2144,11 @@ http_method_str (enum http_method m)
 void
 http_parser_init (http_parser *parser, enum http_parser_type t)
 {
-  void *data = parser->data; /* preserve application data */
+  void *data = NULL;
+
+  assert(NULL != parser);
+
+  data = parser->data; /* preserve application data */
   memset(parser, 0, sizeof(*parser));
   parser->data = data;
   parser->type = t;
