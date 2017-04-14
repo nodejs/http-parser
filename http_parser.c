@@ -1794,10 +1794,17 @@ reexecute:
         UPDATE_STATE(s_headers_done);
 
         /* Set this here so that on_headers_complete() callbacks can see it */
-        parser->upgrade =
-          ((parser->flags & (F_UPGRADE | F_CONNECTION_UPGRADE)) ==
-           (F_UPGRADE | F_CONNECTION_UPGRADE) ||
-           parser->method == HTTP_CONNECT);
+        if ((parser->flags & F_UPGRADE) &&
+            (parser->flags & F_CONNECTION_UPGRADE)) {
+          /* For responses, "Upgrade: foo" and "Connection: upgrade" are
+           * mandatory only when it is a 101 Switching Protocols response,
+           * otherwise it is purely informational, to announce support.
+           */
+          parser->upgrade =
+              (parser->type == HTTP_REQUEST || parser->status_code == 101);
+        } else {
+          parser->upgrade = (parser->method == HTTP_CONNECT);
+        }
 
         /* Here we call the headers_complete callback. This is somewhat
          * different than other callbacks because if the user returns 1, we
