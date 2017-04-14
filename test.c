@@ -1772,6 +1772,167 @@ const struct message responses[] =
   ,.chunk_lengths= { 2 }
   }
 
+#define HTTP_101_RESPONSE_WITH_UPGRADE_HEADER 22
+, {.name= "HTTP 101 response with Upgrade header"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 101 Switching Protocols\r\n"
+         "Connection: upgrade\r\n"
+         "Upgrade: h2c\r\n"
+         "\r\n"
+         "proto"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 101
+  ,.response_status= "Switching Protocols"
+  ,.upgrade= "proto"
+  ,.num_headers= 2
+  ,.headers=
+    { { "Connection", "upgrade" }
+    , { "Upgrade", "h2c" }
+    }
+  }
+
+#define HTTP_101_RESPONSE_WITH_UPGRADE_HEADER_AND_CONTENT_LENGTH 23
+, {.name= "HTTP 101 response with Upgrade and Content-Length header"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 101 Switching Protocols\r\n"
+         "Connection: upgrade\r\n"
+         "Upgrade: h2c\r\n"
+         "Content-Length: 4\r\n"
+         "\r\n"
+         "body"
+         "proto"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 101
+  ,.response_status= "Switching Protocols"
+  ,.body= "body"
+  ,.upgrade= "proto"
+  ,.num_headers= 3
+  ,.headers=
+    { { "Connection", "upgrade" }
+    , { "Upgrade", "h2c" }
+    , { "Content-Length", "4" }
+    }
+  }
+
+#define HTTP_101_RESPONSE_WITH_UPGRADE_HEADER_AND_TRANSFER_ENCODING 24
+, {.name= "HTTP 101 response with Upgrade and Transfer-Encoding header"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 101 Switching Protocols\r\n"
+         "Connection: upgrade\r\n"
+         "Upgrade: h2c\r\n"
+         "Transfer-Encoding: chunked\r\n"
+         "\r\n"
+         "2\r\n"
+         "bo\r\n"
+         "2\r\n"
+         "dy\r\n"
+         "0\r\n"
+         "\r\n"
+         "proto"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 101
+  ,.response_status= "Switching Protocols"
+  ,.body= "body"
+  ,.upgrade= "proto"
+  ,.num_headers= 3
+  ,.headers=
+    { { "Connection", "upgrade" }
+    , { "Upgrade", "h2c" }
+    , { "Transfer-Encoding", "chunked" }
+    }
+  ,.num_chunks_complete= 3
+  ,.chunk_lengths= { 2, 2 }
+  }
+
+#define HTTP_200_RESPONSE_WITH_UPGRADE_HEADER 25
+, {.name= "HTTP 200 response with Upgrade header"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 200 OK\r\n"
+         "Connection: upgrade\r\n"
+         "Upgrade: h2c\r\n"
+         "\r\n"
+         "body"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= TRUE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 200
+  ,.response_status= "OK"
+  ,.body= "body"
+  ,.upgrade= NULL
+  ,.num_headers= 2
+  ,.headers=
+    { { "Connection", "upgrade" }
+    , { "Upgrade", "h2c" }
+    }
+  }
+
+#define HTTP_200_RESPONSE_WITH_UPGRADE_HEADER_AND_CONTENT_LENGTH 26
+, {.name= "HTTP 200 response with Upgrade and Content-Length header"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 200 OK\r\n"
+         "Connection: upgrade\r\n"
+         "Upgrade: h2c\r\n"
+         "Content-Length: 4\r\n"
+         "\r\n"
+         "body"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 200
+  ,.response_status= "OK"
+  ,.num_headers= 3
+  ,.body= "body"
+  ,.upgrade= NULL
+  ,.headers=
+    { { "Connection", "upgrade" }
+    , { "Upgrade", "h2c" }
+    , { "Content-Length", "4" }
+    }
+  }
+
+#define HTTP_200_RESPONSE_WITH_UPGRADE_HEADER_AND_TRANSFER_ENCODING 27
+, {.name= "HTTP 200 response with Upgrade and Transfer-Encoding header"
+  ,.type= HTTP_RESPONSE
+  ,.raw= "HTTP/1.1 200 OK\r\n"
+         "Connection: upgrade\r\n"
+         "Upgrade: h2c\r\n"
+         "Transfer-Encoding: chunked\r\n"
+         "\r\n"
+         "2\r\n"
+         "bo\r\n"
+         "2\r\n"
+         "dy\r\n"
+         "0\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.status_code= 200
+  ,.response_status= "OK"
+  ,.num_headers= 3
+  ,.body= "body"
+  ,.upgrade= NULL
+  ,.headers=
+    { { "Connection", "upgrade" }
+    , { "Upgrade", "h2c" }
+    , { "Transfer-Encoding", "chunked" }
+    }
+  ,.num_chunks_complete= 3
+  ,.chunk_lengths= { 2, 2 }
+  }
+
 , {.name= NULL } /* sentinel */
 };
 
@@ -2481,7 +2642,9 @@ message_eq (int index, int connect, const struct message *expected)
     if (!r) return 0;
   }
 
-  MESSAGE_CHECK_STR_EQ(expected, m, upgrade);
+  if (!connect) {
+    MESSAGE_CHECK_STR_EQ(expected, m, upgrade);
+  }
 
   return 1;
 }
