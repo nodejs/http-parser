@@ -1132,7 +1132,7 @@ const struct message requests[] =
   }
 
 #define UNLINK_REQUEST 41
-, {.name = "link request"
+, {.name = "unlink request"
   ,.type= HTTP_REQUEST
   ,.raw= "UNLINK /images/my_dog.jpg HTTP/1.1\r\n"
          "Host: example.com\r\n"
