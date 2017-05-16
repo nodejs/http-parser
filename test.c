@@ -3313,9 +3313,11 @@ test_message_count_body (const struct message *message)
 }
 
 void
-test_simple (const char *buf, enum http_errno err_expected)
+test_simple_type (const char *buf,
+                  enum http_errno err_expected,
+                  enum http_parser_type type)
 {
-  parser_init(HTTP_REQUEST);
+  parser_init(type);
 
   enum http_errno err;
 
@@ -3337,6 +3339,12 @@ test_simple (const char *buf, enum http_errno err_expected)
         http_errno_name(err_expected), http_errno_name(err), buf);
     abort();
   }
+}
+
+void
+test_simple (const char *buf, enum http_errno err_expected)
+{
+  test_simple_type(buf, err_expected, HTTP_REQUEST);
 }
 
 void
@@ -3949,6 +3957,12 @@ main (void)
 
   //// RESPONSES
 
+  test_simple_type("HTP/1.1 200 OK\r\n\r\n", HPE_INVALID_VERSION, HTTP_RESPONSE);
+  test_simple_type("HTTP/01.1 200 OK\r\n\r\n", HPE_INVALID_VERSION, HTTP_RESPONSE);
+  test_simple_type("HTTP/11.1 200 OK\r\n\r\n", HPE_INVALID_VERSION, HTTP_RESPONSE);
+  test_simple_type("HTTP/1.01 200 OK\r\n\r\n", HPE_INVALID_VERSION, HTTP_RESPONSE);
+  test_simple_type("HTTP/1.1\t200 OK\r\n\r\n", HPE_INVALID_VERSION, HTTP_RESPONSE);
+
   for (i = 0; i < response_count; i++) {
     test_message(&responses[i]);
   }
@@ -4026,6 +4040,9 @@ main (void)
   /// REQUESTS
 
   test_simple("GET / HTP/1.1\r\n\r\n", HPE_INVALID_VERSION);
+  test_simple("GET / HTTP/01.1\r\n\r\n", HPE_INVALID_VERSION);
+  test_simple("GET / HTTP/11.1\r\n\r\n", HPE_INVALID_VERSION);
+  test_simple("GET / HTTP/1.01\r\n\r\n", HPE_INVALID_VERSION);
 
   // Extended characters - see nodejs/test/parallel/test-http-headers-obstext.js
   test_simple("GET / HTTP/1.1\r\n"
