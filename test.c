@@ -78,6 +78,7 @@ struct message {
   int message_begin_cb_called;
   int headers_complete_cb_called;
   int message_complete_cb_called;
+  int status_cb_called;
   int message_complete_on_eof;
   int body_is_final;
 };
@@ -1981,6 +1982,9 @@ int
 response_status_cb (http_parser *p, const char *buf, size_t len)
 {
   assert(p == parser);
+
+  messages[num_messages].status_cb_called = TRUE;
+
   strlncat(messages[num_messages].response_status,
            sizeof(messages[num_messages].response_status),
            buf,
@@ -2405,6 +2409,7 @@ message_eq (int index, int connect, const struct message *expected)
   } else {
     MESSAGE_CHECK_NUM_EQ(expected, m, status_code);
     MESSAGE_CHECK_STR_EQ(expected, m, response_status);
+    assert(m->status_cb_called);
   }
 
   if (!connect) {
