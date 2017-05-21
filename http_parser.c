@@ -892,7 +892,7 @@ reexecute:
         parser->index = 0;
 
         if (ch == CR || ch == LF)
-            REEXECUTE();
+          REEXECUTE();
 
         break;
       }
