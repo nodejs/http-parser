@@ -309,6 +309,8 @@ enum state
   , s_req_path
   , s_req_query_string_start
   , s_req_query_string
+  , s_req_query_value_start
+  , s_req_query_value
   , s_req_fragment_start
   , s_req_fragment
   , s_req_http_start
@@ -420,6 +422,7 @@ enum http_host_state
 #define IS_USERINFO_CHAR(c) (IS_ALPHANUM(c) || IS_MARK(c) || (c) == '%' || \
   (c) == ';' || (c) == ':' || (c) == '&' || (c) == '=' || (c) == '+' || \
   (c) == '$' || (c) == ',')
+#define IS_DELIMITER(c) ((c) == '&' || (c) == '#')
 
 #define STRICT_TOKEN(c)     (tokens[(unsigned char)c])
 
@@ -595,6 +598,20 @@ parse_url_char(enum state s, const char ch)
 
       break;
 
+    case s_req_query_value_start:
+    case s_req_query_value:
+      if (IS_URL_CHAR(ch) && !IS_DELIMITER(ch)) {
+        return s_req_query_value;
+      }
+      switch (ch) {
+        case '&':
+          return s_req_query_string;
+        case '#':
+          return s_req_fragment_start;
+      }
+      
+      break;
+
     case s_req_fragment_start:
       if (IS_URL_CHAR(ch)) {
         return s_req_fragment;
@@ -644,6 +661,9 @@ size_t http_parser_execute (http_parser *parser,
   const char *url_mark = 0;
   const char *body_mark = 0;
   const char *status_mark = 0;
+  const char *query_field_mark = 0;
+  const char *query_value_mark = 0;
+  const char *fragment_mark = 0;
   enum state p_state = (enum state) parser->state;
   const unsigned int lenient = parser->lenient_http_headers;
 
@@ -686,11 +706,19 @@ size_t http_parser_execute (http_parser *parser,
   case s_req_server_start:
   case s_req_server:
   case s_req_server_with_at:
+    url_mark = data;
+    break;
   case s_req_query_string_start:
   case s_req_query_string:
+    query_field_mark = data;
+    break;
+  case s_req_query_value_start:
+  case s_req_query_value:
+    query_value_mark = data;
+    break;
   case s_req_fragment_start:
   case s_req_fragment:
-    url_mark = data;
+    fragment_mark = data;
     break;
   case s_res_status:
     status_mark = data;
@@ -1094,10 +1122,6 @@ reexecute:
       case s_req_server:
       case s_req_server_with_at:
       case s_req_path:
-      case s_req_query_string_start:
-      case s_req_query_string:
-      case s_req_fragment_start:
-      case s_req_fragment:
       {
         switch (ch) {
           case ' ':
@@ -1113,6 +1137,10 @@ reexecute:
               s_header_field_start);
             CALLBACK_DATA(url);
             break;
+          case '?':
+            UPDATE_STATE(s_req_query_string_start);
+            CALLBACK_DATA(url);
+            break;
           default:
             UPDATE_STATE(parse_url_char(CURRENT_STATE(), ch));
             if (UNLIKELY(CURRENT_STATE() == s_dead)) {
@@ -1122,7 +1150,74 @@ reexecute:
         }
         break;
       }
-
+      case s_req_query_string_start:
+      case s_req_query_string:
+      {
+        MARK(query_field);
+        switch (ch) {
+          case ' ':
+            UPDATE_STATE(s_req_http_start);
+            break;
+          case '=':
+            UPDATE_STATE(s_req_query_value_start);
+            CALLBACK_DATA(query_field);
+            break;
+          case '#':
+            UPDATE_STATE(s_req_fragment_start);
+            break;
+          default:
+            UPDATE_STATE(parse_url_char(CURRENT_STATE(), ch));
+            if (UNLIKELY(CURRENT_STATE() == s_dead)) {
+              SET_ERRNO(HPE_INVALID_URL);
+              goto error;
+            }
+        }
+        break;
+      }
+      case s_req_query_value_start:
+      case s_req_query_value:
+      {
+        MARK(query_value);
+        switch (ch) {
+          case ' ':
+            UPDATE_STATE(s_req_http_start);
+            CALLBACK_DATA(query_value);
+            break;
+          case '&':
+            UPDATE_STATE(s_req_query_string_start);
+            CALLBACK_DATA(query_value);
+            break;
+          case '#':
+            UPDATE_STATE(s_req_fragment_start);
+            CALLBACK_DATA(query_value);
+            break;
+          default:
+            UPDATE_STATE(parse_url_char(CURRENT_STATE(), ch));
+            if (UNLIKELY(CURRENT_STATE() == s_dead)) {
+              SET_ERRNO(HPE_INVALID_URL);
+              goto error;
+            }
+        }
+        break;
+      }
+      case s_req_fragment_start:
+      case s_req_fragment:
+      {
+        MARK(fragment);
+        switch (ch) {
+          case ' ':
+            UPDATE_STATE(s_req_http_start);
+            CALLBACK_DATA(fragment);
+            break;
+          default:
+            UPDATE_STATE(parse_url_char(CURRENT_STATE(), ch));
+            if (UNLIKELY(CURRENT_STATE() == s_dead)) {
+              SET_ERRNO(HPE_INVALID_URL);
+              goto error;
+            }
+        }
+      break;
+      }
       case s_req_http_start:
         switch (ch) {
           case 'H':
@@ -2072,13 +2167,19 @@ reexecute:
           (header_value_mark ? 1 : 0) +
           (url_mark ? 1 : 0)  +
           (body_mark ? 1 : 0) +
-          (status_mark ? 1 : 0)) <= 1);
+          (status_mark ? 1 : 0) +
+          (query_field_mark ? 1 : 0) +
+          (query_value_mark ? 1 : 0) +
+          (fragment_mark ? 1 : 0)) <= 1);
 
   CALLBACK_DATA_NOADVANCE(header_field);
   CALLBACK_DATA_NOADVANCE(header_value);
   CALLBACK_DATA_NOADVANCE(url);
   CALLBACK_DATA_NOADVANCE(body);
   CALLBACK_DATA_NOADVANCE(status);
+  CALLBACK_DATA_NOADVANCE(query_field);
+  CALLBACK_DATA_NOADVANCE(query_value);
+  CALLBACK_DATA_NOADVANCE(fragment);
 
   RETURN(len);
 
