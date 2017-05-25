@@ -1468,7 +1468,7 @@ reexecute:
             REEXECUTE();
           }
 
-          if (!lenient && !IS_HEADER_CHAR(ch)) {
+          if (!lenient && !IS_HEADER_CHAR((unsigned char)ch)) {
             SET_ERRNO(HPE_INVALID_HEADER_TOKEN);
             goto error;
           }
