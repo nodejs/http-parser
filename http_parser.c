@@ -863,10 +863,9 @@ reexecute:
               UPDATE_STATE(s_res_status_start);
               break;
             case CR:
-              UPDATE_STATE(s_res_line_almost_done);
-              break;
             case LF:
-              UPDATE_STATE(s_header_field_start);
+              UPDATE_STATE(s_res_status_start);
+              REEXECUTE();
               break;
             default:
               SET_ERRNO(HPE_INVALID_STATUS);
@@ -888,19 +887,13 @@ reexecute:
 
       case s_res_status_start:
       {
-        if (ch == CR) {
-          UPDATE_STATE(s_res_line_almost_done);
-          break;
-        }
-
-        if (ch == LF) {
-          UPDATE_STATE(s_header_field_start);
-          break;
-        }
-
         MARK(status);
         UPDATE_STATE(s_res_status);
         parser->index = 0;
+
+        if (ch == CR || ch == LF)
+            REEXECUTE();
+
         break;
       }
 
