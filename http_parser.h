@@ -336,7 +336,7 @@ struct http_parser_settings {
   http_cb      on_chunk_complete;
   /* Ignore chunked encoding, assume that body is assembled already
    */
-  int ignore_header_transfer_encodig_chunked;
+  int ignore_header_transfer_encoding_chunked;
   /* Ignore content length
    */
   int ignore_header_content_length;

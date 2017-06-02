@@ -1400,7 +1400,7 @@ reexecute:
 
           case h_transfer_encoding:
             /* looking for 'Transfer-Encoding: chunked' */
-            if ('c' == c && settings->ignore_header_transfer_encodig_chunked == 0) {
+            if ('c' == c && settings->ignore_header_transfer_encoding_chunked == 0) {
               parser->header_state = h_matching_transfer_encoding_chunked;
             } else {
               parser->header_state = h_general;
