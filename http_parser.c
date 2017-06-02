@@ -1400,7 +1400,7 @@ reexecute:
 
           case h_transfer_encoding:
             /* looking for 'Transfer-Encoding: chunked' */
-            if ('c' == c) {
+            if ('c' == c && settings->ignore_header_transfer_encodig_chunked == 0) {
               parser->header_state = h_matching_transfer_encoding_chunked;
             } else {
               parser->header_state = h_general;
@@ -1783,6 +1783,10 @@ reexecute:
         STRICT_CHECK(ch != LF);
 
         parser->nread = 0;
+
+        if (settings->ignore_header_content_length == 0) {
+          parser->content_length = 0;
+        }
 
         hasBody = parser->flags & F_CHUNKED ||
           (parser->content_length > 0 && parser->content_length != ULLONG_MAX);
