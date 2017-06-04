@@ -1784,8 +1784,9 @@ reexecute:
 
         parser->nread = 0;
 
-        if (settings->ignore_header_content_length == 0) {
-          parser->content_length = 0;
+        if ((settings->ignore_header_content_length != 0) &&
+            (parser->flags & F_CONTENTLENGTH)) {
+          parser->flags |= F_CONTENTLENGTH_IGNORED;
         }
 
         hasBody = parser->flags & F_CHUNKED ||
@@ -1811,7 +1812,11 @@ reexecute:
             CALLBACK_NOTIFY(message_complete);
           } else if (parser->content_length != ULLONG_MAX) {
             /* Content-Length header given and non-zero */
-            UPDATE_STATE(s_body_identity);
+            if (parser->flags & F_CONTENTLENGTH_IGNORED) {
+              UPDATE_STATE(s_body_identity_eof);
+            } else {
+              UPDATE_STATE(s_body_identity);
+            }
           } else {
             if (!http_message_needs_eof(parser)) {
               /* Assume content-length 0 - read the next */
@@ -2043,6 +2048,9 @@ error:
 int
 http_message_needs_eof (const http_parser *parser)
 {
+  if (parser->flags & F_CONTENTLENGTH_IGNORED) {
+    return 1;
+  }
   if (parser->type == HTTP_REQUEST) {
     return 0;
   }

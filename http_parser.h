@@ -224,6 +224,7 @@ enum flags
   , F_UPGRADE               = 1 << 5
   , F_SKIPBODY              = 1 << 6
   , F_CONTENTLENGTH         = 1 << 7
+  , F_CONTENTLENGTH_IGNORED = 1 << 8
   };
 
 
@@ -292,7 +293,7 @@ enum http_errno {
 struct http_parser {
   /** PRIVATE **/
   unsigned int type : 2;         /* enum http_parser_type */
-  unsigned int flags : 8;        /* F_* values from 'flags' enum; semi-public */
+  unsigned int flags : 9;        /* F_* values from 'flags' enum; semi-public */
   unsigned int state : 7;        /* enum state from http_parser.c */
   unsigned int header_state : 7; /* enum header_state from http_parser.c */
   unsigned int index : 7;        /* index into current matcher */
