@@ -90,7 +90,7 @@ bench.o: bench.c http_parser.h Makefile
 	$(CC) $(CPPFLAGS_BENCH) $(CFLAGS_BENCH) -c bench.c -o $@
 
 http_parser.o: http_parser.c http_parser.h Makefile
-	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_FAST) -c http_parser.c
+	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_LIB) -c http_parser.c
 
 test-run-timed: test_fast
 	while(true) do time $(HELPER) ./test_fast$(BINEXT) > /dev/null; done
@@ -98,10 +98,11 @@ test-run-timed: test_fast
 test-valgrind: test_g
 	valgrind ./test_g
 
-libhttp_parser.o: http_parser.c http_parser.h Makefile
-	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_LIB) -c http_parser.c -o libhttp_parser.o
+libhttp_parser.a: http_parser.o
+	$(AR) rcs $@ $^
+	ranlib $@
 
-library: libhttp_parser.o
+library: http_parser.o
 	$(CC) $(LDFLAGS_LIB) -o $(SONAME) $<
 
 package: http_parser.o
@@ -122,20 +123,23 @@ parsertrace_g: http_parser_g.o contrib/parsertrace.c
 tags: http_parser.c http_parser.h test.c
 	ctags $^
 
-install: library
+install: library libhttp_parser.a
 	$(INSTALL) -D  http_parser.h $(INCLUDEDIR)/http_parser.h
 	$(INSTALL) -D $(SONAME) $(LIBDIR)/$(SONAME)
+	$(INSTALL) -D libhttp_parser.a $(LIBDIR)/libhttp_parser.a
 	ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.$(SOEXT)
 
-install-strip: library
+install-strip: library libhttp_parser.a
 	$(INSTALL) -D  http_parser.h $(INCLUDEDIR)/http_parser.h
 	$(INSTALL) -D -s $(SONAME) $(LIBDIR)/$(SONAME)
+	$(INSTALL) -D libhttp_parser.a $(LIBDIR)/libhttp_parser.a
 	ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.$(SOEXT)
 
 uninstall:
 	rm $(INCLUDEDIR)/http_parser.h
 	rm $(LIBDIR)/$(SONAME)
 	rm $(LIBDIR)/libhttp_parser.so
+	rm $(LIBDIR)/libhttp_parser.a
 
 clean:
 	rm -f *.o *.a tags test test_fast test_g \
