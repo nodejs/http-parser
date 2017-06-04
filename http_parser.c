@@ -1783,7 +1783,6 @@ reexecute:
         STRICT_CHECK(ch != LF);
 
         parser->nread = 0;
-
         if ((settings->ignore_header_content_length != 0) &&
             (parser->flags & F_CONTENTLENGTH)) {
           parser->flags |= F_CONTENTLENGTH_IGNORED;
