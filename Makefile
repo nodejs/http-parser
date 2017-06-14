@@ -18,18 +18,23 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+LIB_VERSION=2.7.1
+SO_VERSION=2
+
 PLATFORM ?= $(shell sh -c 'uname -s | tr "[A-Z]" "[a-z]"')
 HELPER ?=
 BINEXT ?=
 ifeq (darwin,$(PLATFORM))
-SONAME ?= libhttp_parser.2.7.1.dylib
+SONAME ?= libhttp_parser.$(SO_VERSION).dylib
+LIBNAME ?= libhttp_parser.$(LIB_VERSION).dylib
 SOEXT ?= dylib
 else ifeq (wine,$(PLATFORM))
 CC = winegcc
 BINEXT = .exe.so
 HELPER = wine
 else
-SONAME ?= libhttp_parser.so.2.7.1
+SONAME ?= libhttp_parser.so.$(SO_VERSION)
+LIBNAME ?= libhttp_parser.so.$(LIB_VERSION)
 SOEXT ?= so
 endif
 
@@ -56,8 +61,8 @@ LDFLAGS_LIB = $(LDFLAGS) -shared
 
 INSTALL ?= install
 PREFIX ?= $(DESTDIR)/usr/local
-LIBDIR = $(PREFIX)/lib
-INCLUDEDIR = $(PREFIX)/include
+LIBDIR ?= $(PREFIX)/lib
+INCLUDEDIR ?= $(PREFIX)/include
 
 ifneq (darwin,$(PLATFORM))
 # TODO(bnoordhuis) The native SunOS linker expects -h rather than -soname...
@@ -102,7 +107,7 @@ libhttp_parser.o: http_parser.c http_parser.h Makefile
 	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_LIB) -c http_parser.c -o libhttp_parser.o
 
 library: libhttp_parser.o
-	$(CC) $(LDFLAGS_LIB) -o $(SONAME) $<
+	$(CC) $(LDFLAGS_LIB) -o $(LIBNAME) $<
 
 package: http_parser.o
 	$(AR) rcs libhttp_parser.a http_parser.o
@@ -124,18 +129,20 @@ tags: http_parser.c http_parser.h test.c
 
 install: library
 	$(INSTALL) -D  http_parser.h $(INCLUDEDIR)/http_parser.h
-	$(INSTALL) -D $(SONAME) $(LIBDIR)/$(SONAME)
-	ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.$(SOEXT)
+	$(INSTALL) -D $(LIBNAME) $(LIBDIR)/$(LIBNAME)
+	ln -s $(LIBNAME) $(LIBDIR)/$(SONAME)
+	ln -s $(SONAME)  $(LIBDIR)/libhttp_parser.$(SOEXT)
 
 install-strip: library
 	$(INSTALL) -D  http_parser.h $(INCLUDEDIR)/http_parser.h
-	$(INSTALL) -D -s $(SONAME) $(LIBDIR)/$(SONAME)
-	ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.$(SOEXT)
+	$(INSTALL) -D -s $(LIBNAME) $(LIBDIR)/$(LIBNAME)
+	ln -s $(LIBNAME) $(LIBDIR)/$(SONAME)
+	ln -s $(SONAME)  $(LIBDIR)/libhttp_parser.$(SOEXT)
 
 uninstall:
 	rm $(INCLUDEDIR)/http_parser.h
-	rm $(LIBDIR)/$(SONAME)
-	rm $(LIBDIR)/libhttp_parser.so
+	rm $(LIBDIR)/$(SONAME) $(LIBDIR)/$(LIBNAME)
+	rm $(LIBDIR)/libhttp_parser.$(SOEXT)
 
 clean:
 	rm -f *.o *.a tags test test_fast test_g \
