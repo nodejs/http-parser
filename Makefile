@@ -21,16 +21,22 @@
 PLATFORM ?= $(shell sh -c 'uname -s | tr "[A-Z]" "[a-z]"')
 HELPER ?=
 BINEXT ?=
+SOLIBNAME = libhttp_parser
+SOMAJOR = 2
+SOMINOR = 7
+SOREV   = 1
 ifeq (darwin,$(PLATFORM))
-SONAME ?= libhttp_parser.2.7.1.dylib
 SOEXT ?= dylib
+SONAME ?= $(SOLIBNAME).$(SOMAJOR).$(SOMINOR).$(SOEXT)
+LIBNAME ?= $(SOLIBNAME).$(SOMAJOR).$(SOMINOR).$(SOREV).$(SOEXT)
 else ifeq (wine,$(PLATFORM))
 CC = winegcc
 BINEXT = .exe.so
 HELPER = wine
 else
-SONAME ?= libhttp_parser.so.2.7.1
 SOEXT ?= so
+SONAME ?= $(SOLIBNAME).$(SOEXT).$(SOMAJOR).$(SOMINOR)
+LIBNAME ?= $(SOLIBNAME).$(SOEXT).$(SOMAJOR).$(SOMINOR).$(SOREV)
 endif
 
 CC?=gcc
@@ -102,7 +108,7 @@ libhttp_parser.o: http_parser.c http_parser.h Makefile
 	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_LIB) -c http_parser.c -o libhttp_parser.o
 
 library: libhttp_parser.o
-	$(CC) $(LDFLAGS_LIB) -o $(SONAME) $<
+	$(CC) $(LDFLAGS_LIB) -o $(LIBNAME) $<
 
 package: http_parser.o
 	$(AR) rcs libhttp_parser.a http_parser.o
@@ -124,13 +130,15 @@ tags: http_parser.c http_parser.h test.c
 
 install: library
 	$(INSTALL) -D  http_parser.h $(INCLUDEDIR)/http_parser.h
-	$(INSTALL) -D $(SONAME) $(LIBDIR)/$(SONAME)
-	ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.$(SOEXT)
+	$(INSTALL) -D $(LIBNAME) $(LIBDIR)/$(LIBNAME)
+	ln -s $(LIBDIR)/$(LIBNAME) $(LIBDIR)/$(SONAME)
+	ln -s $(LIBDIR)/$(LIBNAME) $(LIBDIR)/$(SOLIBNAME).$(SOEXT)
 
 install-strip: library
 	$(INSTALL) -D  http_parser.h $(INCLUDEDIR)/http_parser.h
-	$(INSTALL) -D -s $(SONAME) $(LIBDIR)/$(SONAME)
-	ln -s $(LIBDIR)/$(SONAME) $(LIBDIR)/libhttp_parser.$(SOEXT)
+	$(INSTALL) -D -s $(LIBNAME) $(LIBDIR)/$(LIBNAME)
+	ln -s $(LIBDIR)/$(LIBNAME) $(LIBDIR)/$(SONAME)
+	ln -s $(LIBDIR)/$(LIBNAME) $(LIBDIR)/$(SOLIBNAME).$(SOEXT)
 
 uninstall:
 	rm $(INCLUDEDIR)/http_parser.h

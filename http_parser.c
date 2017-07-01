@@ -863,10 +863,9 @@ reexecute:
               UPDATE_STATE(s_res_status_start);
               break;
             case CR:
-              UPDATE_STATE(s_res_line_almost_done);
-              break;
             case LF:
-              UPDATE_STATE(s_header_field_start);
+              UPDATE_STATE(s_res_status_start);
+              REEXECUTE();
               break;
             default:
               SET_ERRNO(HPE_INVALID_STATUS);
@@ -888,19 +887,13 @@ reexecute:
 
       case s_res_status_start:
       {
-        if (ch == CR) {
-          UPDATE_STATE(s_res_line_almost_done);
-          break;
-        }
-
-        if (ch == LF) {
-          UPDATE_STATE(s_header_field_start);
-          break;
-        }
-
         MARK(status);
         UPDATE_STATE(s_res_status);
         parser->index = 0;
+
+        if (ch == CR || ch == LF)
+          REEXECUTE();
+
         break;
       }
 
@@ -980,7 +973,7 @@ reexecute:
           UPDATE_STATE(s_req_spaces_before_url);
         } else if (ch == matcher[parser->index]) {
           ; /* nada */
-        } else if (IS_ALPHA(ch)) {
+        } else if ((ch >= 'A' && ch <= 'Z') || ch == '-') {
 
           switch (parser->method << 16 | parser->index << 8 | ch) {
 #define XX(meth, pos, ch, new_meth) \
@@ -989,31 +982,27 @@ reexecute:
 
             XX(POST,      1, 'U', PUT)
             XX(POST,      1, 'A', PATCH)
+            XX(POST,      1, 'R', PROPFIND)
+            XX(PUT,       2, 'R', PURGE)
             XX(CONNECT,   1, 'H', CHECKOUT)
             XX(CONNECT,   2, 'P', COPY)
             XX(MKCOL,     1, 'O', MOVE)
             XX(MKCOL,     1, 'E', MERGE)
+            XX(MKCOL,     1, '-', MSEARCH)
             XX(MKCOL,     2, 'A', MKACTIVITY)
             XX(MKCOL,     3, 'A', MKCALENDAR)
             XX(SUBSCRIBE, 1, 'E', SEARCH)
             XX(REPORT,    2, 'B', REBIND)
-            XX(POST,      1, 'R', PROPFIND)
             XX(PROPFIND,  4, 'P', PROPPATCH)
-            XX(PUT,       2, 'R', PURGE)
             XX(LOCK,      1, 'I', LINK)
             XX(UNLOCK,    2, 'S', UNSUBSCRIBE)
             XX(UNLOCK,    2, 'B', UNBIND)
             XX(UNLOCK,    3, 'I', UNLINK)
 #undef XX
-
             default:
               SET_ERRNO(HPE_INVALID_METHOD);
               goto error;
           }
-        } else if (ch == '-' &&
-                   parser->index == 1 &&
-                   parser->method == HTTP_MKCOL) {
-          parser->method = HTTP_MSEARCH;
         } else {
           SET_ERRNO(HPE_INVALID_METHOD);
           goto error;
@@ -1738,10 +1727,17 @@ reexecute:
         UPDATE_STATE(s_headers_done);
 
         /* Set this here so that on_headers_complete() callbacks can see it */
-        parser->upgrade =
-          ((parser->flags & (F_UPGRADE | F_CONNECTION_UPGRADE)) ==
-           (F_UPGRADE | F_CONNECTION_UPGRADE) ||
-           parser->method == HTTP_CONNECT);
+        if ((parser->flags & F_UPGRADE) &&
+            (parser->flags & F_CONNECTION_UPGRADE)) {
+          /* For responses, "Upgrade: foo" and "Connection: upgrade" are
+           * mandatory only when it is a 101 Switching Protocols response,
+           * otherwise it is purely informational, to announce support.
+           */
+          parser->upgrade =
+              (parser->type == HTTP_REQUEST || parser->status_code == 101);
+        } else {
+          parser->upgrade = (parser->method == HTTP_CONNECT);
+        }
 
         /* Here we call the headers_complete callback. This is somewhat
          * different than other callbacks because if the user returns 1, we
@@ -1760,6 +1756,7 @@ reexecute:
             case 2:
               parser->upgrade = 1;
 
+            /* FALLTHROUGH */
             case 1:
               parser->flags |= F_SKIPBODY;
               break;
@@ -2330,7 +2327,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
       case s_req_server_with_at:
         found_at = 1;
 
-      /* FALLTROUGH */
+      /* FALLTHROUGH */
       case s_req_server:
         uf = UF_HOST;
         break;
