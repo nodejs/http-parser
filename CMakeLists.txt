@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 project(http_parser)
 
 add_library(http_parser SHARED http_parser.c)
-target_compile_options(http_parser PRIVATE -Wall -Wextra -Werror)
+target_compile_options(http_parser PUBLIC -Wall -Wextra -Werror)
 target_include_directories(http_parser PUBLIC .)
 
 add_executable(bench bench.c)
-target_compile_options(http_parser PRIVATE -Wno-unused-parameter)
+target_compile_options(http_parser PUBLIC -Wno-unused-parameter)
 target_link_libraries(bench http_parser)
 
 add_executable(test_http_parser test.c)
