@@ -15,8 +15,6 @@ parsertrace_g
 *.exe.*
 *.exe
 *.a
-
-
 # Visual Studio uglies
 *.suo
 *.sln
