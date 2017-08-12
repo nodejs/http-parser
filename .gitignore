@@ -28,3 +28,5 @@ parsertrace_g
 *.sdf
 *.vsp
 *.psess
+.deps
+.dirstamp
