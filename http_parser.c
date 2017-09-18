@@ -485,52 +485,45 @@ int http_message_needs_eof(const http_parser *parser);
 
 const char* find_crlf(const char* p, const char* data, size_t len);
 
-
-#if defined(__SSE2__) && defined(__GNUC__) 
-
+#if defined(_MSC_VER) // SSE2 is baseline
+#include <intrin.h>
+#define __builtin_ctz _tzcnt_u32
+#elif defined(__SSE2__) && defined(__GNUC__)
 #include <emmintrin.h>
+#endif
+
+#if defined(_MSC_VER) || (defined(__SSE2__) && defined(__GNUC__))
+
+int32_t get_crlf_mask(const char* p) {
+  /* [ c, 0, 0, 0, 0, 0 .. 0 ] */
+  const __m128i vCR = _mm_set1_epi8(0x0a);
+
+  /* [ c, 0, 0, 0, 0, 0 .. 0 ] */
+  const __m128i vLF = _mm_set1_epi8(0x0d);
+
+  __m128i v1, v2;
+  v1 = *(__m128i*)p;
+  v2 = _mm_cmpeq_epi8(vCR, v1);
+  v1 = _mm_cmpeq_epi8(vLF, v1);
+  v2 = _mm_or_si128(v1, v2);
+  return _mm_movemask_epi8(v2);
+}
 
 const char* find_crlf(const char* p, const char* data, size_t len) {
   const char* lastp = MIN(data + len, HTTP_MAX_HEADER_SIZE + p);
 
   int32_t result = 0;
-  __m128i v1, v2;
-  /* [ c, 0, 0, 0, 0, 0 .. 0 ] */
-  __m128i vCR = _mm_set_epi32(0x0a0a0a0a, 0x0a0a0a0a,0x0a0a0a0a, 0x0a0a0a0a);
-
-  /* [ c, 0, 0, 0, 0, 0 .. 0 ] */
-  __m128i vLF = _mm_set_epi32(0x0d0d0d0d, 0x0d0d0d0d,0x0d0d0d0d, 0x0d0d0d0d);
 
   size_t alignment = (long) p & 15;
   p -= alignment;
 
-  v1 = *(__m128i*)p;
-  v2 = _mm_cmpeq_epi8(vCR, v1);
-  v1 = _mm_cmpeq_epi8(vLF, v1);
-  v2 = _mm_or_si128(v1, v2);
-  result = _mm_movemask_epi8(v2);
-
-  v1 = *(__m128i*)(p + 16);
-  v2 = _mm_cmpeq_epi8(vCR, v1);
-  v1 = _mm_cmpeq_epi8(vLF, v1);
-  v2 = _mm_or_si128(v1, v2);
-  result = _mm_movemask_epi8(v2) << 16 | result;
+  result = get_crlf_mask(p + 16) << 16 | get_crlf_mask(p);
   result = (result >> alignment) << alignment;
 
   if (!result) {
     while(!result && lastp >= p+32) {
       p += 32;
-      v1 = *(__m128i*)p;
-      v2 = _mm_cmpeq_epi8(vCR, v1);
-      v1 = _mm_cmpeq_epi8(vLF, v1);
-      v2 = _mm_or_si128(v1, v2);
-      result = _mm_movemask_epi8(v2);
-
-      v1 = *(__m128i*)(p+16);
-      v2 = _mm_cmpeq_epi8(vCR, v1);
-      v1 = _mm_cmpeq_epi8(vLF, v1);
-      v2 = _mm_or_si128(v1, v2);
-      result = _mm_movemask_epi8(v2) << 16 | result;
+	  result = get_crlf_mask(p + 16) << 16 | get_crlf_mask(p);
     }
     if (!result) {
       return data + len;
