@@ -492,7 +492,11 @@ const char* find_crlf(const char* p, const char* data, size_t len);
 #include <emmintrin.h>
 #endif
 
-#if defined(_MSC_VER) || (defined(__SSE2__) && defined(__GNUC__))
+#ifndef USE_INTRISICS_CRLF
+# define USE_INTRISICS_CRLF defined(_MSC_VER) || (defined(__SSE2__) && defined(__GNUC__))
+#endif
+
+#if USE_INTRISICS_CRLF
 
 int32_t get_crlf_mask(const char* p) {
   /* [ c, 0, 0, 0, 0, 0 .. 0 ] */
@@ -523,7 +527,7 @@ const char* find_crlf(const char* p, const char* data, size_t len) {
   if (!result) {
     while(!result && lastp >= p+32) {
       p += 32;
-	  result = get_crlf_mask(p + 16) << 16 | get_crlf_mask(p);
+      result = get_crlf_mask(p + 16) << 16 | get_crlf_mask(p);
     }
     if (!result) {
       return data + len;
