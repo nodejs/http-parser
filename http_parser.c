@@ -500,10 +500,10 @@ const char* find_crlf(const char* p, const char* data, size_t len);
 
 int32_t get_crlf_mask(const char* p) {
   /* [ c, 0, 0, 0, 0, 0 .. 0 ] */
-  const __m128i vCR = _mm_set1_epi8(0x0a);
+  const __m128i vCR = _mm_set1_epi8(0x0d);
 
   /* [ c, 0, 0, 0, 0, 0 .. 0 ] */
-  const __m128i vLF = _mm_set1_epi8(0x0d);
+  const __m128i vLF = _mm_set1_epi8(0x0a);
 
   __m128i v1, v2;
   v1 = *(__m128i*)p;
