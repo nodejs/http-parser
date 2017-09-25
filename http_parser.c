@@ -435,7 +435,7 @@ enum http_host_state
   (IS_ALPHANUM(c) || (c) == '.' || (c) == '-' || (c) == '_')
 #endif
 
-#define NEXTHEADERCHAR()                                      \
+#define NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED()                  \
   if (1) {                                                    \
     if (UNLIKELY(p + 1 == data + len)) {                      \
       COUNT_HEADER_SIZE(0);                                   \
@@ -483,7 +483,7 @@ static struct {
 
 int http_message_needs_eof(const http_parser *parser);
 
-const char* find_crlf(const char* p, const char* data, size_t len);
+static const char* find_crlf(const char* p, const char* data, size_t len);
 
 #if defined(_MSC_VER) // SSE2 is baseline
 #include <intrin.h>
@@ -493,12 +493,15 @@ const char* find_crlf(const char* p, const char* data, size_t len);
 #endif
 
 #ifndef USE_INTRISICS_CRLF
-# define USE_INTRISICS_CRLF defined(_MSC_VER) || (defined(__SSE2__) && defined(__GNUC__))
+# if defined(_MSC_VER) || \
+    (defined(__SSE2__) && defined(__GNUC__))
+#   define USE_INTRISICS_CRLF 1
+# endif
 #endif
 
 #if USE_INTRISICS_CRLF
 
-int32_t get_crlf_mask(const char* p) {
+static uint32_t get_crlf_mask(const char* p) {
   /* [ c, 0, 0, 0, 0, 0 .. 0 ] */
   const __m128i vCR = _mm_set1_epi8(0x0d);
 
@@ -506,23 +509,34 @@ int32_t get_crlf_mask(const char* p) {
   const __m128i vLF = _mm_set1_epi8(0x0a);
 
   __m128i v1, v2;
-  v1 = *(__m128i*)p;
+  v1 = _mm_load_si128((__m128i*)p);
   v2 = _mm_cmpeq_epi8(vCR, v1);
   v1 = _mm_cmpeq_epi8(vLF, v1);
   v2 = _mm_or_si128(v1, v2);
   return _mm_movemask_epi8(v2);
 }
 
-const char* find_crlf(const char* p, const char* data, size_t len) {
+static const char* find_crlf(const char* p, const char* data, size_t len) {
   const char* lastp = MIN(data + len, HTTP_MAX_HEADER_SIZE + p);
+  uint32_t result = 0;
 
-  int32_t result = 0;
-
-  size_t alignment = (long) p & 15;
-  p -= alignment;
+  while ((uintptr_t)p & 15 && p <= lastp) {
+    if ( *p == CR || *p == LF ) {
+      return p;
+    }
+    ++p;
+  }
+  if ( lastp - p < 32 ) {
+    while (p <= lastp) {
+      if ( *p == CR || *p == LF ) {
+        return p;
+      }
+      ++p;
+    }
+    return data + len;
+  }
 
   result = get_crlf_mask(p + 16) << 16 | get_crlf_mask(p);
-  result = (result >> alignment) << alignment;
 
   if (!result) {
     while(!result && lastp >= p+32) {
@@ -530,6 +544,12 @@ const char* find_crlf(const char* p, const char* data, size_t len) {
       result = get_crlf_mask(p + 16) << 16 | get_crlf_mask(p);
     }
     if (!result) {
+      while (p <= lastp) {
+        if ( *p == CR || *p == LF ) {
+          return p;
+        }
+        ++p;
+      }
       return data + len;
     }
   }
@@ -542,7 +562,7 @@ const char* find_crlf(const char* p, const char* data, size_t len) {
 
 #else
 
-const char* find_crlf(const char* p, const char* data, size_t len) {
+static const char* find_crlf(const char* p, const char* data, size_t len) {
   const char* p_cr;
   const char* p_lf;
   size_t limit = data + len - p;
@@ -875,17 +895,17 @@ reexecute:
       case s_res_H:
         STRICT_CHECK(ch != 'T');
         UPDATE_STATE(s_res_HT);
-        NEXTHEADERCHAR();
+        NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED();
 
       case s_res_HT:
         STRICT_CHECK(ch != 'T');
         UPDATE_STATE(s_res_HTT);
-        NEXTHEADERCHAR();
+        NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED();
 
       case s_res_HTT:
         STRICT_CHECK(ch != 'P');
         UPDATE_STATE(s_res_HTTP);
-        NEXTHEADERCHAR();
+        NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED();
 
       case s_res_HTTP:
         STRICT_CHECK(ch != '/');
@@ -1195,17 +1215,17 @@ reexecute:
       case s_req_http_H:
         STRICT_CHECK(ch != 'T');
         UPDATE_STATE(s_req_http_HT);
-        NEXTHEADERCHAR();
+        NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED();
 
       case s_req_http_HT:
         STRICT_CHECK(ch != 'T');
         UPDATE_STATE(s_req_http_HTT);
-        NEXTHEADERCHAR();
+        NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED();
 
       case s_req_http_HTT:
         STRICT_CHECK(ch != 'P');
         UPDATE_STATE(s_req_http_HTTP);
-        NEXTHEADERCHAR();
+        NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED();
 
       case s_req_http_HTTP:
         STRICT_CHECK(ch != '/');
@@ -1319,7 +1339,7 @@ reexecute:
             parser->header_state = h_general;
             break;
         }
-        NEXTHEADERCHAR();
+        NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED();
       }
 
       case s_header_field:
