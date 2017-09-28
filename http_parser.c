@@ -22,6 +22,7 @@
  * IN THE SOFTWARE.
  */
 #include "http_parser.h"
+#include "http_parser_internal.h"
 #include <assert.h>
 #include <stddef.h>
 #include <ctype.h>
@@ -483,8 +484,6 @@ static struct {
 
 int http_message_needs_eof(const http_parser *parser);
 
-static const char* find_crlf(const char* p, const char* data, size_t len);
-
 #if defined(_MSC_VER) // SSE2 is baseline
 #include <intrin.h>
 #define __builtin_ctz _tzcnt_u32
@@ -516,7 +515,7 @@ static uint32_t get_crlf_mask(const char* p) {
   return _mm_movemask_epi8(v2);
 }
 
-static const char* find_crlf(const char* p, const char* data, size_t len) {
+const char* find_crlf(const char* p, const char* data, size_t len) {
   const char* lastp = MIN(data + len, HTTP_MAX_HEADER_SIZE + p);
   uint32_t result = 0;
 
@@ -562,7 +561,7 @@ static const char* find_crlf(const char* p, const char* data, size_t len) {
 
 #else
 
-static const char* find_crlf(const char* p, const char* data, size_t len) {
+const char* find_crlf(const char* p, const char* data, size_t len) {
   const char* p_cr;
   const char* p_lf;
   size_t limit = data + len - p;

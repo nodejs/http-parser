@@ -19,6 +19,7 @@
  * IN THE SOFTWARE.
  */
 #include "http_parser.h"
+#include "http_parser_internal.h"
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
@@ -3377,6 +3378,111 @@ test_parse_url (void)
   }
 }
 
+struct find_crlf_test {
+  const char* name;
+  const char *p;
+  int offset;
+  int len;
+  int should_find;
+  int position;
+};
+
+const struct find_crlf_test find_crlf_tests[] =
+{ {.name="long string without crlf"
+  ,.p="                                                "  /* 16*3 */
+  ,.offset=0
+  ,.len=48
+  ,.should_find=0
+  ,.position=0
+  }
+  ,{.name="long string with crlf"
+  ,.p="                                               \n"  /* 16*3 */
+  ,.offset=0
+  ,.len=48
+  ,.should_find=1
+  ,.position=47
+  }
+  ,{.name="short string without crlf"
+  ,.p="  "  /* 16*3 */
+  ,.offset=0
+  ,.len=2
+  ,.should_find=0
+  ,.position=0
+  }
+  ,{.name="short string with crlf"
+  ,.p="  \n"  /* 16*3 */
+  ,.offset=0
+  ,.len=3
+  ,.should_find=1
+  ,.position=2
+  }
+  ,{.name="long string without crlf with offset"
+  ,.p="                                                "  /* 16*3 */
+  ,.offset=3
+  ,.len=48
+  ,.should_find=0
+  ,.position=0
+  }
+  ,{.name="long string with crlf with offset"
+  ,.p="                                               \n"  /* 16*3 */
+  ,.offset=3
+  ,.len=48
+  ,.should_find=1
+  ,.position=47
+  }
+  ,{.name="short string without crlf with offset"
+  ,.p="  "
+  ,.offset=1
+  ,.len=2
+  ,.should_find=0
+  ,.position=0
+  }
+  ,{.name="short string with crlf with offset"
+  ,.p="  \n"  /* 16*3 */
+  ,.offset=2
+  ,.len=3
+  ,.should_find=1
+  ,.position=2
+  }
+  ,{.name="string with crlf before and after offset"
+  ,.p="\r\n                                             \n"  /* 16*3 */
+  ,.offset=3
+  ,.len=48
+  ,.should_find=1
+  ,.position=47
+  }
+  ,{.name="string with crlf before offset and after max position"
+  ,.p="\r\n                                             \n"  /* 16*3 */
+  ,.offset=3
+  ,.len=30
+  ,.should_find=0
+  ,.position=0
+  }
+
+};
+
+void
+test_find_crlf (void)
+{
+  unsigned int i;
+  const struct find_crlf_test *test;
+
+  for (i = 0; i < (sizeof(find_crlf_tests) / sizeof(find_crlf_tests[0])); i++) {
+    test = &find_crlf_tests[i];
+    const char* n = find_crlf(test->p + test->offset, test->p, test->len);
+    if (!test->should_find) {
+      if (n != test->p + test->len) {
+        printf("test_find_crlf(%s) should not find any crlf\n", test->name);
+        printf("test should end at %d instead it is at %ld\n", test->len, n - test->p);
+        abort();
+      }
+    } else if (n != test->p + test->position){
+      printf("test_find_crlf(%s) should find crlf at(%d) instead of (%ld)\n", test->name, test->position, n-test->p);
+      abort();
+    }
+  }
+}
+
 void
 test_method_str (void)
 {
@@ -4089,6 +4195,9 @@ main (void)
 
   for (request_count = 0; requests[request_count].name; request_count++);
   for (response_count = 0; responses[response_count].name; response_count++);
+
+  //// INTERNAL
+  test_find_crlf();
 
   //// API
   test_preserve_data();

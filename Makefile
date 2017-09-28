@@ -70,18 +70,25 @@ ifneq (darwin,$(PLATFORM))
 LDFLAGS_LIB += -Wl,-soname=$(SONAME)
 endif
 
-test: test_g test_fast
+test: test_g test_fast test_g_no_intrisics
 	$(HELPER) ./test_g$(BINEXT)
 	$(HELPER) ./test_fast$(BINEXT)
+	$(HELPER) ./test_g_no_intrisics$(BINEXT)
+
+http_parser_g_no_intrisics.o: http_parser.c http_parser.h Makefile
+	$(CC) $(CPPFLAGS_DEBUG) $(CFLAGS_DEBUG) -DUSE_INTRISICS_CRLF=0 -c http_parser.c -o $@
 
 test_g: http_parser_g.o test_g.o
 	$(CC) $(CFLAGS_DEBUG) $(LDFLAGS) http_parser_g.o test_g.o -o $@
+
+test_g_no_intrisics: http_parser_g_no_intrisics.o test_g.o
+	$(CC) $(CFLAGS_DEBUG) $(LDFLAGS) http_parser_g_no_intrisics.o test_g.o -o $@
 
 test_g.o: test.c http_parser.h Makefile
 	$(CC) $(CPPFLAGS_DEBUG) $(CFLAGS_DEBUG) -c test.c -o $@
 
 http_parser_g.o: http_parser.c http_parser.h Makefile
-	$(CC) $(CPPFLAGS_DEBUG) $(CFLAGS_DEBUG) -c http_parser.c -o $@
+	$(CC) $(CPPFLAGS_DEBUG) $(CFLAGS_DEBUG) -DUSE_INTRISICS_CRLF=1 -c http_parser.c -o $@
 
 test_fast: http_parser.o test.o http_parser.h
 	$(CC) $(CFLAGS_FAST) $(LDFLAGS) http_parser.o test.o -o $@
@@ -146,7 +153,7 @@ uninstall:
 	rm $(LIBDIR)/libhttp_parser.so
 
 clean:
-	rm -f *.o *.a tags test test_fast test_g \
+	rm -f *.o *.a tags test test_fast test_g test_g_no_intrisics \
 		http_parser.tar libhttp_parser.so.* \
 		url_parser url_parser_g parsertrace parsertrace_g \
 		*.exe *.exe.so
