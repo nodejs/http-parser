@@ -3458,6 +3458,20 @@ const struct find_crlf_test find_crlf_tests[] =
   ,.should_find=0
   ,.position=0
   }
+  ,{.name="string with crlf"
+  ,.p="      \r\n"
+  ,.offset=0
+  ,.len=8
+  ,.should_find=1
+  ,.position=6
+  }
+  ,{.name="string with crlf"
+  ,.p="      \n\r"
+  ,.offset=0
+  ,.len=8
+  ,.should_find=1
+  ,.position=6
+  }
 
 };
 
