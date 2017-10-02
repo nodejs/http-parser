@@ -65,7 +65,9 @@ PREFIX ?= $(DESTDIR)/usr/local
 LIBDIR = $(PREFIX)/lib
 INCLUDEDIR = $(PREFIX)/include
 
-ifneq (darwin,$(PLATFORM))
+ifeq (darwin,$(PLATFORM))
+LDFLAGS_LIB += -Wl,-install_name,$(LIBDIR)/$(SONAME)
+else
 # TODO(bnoordhuis) The native SunOS linker expects -h rather than -soname...
 LDFLAGS_LIB += -Wl,-soname=$(SONAME)
 endif
