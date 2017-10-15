@@ -133,19 +133,20 @@ tags: http_parser.c http_parser.h test.c
 install: library
 	$(INSTALL) -D  http_parser.h $(DESTDIR)$(INCLUDEDIR)/http_parser.h
 	$(INSTALL) -D $(LIBNAME) $(DESTDIR)$(LIBDIR)/$(LIBNAME)
-	ln -s $(LIBDIR)/$(LIBNAME) $(DESTDIR)$(LIBDIR)/$(SONAME)
-	ln -s $(LIBDIR)/$(LIBNAME) $(DESTDIR)$(LIBDIR)/$(SOLIBNAME).$(SOEXT)
+	ln -s $(LIBNAME) $(DESTDIR)$(LIBDIR)/$(SONAME)
+	ln -s $(LIBNAME) $(DESTDIR)$(LIBDIR)/$(SOLIBNAME).$(SOEXT)
 
 install-strip: library
 	$(INSTALL) -D  http_parser.h $(DESTDIR)$(INCLUDEDIR)/http_parser.h
 	$(INSTALL) -D -s $(LIBNAME) $(DESTDIR)$(LIBDIR)/$(LIBNAME)
-	ln -s $(LIBDIR)/$(LIBNAME) $(DESTDIR)$(LIBDIR)/$(SONAME)
-	ln -s $(LIBDIR)/$(LIBNAME) $(DESTDIR)$(LIBDIR)/$(SOLIBNAME).$(SOEXT)
+	ln -s $(LIBNAME) $(DESTDIR)$(LIBDIR)/$(SONAME)
+	ln -s $(LIBNAME) $(DESTDIR)$(LIBDIR)/$(SOLIBNAME).$(SOEXT)
 
 uninstall:
 	rm $(DESTDIR)$(INCLUDEDIR)/http_parser.h
+	rm $(DESTDIR)$(LIBDIR)/$(SOLIBNAME).$(SOEXT)
 	rm $(DESTDIR)$(LIBDIR)/$(SONAME)
-	rm $(LIBDIR)/libhttp_parser.so
+	rm $(DESTDIR)$(LIBDIR)/$(LIBNAME)
 
 clean:
 	rm -f *.o *.a tags test test_fast test_g \
