@@ -61,7 +61,7 @@ CFLAGS_LIB = $(CFLAGS_FAST) -fPIC
 LDFLAGS_LIB = $(LDFLAGS) -shared
 
 INSTALL ?= install
-PREFIX ?= $(DESTDIR)/usr/local
+PREFIX ?= /usr/local
 LIBDIR = $(PREFIX)/lib
 INCLUDEDIR = $(PREFIX)/include
 
@@ -131,20 +131,20 @@ tags: http_parser.c http_parser.h test.c
 	ctags $^
 
 install: library
-	$(INSTALL) -D  http_parser.h $(INCLUDEDIR)/http_parser.h
-	$(INSTALL) -D $(LIBNAME) $(LIBDIR)/$(LIBNAME)
-	ln -s $(LIBDIR)/$(LIBNAME) $(LIBDIR)/$(SONAME)
-	ln -s $(LIBDIR)/$(LIBNAME) $(LIBDIR)/$(SOLIBNAME).$(SOEXT)
+	$(INSTALL) -D  http_parser.h $(DESTDIR)$(INCLUDEDIR)/http_parser.h
+	$(INSTALL) -D $(LIBNAME) $(DESTDIR)$(LIBDIR)/$(LIBNAME)
+	ln -s $(LIBDIR)/$(LIBNAME) $(DESTDIR)$(LIBDIR)/$(SONAME)
+	ln -s $(LIBDIR)/$(LIBNAME) $(DESTDIR)$(LIBDIR)/$(SOLIBNAME).$(SOEXT)
 
 install-strip: library
-	$(INSTALL) -D  http_parser.h $(INCLUDEDIR)/http_parser.h
-	$(INSTALL) -D -s $(LIBNAME) $(LIBDIR)/$(LIBNAME)
-	ln -s $(LIBDIR)/$(LIBNAME) $(LIBDIR)/$(SONAME)
-	ln -s $(LIBDIR)/$(LIBNAME) $(LIBDIR)/$(SOLIBNAME).$(SOEXT)
+	$(INSTALL) -D  http_parser.h $(DESTDIR)$(INCLUDEDIR)/http_parser.h
+	$(INSTALL) -D -s $(LIBNAME) $(DESTDIR)$(LIBDIR)/$(LIBNAME)
+	ln -s $(LIBDIR)/$(LIBNAME) $(DESTDIR)$(LIBDIR)/$(SONAME)
+	ln -s $(LIBDIR)/$(LIBNAME) $(DESTDIR)$(LIBDIR)/$(SOLIBNAME).$(SOEXT)
 
 uninstall:
-	rm $(INCLUDEDIR)/http_parser.h
-	rm $(LIBDIR)/$(SONAME)
+	rm $(DESTDIR)$(INCLUDEDIR)/http_parser.h
+	rm $(DESTDIR)$(LIBDIR)/$(SONAME)
 	rm $(LIBDIR)/libhttp_parser.so
 
 clean:
