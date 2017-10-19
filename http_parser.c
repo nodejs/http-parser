@@ -495,6 +495,8 @@ int http_message_needs_eof(const http_parser *parser);
 # if defined(_MSC_VER) || \
     (defined(__SSE2__) && defined(__GNUC__))
 #   define USE_INTRISICS_CRLF 1
+# else
+#   define USE_INTRISICS_CRLF 0
 # endif
 #endif
 
@@ -520,14 +522,14 @@ const char* find_crlf(const char* p, const char* data, size_t len) {
   uint32_t result = 0;
 
   while ((uintptr_t)p & 15 && p <= lastp) {
-    if ( *p == CR || *p == LF ) {
+    if (*p == CR || *p == LF) {
       return p;
     }
     ++p;
   }
-  if ( lastp - p < 32 ) {
+  if (lastp - p < 32) {
     while (p <= lastp) {
-      if ( *p == CR || *p == LF ) {
+      if (*p == CR || *p == LF) {
         return p;
       }
       ++p;
@@ -544,7 +546,7 @@ const char* find_crlf(const char* p, const char* data, size_t len) {
     }
     if (!result) {
       while (p <= lastp) {
-        if ( *p == CR || *p == LF ) {
+        if (*p == CR || *p == LF) {
           return p;
         }
         ++p;

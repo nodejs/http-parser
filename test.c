@@ -3389,14 +3389,14 @@ struct find_crlf_test {
 
 const struct find_crlf_test find_crlf_tests[] =
 { {.name="long string without crlf"
-  ,.p="                                                "  /* 16*3 */
+  ,.p="                                                "
   ,.offset=0
   ,.len=48
   ,.should_find=0
   ,.position=0
   }
   ,{.name="long string with crlf"
-  ,.p="                                               \n"  /* 16*3 */
+  ,.p="                                               \n"
   ,.offset=0
   ,.len=48
   ,.should_find=1
@@ -3417,14 +3417,14 @@ const struct find_crlf_test find_crlf_tests[] =
   ,.position=2
   }
   ,{.name="long string without crlf with offset"
-  ,.p="                                                "  /* 16*3 */
+  ,.p="                                                "
   ,.offset=3
   ,.len=48
   ,.should_find=0
   ,.position=0
   }
   ,{.name="long string with crlf with offset"
-  ,.p="                                               \n"  /* 16*3 */
+  ,.p="                                               \n"
   ,.offset=3
   ,.len=48
   ,.should_find=1
@@ -3438,21 +3438,21 @@ const struct find_crlf_test find_crlf_tests[] =
   ,.position=0
   }
   ,{.name="short string with crlf with offset"
-  ,.p="  \n"  /* 16*3 */
+  ,.p="  \n"
   ,.offset=2
   ,.len=3
   ,.should_find=1
   ,.position=2
   }
   ,{.name="string with crlf before and after offset"
-  ,.p="\r\n                                             \n"  /* 16*3 */
+  ,.p="\r\n                                             \n"
   ,.offset=3
   ,.len=48
   ,.should_find=1
   ,.position=47
   }
   ,{.name="string with crlf before offset and after max position"
-  ,.p="\r\n                                             \n"  /* 16*3 */
+  ,.p="\r\n                                             \n"
   ,.offset=3
   ,.len=30
   ,.should_find=0
@@ -3486,12 +3486,12 @@ test_find_crlf (void)
     const char* n = find_crlf(test->p + test->offset, test->p, test->len);
     if (!test->should_find) {
       if (n != test->p + test->len) {
-        printf("test_find_crlf(%s) should not find any crlf\n", test->name);
-        printf("test should end at %d instead it is at %ld\n", test->len, n - test->p);
+        printf("\n***test_find_crlf(%s) should not find any crlf\n", test->name);
+        printf("\n***test should end at %d instead it is at %ld\n", test->len, n - test->p);
         abort();
       }
-    } else if (n != test->p + test->position){
-      printf("test_find_crlf(%s) should find crlf at(%d) instead of (%ld)\n", test->name, test->position, n-test->p);
+    } else if (n != test->p + test->position) {
+      printf("\n***test_find_crlf(%s) should find crlf at(%d) instead of (%ld)\n", test->name, test->position, n-test->p);
       abort();
     }
   }
