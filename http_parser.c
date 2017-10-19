@@ -444,7 +444,7 @@ enum http_host_state
     }                                                         \
     ch = *++p;                                                \
     ++parser->nread;                                          \
-  } else                                                      \
+  } else {}                                                   \
 
 
 /**
