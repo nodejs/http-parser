@@ -277,6 +277,7 @@ enum state
   { s_dead = 1 /* important that this is > 0 */
 
   , s_start_req_or_res
+  , s_res_or_resp_mark_H
   , s_res_or_resp_H
   , s_start_res
   , s_res_H
@@ -295,7 +296,11 @@ enum state
 
   , s_start_req
 
+  , s_req_method_start
   , s_req_method
+#if HTTP_PARSER_METHOD_CB
+  , s_req_method_unknown
+#endif
   , s_req_spaces_before_url
   , s_req_schema
   , s_req_schema_slash
@@ -641,6 +646,9 @@ size_t http_parser_execute (http_parser *parser,
   const char *url_mark = 0;
   const char *body_mark = 0;
   const char *status_mark = 0;
+#if HTTP_PARSER_METHOD_CB
+  const char *method_mark = 0;
+#endif
   enum state p_state = (enum state) parser->state;
   const unsigned int lenient = parser->lenient_http_headers;
 
@@ -689,6 +697,14 @@ size_t http_parser_execute (http_parser *parser,
   case s_req_fragment:
     url_mark = data;
     break;
+#if HTTP_PARSER_METHOD_CB
+  case s_res_or_resp_H:
+  case s_req_method_start:
+  case s_req_method:
+  case s_req_method_unknown:
+    method_mark = data;
+    break;
+#endif
   case s_res_status:
     status_mark = data;
     break;
@@ -723,9 +739,10 @@ reexecute:
         parser->content_length = ULLONG_MAX;
 
         if (ch == 'H') {
-          UPDATE_STATE(s_res_or_resp_H);
+          UPDATE_STATE(s_res_or_resp_mark_H);
 
-          CALLBACK_NOTIFY(message_begin);
+          CALLBACK_NOTIFY_NOADVANCE(message_begin);
+          REEXECUTE();
         } else {
           parser->type = HTTP_REQUEST;
           UPDATE_STATE(s_start_req);
@@ -735,19 +752,46 @@ reexecute:
         break;
       }
 
+      case s_res_or_resp_mark_H:
+        assert(ch == 'H');
+        UPDATE_STATE(s_res_or_resp_H);
+#if HTTP_PARSER_METHOD_CB
+        /* TODO This will call on_method even if type == HTTP_BOTH is
+         * used and it later turns out that this is response.
+         * Automatic handling bites us hard.
+         */
+        MARK(method);
+#endif
+        break;
+
       case s_res_or_resp_H:
         if (ch == 'T') {
           parser->type = HTTP_RESPONSE;
           UPDATE_STATE(s_res_HT);
         } else {
+#if HTTP_PARSER_METHOD_CB
+          if (UNLIKELY(!TOKEN(ch))) {
+            SET_ERRNO(HPE_INVALID_CONSTANT);
+            goto error;
+          }
+
+          if (UNLIKELY(ch != 'E')) {
+            parser->method = HTTP_METHOD_UNKNOWN;
+          } else {
+            parser->method = HTTP_HEAD;
+            parser->index = 2;
+          }
+#else
           if (UNLIKELY(ch != 'E')) {
             SET_ERRNO(HPE_INVALID_CONSTANT);
             goto error;
           }
 
-          parser->type = HTTP_REQUEST;
           parser->method = HTTP_HEAD;
           parser->index = 2;
+#endif
+
+          parser->type = HTTP_REQUEST;
           UPDATE_STATE(s_req_method);
         }
         break;
@@ -915,11 +959,29 @@ reexecute:
         break;
 
       case s_start_req:
-      {
         if (ch == CR || ch == LF)
           break;
         parser->flags = 0;
         parser->content_length = ULLONG_MAX;
+
+        if (UNLIKELY(!IS_ALPHA(ch))) {
+          SET_ERRNO(HPE_INVALID_METHOD);
+          goto error;
+        }
+
+        UPDATE_STATE(s_req_method_start);
+#if HTTP_PARSER_METHOD_CB
+        MARK(method);
+#endif
+
+        CALLBACK_NOTIFY_NOADVANCE(message_begin);
+        REEXECUTE();
+
+        break;
+
+      case s_req_method_start:
+      {
+        enum state next_state = s_req_method;
 
         if (UNLIKELY(!IS_ALPHA(ch))) {
           SET_ERRNO(HPE_INVALID_METHOD);
@@ -947,12 +1009,26 @@ reexecute:
           case 'T': parser->method = HTTP_TRACE; break;
           case 'U': parser->method = HTTP_UNLOCK; /* or UNSUBSCRIBE, UNBIND, UNLINK */ break;
           default:
+#if HTTP_PARSER_METHOD_CB
+            if (UNLIKELY(!TOKEN(ch))) {
+              SET_ERRNO(HPE_INVALID_METHOD);
+              goto error;
+            }
+
+            parser->method = (unsigned int) HTTP_METHOD_UNKNOWN;
+
+            next_state = s_req_method_unknown;
+#else
             SET_ERRNO(HPE_INVALID_METHOD);
             goto error;
+#endif
         }
-        UPDATE_STATE(s_req_method);
 
-        CALLBACK_NOTIFY(message_begin);
+        UPDATE_STATE(next_state);
+
+#if HTTP_PARSER_METHOD_CB
+        MARK(method);
+#endif
 
         break;
       }
@@ -966,8 +1042,21 @@ reexecute:
         }
 
         matcher = method_strings[parser->method];
-        if (ch == ' ' && matcher[parser->index] == '\0') {
+
+        if (ch == ' ') {
+          if (matcher[parser->index] != '\0') {
+#if HTTP_PARSER_METHOD_CB
+            parser->method = (unsigned int) HTTP_METHOD_UNKNOWN;
+#else
+            SET_ERRNO(HPE_INVALID_METHOD);
+            goto error;
+#endif
+          }
+
           UPDATE_STATE(s_req_spaces_before_url);
+#if HTTP_PARSER_METHOD_CB
+          CALLBACK_DATA(method);
+#endif
         } else if (ch == matcher[parser->index]) {
           ; /* nada */
         } else if ((ch >= 'A' && ch <= 'Z') || ch == '-') {
@@ -997,10 +1086,52 @@ reexecute:
             XX(UNLOCK,    3, 'I', UNLINK)
 #undef XX
             default:
+#if HTTP_PARSER_METHOD_CB
+              if (UNLIKELY(!TOKEN(ch))) {
+                SET_ERRNO(HPE_INVALID_METHOD);
+                goto error;
+              }
+
+              parser->method = (unsigned int) HTTP_METHOD_UNKNOWN;
+
+              UPDATE_STATE(s_req_method_unknown);
+#else
               SET_ERRNO(HPE_INVALID_METHOD);
               goto error;
+#endif
           }
         } else {
+#if HTTP_PARSER_METHOD_CB
+          if (UNLIKELY(!TOKEN(ch))) {
+            SET_ERRNO(HPE_INVALID_METHOD);
+            goto error;
+          }
+
+          parser->method = (unsigned int) HTTP_METHOD_UNKNOWN;
+
+          UPDATE_STATE(s_req_method_unknown);
+#else
+          SET_ERRNO(HPE_INVALID_METHOD);
+          goto error;
+#endif
+        }
+
+        ++parser->index;
+        break;
+      }
+
+#if HTTP_PARSER_METHOD_CB
+      case s_req_method_unknown:
+      {
+        if (UNLIKELY(ch == '\0')) {
+          SET_ERRNO(HPE_INVALID_METHOD);
+          goto error;
+        }
+
+        if (ch == ' ') {
+          UPDATE_STATE(s_req_spaces_before_url);
+          CALLBACK_DATA(method);
+        } else if (UNLIKELY(!TOKEN(ch))) {
           SET_ERRNO(HPE_INVALID_METHOD);
           goto error;
         }
@@ -1008,6 +1139,7 @@ reexecute:
         ++parser->index;
         break;
       }
+#endif
 
       case s_req_spaces_before_url:
       {
@@ -2017,6 +2149,9 @@ reexecute:
   CALLBACK_DATA_NOADVANCE(url);
   CALLBACK_DATA_NOADVANCE(body);
   CALLBACK_DATA_NOADVANCE(status);
+#if HTTP_PARSER_METHOD_CB
+  CALLBACK_DATA_NOADVANCE(method);
+#endif
 
   RETURN(len);
 

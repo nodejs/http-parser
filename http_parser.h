@@ -52,6 +52,17 @@ typedef unsigned __int64 uint64_t;
 # define HTTP_PARSER_STRICT 1
 #endif
 
+/* Compile with -DHTTP_PARSER_METHOD_CB=1 to enable method
+ * callback. If it is enabled, method string is notified with
+ * on_method callback.  The unknown method which would be rejeted
+ * previously is also accepted and notified with the on_method
+ * callback.  The method field of http_parser struct becomes
+ * HTTP_METHOD_UNKNOWN if method is unknown to http_parser.
+ */
+#ifndef HTTP_PARSER_METHOD_CB
+# define HTTP_PARSER_METHOD_CB 0
+#endif
+
 /* Maximium header size allowed. If the macro is not defined
  * before including this header then the default is used. To
  * change the maximum header size, define the macro in the build
@@ -209,6 +220,8 @@ enum http_method
 #undef XX
   };
 
+/* Unknown HTTP method */
+#define HTTP_METHOD_UNKNOWN 255
 
 enum http_parser_type { HTTP_REQUEST, HTTP_RESPONSE, HTTP_BOTH };
 
@@ -245,6 +258,7 @@ enum flags
   XX(CB_status, "the on_status callback failed")                     \
   XX(CB_chunk_header, "the on_chunk_header callback failed")         \
   XX(CB_chunk_complete, "the on_chunk_complete callback failed")     \
+  XX(CB_method, "the on_method callback failed")                     \
                                                                      \
   /* Parsing-related errors */                                       \
   XX(INVALID_EOF_STATE, "stream ended at an unexpected time")        \
@@ -286,7 +300,6 @@ enum http_errno {
 
 /* Get an http_errno value from an http_parser */
 #define HTTP_PARSER_ERRNO(p)            ((enum http_errno) (p)->http_errno)
-
 
 struct http_parser {
   /** PRIVATE **/
@@ -333,6 +346,7 @@ struct http_parser_settings {
    */
   http_cb      on_chunk_header;
   http_cb      on_chunk_complete;
+  http_data_cb on_method;
 };
 
 

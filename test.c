@@ -52,6 +52,7 @@ struct message {
   enum http_method method;
   int status_code;
   char response_status[MAX_ELEMENT_SIZE];
+  char request_method[MAX_ELEMENT_SIZE];
   char request_path[MAX_ELEMENT_SIZE];
   char request_url[MAX_ELEMENT_SIZE];
   char fragment[MAX_ELEMENT_SIZE];
@@ -104,6 +105,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/test"
@@ -135,6 +137,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/favicon.ico"
@@ -164,6 +167,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/dumbfuck"
@@ -185,6 +189,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= "page=1"
   ,.fragment= "posts-17408"
   ,.request_path= "/forums/1/topics/2375"
@@ -204,6 +209,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/get_no_headers_no_body/world"
@@ -223,6 +229,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/get_one_header_no_body"
@@ -246,6 +253,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 0
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/get_funky_content_length_body_hello"
@@ -271,6 +279,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
+  ,.request_method = "POST"
   ,.query_string= "q=search"
   ,.fragment= "hey"
   ,.request_path= "/post_identity_body_world"
@@ -298,6 +307,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
+  ,.request_method = "POST"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/post_chunked_all_your_base"
@@ -326,6 +336,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
+  ,.request_method = "POST"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/two_chunks_mult_zero_end"
@@ -356,6 +367,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
+  ,.request_method = "POST"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/chunked_w_trailing_headers"
@@ -386,6 +398,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
+  ,.request_method = "POST"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/chunked_w_bullshit_after_length"
@@ -408,6 +421,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= "foo=\"bar\""
   ,.fragment= ""
   ,.request_path= "/with_\"stupid\"_quotes"
@@ -434,6 +448,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 0
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/test"
@@ -457,6 +472,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= "foo=bar?baz"
   ,.fragment= ""
   ,.request_path= "/test.cgi"
@@ -478,6 +494,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/test"
@@ -505,6 +522,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/demo"
@@ -536,6 +554,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 0
   ,.method= HTTP_CONNECT
+  ,.request_method = "CONNECT"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= ""
@@ -558,6 +577,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_REPORT
+  ,.request_method = "REPORT"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/test"
@@ -577,6 +597,7 @@ const struct message requests[] =
   ,.http_major= 0
   ,.http_minor= 9
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/"
@@ -599,6 +620,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_MSEARCH
+  ,.request_method = "M-SEARCH"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "*"
@@ -634,6 +656,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/"
@@ -659,6 +682,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= "hail=all"
   ,.fragment= ""
   ,.request_path= ""
@@ -679,6 +703,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= "hail=all"
   ,.fragment= ""
   ,.request_path= ""
@@ -700,6 +725,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= ""
@@ -726,6 +752,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_PATCH
+  ,.request_method = "PATCH"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/file.txt"
@@ -751,6 +778,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 0
   ,.method= HTTP_CONNECT
+  ,.request_method = "CONNECT"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= ""
@@ -775,6 +803,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= "q=1"
   ,.fragment= "narf"
   ,.request_path= "/δ¶/δt/pope"
@@ -797,6 +826,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 0
   ,.method= HTTP_CONNECT
+  ,.request_method = "CONNECT"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= ""
@@ -824,6 +854,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
+  ,.request_method = "POST"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/"
@@ -852,6 +883,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
+  ,.request_method = "POST"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/"
@@ -877,6 +909,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_PURGE
+  ,.request_method = "PURGE"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/file.txt"
@@ -897,6 +930,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_SEARCH
+  ,.request_method = "SEARCH"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/"
@@ -916,6 +950,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.fragment= ""
   ,.request_path= "/toto"
   ,.request_url= "http://a%12:b!&*$@hypnotoad.org:1234/toto"
@@ -950,6 +985,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/"
@@ -983,6 +1019,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/demo"
@@ -1013,6 +1050,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/demo"
@@ -1038,6 +1076,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_GET
+  ,.request_method = "GET"
   ,.query_string= ""
   ,.fragment= ""
   ,.request_path= "/demo"
@@ -1066,6 +1105,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_POST
+  ,.request_method = "POST"
   ,.request_path= "/demo"
   ,.request_url= "/demo"
   ,.num_headers= 4
@@ -1092,6 +1132,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 0
   ,.method= HTTP_CONNECT
+  ,.request_method = "CONNECT"
   ,.request_url= "foo.bar.com:443"
   ,.num_headers= 3
   ,.upgrade="blarfcicle"
@@ -1119,6 +1160,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_LINK
+  ,.request_method = "LINK"
   ,.request_path= "/images/my_dog.jpg"
   ,.request_url= "/images/my_dog.jpg"
   ,.query_string= ""
@@ -1143,6 +1185,7 @@ const struct message requests[] =
   ,.http_major= 1
   ,.http_minor= 1
   ,.method= HTTP_UNLINK
+  ,.request_method = "UNLINK"
   ,.request_path= "/images/my_dog.jpg"
   ,.request_url= "/images/my_dog.jpg"
   ,.query_string= ""
@@ -1153,6 +1196,30 @@ const struct message requests[] =
              }
   ,.body= ""
   }
+
+#if HTTP_PARSER_METHOD_CB
+#define UNKNOWN_METHOD 42
+, {.name="unknown method"
+  ,.type= HTTP_REQUEST
+  ,.raw= "NON-STANDARD-METHOD / HTTP/1.1\r\n"
+         "Host: example.com\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_METHOD_UNKNOWN
+  ,.request_method= "NON-STANDARD-METHOD"
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/"
+  ,.request_url= "/"
+  ,.num_headers= 1
+  ,.headers=
+   { { "Host", "example.com" } }
+  ,.body= ""
+  }
+#endif
 
 , {.name= NULL } /* sentinel */
 };
@@ -2003,6 +2070,19 @@ strlcpy(char *dst, const char *src, size_t len)
   return strlncpy(dst, len, src, (size_t) -1);
 }
 
+#if HTTP_PARSER_METHOD_CB
+int
+request_method_cb(http_parser *p, const char *buf, size_t len)
+{
+  assert(p == parser);
+  strlncat(messages[num_messages].request_method,
+           sizeof(messages[num_messages].request_method),
+           buf,
+           len);
+  return 0;
+}
+#endif
+
 int
 request_url_cb (http_parser *p, const char *buf, size_t len)
 {
@@ -2308,6 +2388,16 @@ pause_header_value_cb (http_parser *p, const char *buf, size_t len)
   return header_value_cb(p, buf, len);
 }
 
+#if HTTP_PARSER_METHOD_CB
+int
+pause_request_method_cb (http_parser *p, const char *buf, size_t len)
+{
+  http_parser_pause(p, 1);
+  *current_pause_parser = settings_dontcall;
+  return request_method_cb(p, buf, len);
+}
+#endif
+
 int
 pause_request_url_cb (http_parser *p, const char *buf, size_t len)
 {
@@ -2389,6 +2479,9 @@ static http_parser_settings settings_pause =
   ,.on_message_complete = pause_message_complete_cb
   ,.on_chunk_header = pause_chunk_header_cb
   ,.on_chunk_complete = pause_chunk_complete_cb
+#if HTTP_PARSER_METHOD_CB
+  ,.on_method = pause_request_method_cb
+#endif
   };
 
 static http_parser_settings settings =
@@ -2402,6 +2495,9 @@ static http_parser_settings settings =
   ,.on_message_complete = message_complete_cb
   ,.on_chunk_header = chunk_header_cb
   ,.on_chunk_complete = chunk_complete_cb
+#if HTTP_PARSER_METHOD_CB
+  ,.on_method = request_method_cb
+#endif
   };
 
 static http_parser_settings settings_count_body =
@@ -2415,6 +2511,9 @@ static http_parser_settings settings_count_body =
   ,.on_message_complete = message_complete_cb
   ,.on_chunk_header = chunk_header_cb
   ,.on_chunk_complete = chunk_complete_cb
+#if HTTP_PARSER_METHOD_CB
+  ,.on_method = request_method_cb
+#endif
   };
 
 static http_parser_settings settings_connect =
@@ -2428,6 +2527,9 @@ static http_parser_settings settings_connect =
   ,.on_message_complete = connect_message_complete_cb
   ,.on_chunk_header = chunk_header_cb
   ,.on_chunk_complete = chunk_complete_cb
+#if HTTP_PARSER_METHOD_CB
+  ,.on_method = request_method_cb
+#endif
   };
 
 static http_parser_settings settings_null =
@@ -2441,6 +2543,9 @@ static http_parser_settings settings_null =
   ,.on_message_complete = 0
   ,.on_chunk_header = 0
   ,.on_chunk_complete = 0
+#if HTTP_PARSER_METHOD_CB
+  ,.on_method = 0
+#endif
   };
 
 void
@@ -2567,6 +2672,9 @@ message_eq (int index, int connect, const struct message *expected)
 
   if (expected->type == HTTP_REQUEST) {
     MESSAGE_CHECK_NUM_EQ(expected, m, method);
+#if HTTP_PARSER_METHOD_CB
+    MESSAGE_CHECK_STR_EQ(expected, m, request_method);
+#endif
   } else {
     MESSAGE_CHECK_NUM_EQ(expected, m, status_code);
     MESSAGE_CHECK_STR_EQ(expected, m, response_status);
@@ -4284,7 +4392,15 @@ main (void)
   for (this_method = bad_methods; *this_method; this_method++) {
     char buf[200];
     sprintf(buf, "%s / HTTP/1.1\r\n\r\n", *this_method);
+#if HTTP_PARSER_METHOD_CB
+    if (strchr(*this_method, ' ')) {
+      test_simple(buf, HPE_INVALID_URL);
+    } else {
+      test_simple(buf, HPE_OK);
+    }
+#else
     test_simple(buf, HPE_INVALID_METHOD);
+#endif
   }
 
   // illegal header field name line folding
