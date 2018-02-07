@@ -3675,7 +3675,7 @@ test_no_overflow_parse_url (void)
 
   if (rv != 0) {
     fprintf(stderr,
-            "\n*** test_no_overflow_parse_url invalid return value =%d\n",
+            "\n*** test_no_overflow_parse_url invalid return value=%d\n",
             rv);
     abort();
   }
