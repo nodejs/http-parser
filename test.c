@@ -27,9 +27,7 @@
 #include <stdarg.h>
 
 #if defined(__APPLE__)
-# undef strlcat
 # undef strlncpy
-# undef strlcpy
 #endif  /* defined(__APPLE__) */
 
 #undef TRUE
@@ -1994,12 +1992,6 @@ strlncat(char *dst, size_t len, const char *src, size_t n)
 }
 
 size_t
-strlcat(char *dst, const char *src, size_t len)
-{
-  return strlncat(dst, len, src, (size_t) -1);
-}
-
-size_t
 strlncpy(char *dst, size_t len, const char *src, size_t n)
 {
   size_t slen;
@@ -2015,12 +2007,6 @@ strlncpy(char *dst, size_t len, const char *src, size_t n)
 
   assert(len > slen);
   return slen;
-}
-
-size_t
-strlcpy(char *dst, const char *src, size_t len)
-{
-  return strlncpy(dst, len, src, (size_t) -1);
 }
 
 int
