@@ -19,6 +19,7 @@
  * IN THE SOFTWARE.
  */
 #include "http_parser.h"
+#include "http_parser_internal.h"
 #include <assert.h>
 #include <stddef.h>
 #include <ctype.h>
@@ -431,6 +432,17 @@ enum http_host_state
   (IS_ALPHANUM(c) || (c) == '.' || (c) == '-' || (c) == '_')
 #endif
 
+#define NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED()                  \
+  if (1) {                                                    \
+    if (UNLIKELY(p + 1 == data + len)) {                      \
+      COUNT_HEADER_SIZE(0);                                   \
+      break;                                                  \
+    }                                                         \
+    ch = *++p;                                                \
+    ++parser->nread;                                          \
+  } else {}                                                   \
+
+
 /**
  * Verify that a char is a valid visible (printable) US-ASCII
  * character or %x80-FF
@@ -467,6 +479,109 @@ static struct {
 #undef HTTP_STRERROR_GEN
 
 int http_message_needs_eof(const http_parser *parser);
+
+#if defined(_MSC_VER) // SSE2 is baseline
+#include <intrin.h>
+#define __builtin_ctz _tzcnt_u32
+#elif defined(__SSE2__) && defined(__GNUC__)
+#include <emmintrin.h>
+#endif
+
+#ifndef USE_INTRISICS_CRLF
+# if defined(_MSC_VER) || \
+    (defined(__SSE2__) && defined(__GNUC__))
+#   define USE_INTRISICS_CRLF 1
+# else
+#   define USE_INTRISICS_CRLF 0
+# endif
+#endif
+
+#if USE_INTRISICS_CRLF
+
+static uint32_t get_crlf_mask(const char* p) {
+  /* [ c, 0, 0, 0, 0, 0 .. 0 ] */
+  const __m128i vCR = _mm_set1_epi8(0x0d);
+
+  /* [ c, 0, 0, 0, 0, 0 .. 0 ] */
+  const __m128i vLF = _mm_set1_epi8(0x0a);
+
+  __m128i v1, v2;
+  v1 = _mm_load_si128((__m128i*)p);
+  v2 = _mm_cmpeq_epi8(vCR, v1);
+  v1 = _mm_cmpeq_epi8(vLF, v1);
+  v2 = _mm_or_si128(v1, v2);
+  return _mm_movemask_epi8(v2);
+}
+
+const char* find_crlf(const char* p, const char* data, size_t len) {
+  const char* lastp = MIN(data + len, HTTP_MAX_HEADER_SIZE + p);
+  uint32_t result = 0;
+
+  while ((uintptr_t)p & 15 && p <= lastp) {
+    if (*p == CR || *p == LF) {
+      return p;
+    }
+    ++p;
+  }
+  if (lastp - p < 32) {
+    while (p <= lastp) {
+      if (*p == CR || *p == LF) {
+        return p;
+      }
+      ++p;
+    }
+    return data + len;
+  }
+
+  result = get_crlf_mask(p + 16) << 16 | get_crlf_mask(p);
+
+  if (!result) {
+    while(!result && lastp >= p+32) {
+      p += 32;
+      result = get_crlf_mask(p + 16) << 16 | get_crlf_mask(p);
+    }
+    if (!result) {
+      while (p <= lastp) {
+        if (*p == CR || *p == LF) {
+          return p;
+        }
+        ++p;
+      }
+      return data + len;
+    }
+  }
+  p += __builtin_ctz(result);
+  if (p >= lastp) {
+    return data + len;
+  }
+  return p;
+}
+
+#else
+
+const char* find_crlf(const char* p, const char* data, size_t len) {
+  const char* p_cr;
+  const char* p_lf;
+  size_t limit = data + len - p;
+
+  limit = MIN(limit, HTTP_MAX_HEADER_SIZE);
+
+  p_cr = (const char*) memchr(p, CR, limit);
+  p_lf = (const char*) memchr(p, LF, limit);
+  if (p_cr != NULL) {
+    if (p_lf != NULL && p_cr >= p_lf)
+      p = p_lf;
+    else
+      p = p_cr;
+  } else if (UNLIKELY(p_lf != NULL)) {
+    p = p_lf;
+  } else {
+    p = data + len;
+  }
+  return p;
+}
+
+#endif
 
 /* Our URL parser.
  *
@@ -777,17 +892,17 @@ reexecute:
       case s_res_H:
         STRICT_CHECK(ch != 'T');
         UPDATE_STATE(s_res_HT);
-        break;
+        NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED();
 
       case s_res_HT:
         STRICT_CHECK(ch != 'T');
         UPDATE_STATE(s_res_HTT);
-        break;
+        NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED();
 
       case s_res_HTT:
         STRICT_CHECK(ch != 'P');
         UPDATE_STATE(s_res_HTTP);
-        break;
+        NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED();
 
       case s_res_HTTP:
         STRICT_CHECK(ch != '/');
@@ -1098,17 +1213,17 @@ reexecute:
       case s_req_http_H:
         STRICT_CHECK(ch != 'T');
         UPDATE_STATE(s_req_http_HT);
-        break;
+        NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED();
 
       case s_req_http_HT:
         STRICT_CHECK(ch != 'T');
         UPDATE_STATE(s_req_http_HTT);
-        break;
+        NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED();
 
       case s_req_http_HTT:
         STRICT_CHECK(ch != 'P');
         UPDATE_STATE(s_req_http_HTTP);
-        break;
+        NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED();
 
       case s_req_http_HTTP:
         STRICT_CHECK(ch != '/');
@@ -1222,118 +1337,131 @@ reexecute:
             parser->header_state = h_general;
             break;
         }
-        break;
+        NEXT_HEADER_CHAR_OR_BREAK_IF_ENDED();
       }
 
       case s_header_field:
       {
         const char* start = p;
-        for (; p != data + len; p++) {
-          ch = *p;
-          c = TOKEN(ch);
+header_field_begin:
+        if (parser->header_state == h_general) {
+          for (; p != data + len; p++) {
+            ch = *p;
+            c = TOKEN(ch);
 
-          if (!c)
-            break;
+            if (!c)
+              break;
+          }
+        } else {
+          for (; p != data + len; p++) {
+            ch = *p;
+            c = TOKEN(ch);
 
-          switch (parser->header_state) {
-            case h_general:
+            if (!c)
               break;
 
-            case h_C:
-              parser->index++;
-              parser->header_state = (c == 'o' ? h_CO : h_general);
-              break;
+            switch (parser->header_state) {
+              case h_general:
+                --p;
+                goto header_field_begin;
+                break;
 
-            case h_CO:
-              parser->index++;
-              parser->header_state = (c == 'n' ? h_CON : h_general);
-              break;
+              case h_C:
+                parser->index++;
+                parser->header_state = (c == 'o' ? h_CO : h_general);
+                break;
 
-            case h_CON:
-              parser->index++;
-              switch (c) {
-                case 'n':
-                  parser->header_state = h_matching_connection;
-                  break;
-                case 't':
-                  parser->header_state = h_matching_content_length;
-                  break;
-                default:
+              case h_CO:
+                parser->index++;
+                parser->header_state = (c == 'n' ? h_CON : h_general);
+                break;
+
+              case h_CON:
+                parser->index++;
+                switch (c) {
+                  case 'n':
+                    parser->header_state = h_matching_connection;
+                    break;
+                  case 't':
+                    parser->header_state = h_matching_content_length;
+                    break;
+                  default:
+                    parser->header_state = h_general;
+                    break;
+                }
+                break;
+
+              /* connection */
+
+              case h_matching_connection:
+                parser->index++;
+                if (parser->index > sizeof(CONNECTION)-1
+                    || c != CONNECTION[parser->index]) {
                   parser->header_state = h_general;
-                  break;
-              }
-              break;
+                } else if (parser->index == sizeof(CONNECTION)-2) {
+                  parser->header_state = h_connection;
+                }
+                break;
 
-            /* connection */
+              /* proxy-connection */
 
-            case h_matching_connection:
-              parser->index++;
-              if (parser->index > sizeof(CONNECTION)-1
-                  || c != CONNECTION[parser->index]) {
-                parser->header_state = h_general;
-              } else if (parser->index == sizeof(CONNECTION)-2) {
-                parser->header_state = h_connection;
-              }
-              break;
+              case h_matching_proxy_connection:
+                parser->index++;
+                if (parser->index > sizeof(PROXY_CONNECTION)-1
+                    || c != PROXY_CONNECTION[parser->index]) {
+                  parser->header_state = h_general;
+                } else if (parser->index == sizeof(PROXY_CONNECTION)-2) {
+                  parser->header_state = h_connection;
+                }
+                break;
 
-            /* proxy-connection */
+              /* content-length */
 
-            case h_matching_proxy_connection:
-              parser->index++;
-              if (parser->index > sizeof(PROXY_CONNECTION)-1
-                  || c != PROXY_CONNECTION[parser->index]) {
-                parser->header_state = h_general;
-              } else if (parser->index == sizeof(PROXY_CONNECTION)-2) {
-                parser->header_state = h_connection;
-              }
-              break;
+              case h_matching_content_length:
+                parser->index++;
+                if (parser->index > sizeof(CONTENT_LENGTH)-1
+                    || c != CONTENT_LENGTH[parser->index]) {
+                  parser->header_state = h_general;
+                } else if (parser->index == sizeof(CONTENT_LENGTH)-2) {
+                  parser->header_state = h_content_length;
+                }
+                break;
 
-            /* content-length */
+              /* transfer-encoding */
 
-            case h_matching_content_length:
-              parser->index++;
-              if (parser->index > sizeof(CONTENT_LENGTH)-1
-                  || c != CONTENT_LENGTH[parser->index]) {
-                parser->header_state = h_general;
-              } else if (parser->index == sizeof(CONTENT_LENGTH)-2) {
-                parser->header_state = h_content_length;
-              }
-              break;
+              case h_matching_transfer_encoding:
+                parser->index++;
+                if (parser->index > sizeof(TRANSFER_ENCODING)-1
+                    || c != TRANSFER_ENCODING[parser->index]) {
+                  parser->header_state = h_general;
+                } else if (parser->index == sizeof(TRANSFER_ENCODING)-2) {
+                  parser->header_state = h_transfer_encoding;
+                }
+                break;
 
-            /* transfer-encoding */
+              /* upgrade */
 
-            case h_matching_transfer_encoding:
-              parser->index++;
-              if (parser->index > sizeof(TRANSFER_ENCODING)-1
-                  || c != TRANSFER_ENCODING[parser->index]) {
-                parser->header_state = h_general;
-              } else if (parser->index == sizeof(TRANSFER_ENCODING)-2) {
-                parser->header_state = h_transfer_encoding;
-              }
-              break;
+              case h_matching_upgrade:
+                parser->index++;
+                if (parser->index > sizeof(UPGRADE)-1
+                    || c != UPGRADE[parser->index]) {
+                  parser->header_state = h_general;
+                } else if (parser->index == sizeof(UPGRADE)-2) {
+                  parser->header_state = h_upgrade;
+                }
+                break;
 
-            /* upgrade */
+              case h_connection:
+              case h_content_length:
+              case h_transfer_encoding:
+              case h_upgrade:
+                if (ch != ' ') parser->header_state = h_general;
+                break;
 
-            case h_matching_upgrade:
-              parser->index++;
-              if (parser->index > sizeof(UPGRADE)-1
-                  || c != UPGRADE[parser->index]) {
-                parser->header_state = h_general;
-              } else if (parser->index == sizeof(UPGRADE)-2) {
-                parser->header_state = h_upgrade;
-              }
-              break;
-
-            case h_connection:
-            case h_content_length:
-            case h_transfer_encoding:
-            case h_upgrade:
-              if (ch != ' ') parser->header_state = h_general;
-              break;
-
-            default:
-              assert(0 && "Unknown header_state");
-              break;
+              default:
+                assert(0 && "Unknown header_state");
+                break;
+            }
           }
         }
 
@@ -1464,24 +1592,7 @@ reexecute:
           switch (h_state) {
             case h_general:
             {
-              const char* p_cr;
-              const char* p_lf;
-              size_t limit = data + len - p;
-
-              limit = MIN(limit, HTTP_MAX_HEADER_SIZE);
-
-              p_cr = (const char*) memchr(p, CR, limit);
-              p_lf = (const char*) memchr(p, LF, limit);
-              if (p_cr != NULL) {
-                if (p_lf != NULL && p_cr >= p_lf)
-                  p = p_lf;
-                else
-                  p = p_cr;
-              } else if (UNLIKELY(p_lf != NULL)) {
-                p = p_lf;
-              } else {
-                p = data + len;
-              }
+              p = find_crlf(p, data, len);
               --p;
 
               break;
