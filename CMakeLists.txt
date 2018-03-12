@@ -62,9 +62,8 @@ install(
 # Headers:
 #   * http_parser.h -> <prefix>/include/http_parser.h
 install(
-    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    FILES "${CMAKE_CURRENT_SOURCE_DIR}/http_parser.h"
     DESTINATION "${include_install_dir}"
-    FILES_MATCHING PATTERN "*.h"
 )
 
 # Config
