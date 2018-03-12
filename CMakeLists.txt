@@ -3,11 +3,8 @@ cmake_minimum_required(VERSION 3.1)
 project(http-parser VERSION 2.8.0)
 
 add_library(http_parser "http_parser.c" "http_parser.h")
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  target_compile_definitions(http_parser PRIVATE HTTP_PARSER_STRICT=1)
-else()
-  target_compile_definitions(http_parser PRIVATE HTTP_PARSER_STRICT=0)
-endif()
+target_compile_definitions(http_parser PRIVATE
+  "HTTP_PARSER_STRICT=$<CONFIG:Debug>")
 
 # Installation (https://github.com/forexample/package-example)
 
