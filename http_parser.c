@@ -49,6 +49,7 @@
 
 #define SET_ERRNO(e)                                                 \
 do {                                                                 \
+  parser->nread = nread;                                             \
   parser->http_errno = (e);                                          \
 } while(0)
 
@@ -56,6 +57,7 @@ do {                                                                 \
 #define UPDATE_STATE(V) p_state = (enum state) (V);
 #define RETURN(V)                                                    \
 do {                                                                 \
+  parser->nread = nread;                                             \
   parser->state = CURRENT_STATE();                                   \
   return (V);                                                        \
 } while (0);
@@ -149,8 +151,8 @@ do {                                                                 \
  */
 #define COUNT_HEADER_SIZE(V)                                         \
 do {                                                                 \
-  parser->nread += (V);                                              \
-  if (UNLIKELY(parser->nread > (HTTP_MAX_HEADER_SIZE))) {            \
+  nread += (V);                                                      \
+  if (UNLIKELY(nread > (HTTP_MAX_HEADER_SIZE))) {                    \
     SET_ERRNO(HPE_HEADER_OVERFLOW);                                  \
     goto error;                                                      \
   }                                                                  \
@@ -192,7 +194,7 @@ static const char tokens[256] = {
 /*  24 can   25 em    26 sub   27 esc   28 fs    29 gs    30 rs    31 us  */
         0,       0,       0,       0,       0,       0,       0,       0,
 /*  32 sp    33  !    34  "    35  #    36  $    37  %    38  &    39  '  */
-        0,      '!',      0,      '#',     '$',     '%',     '&',    '\'',
+       ' ',     '!',      0,      '#',     '$',     '%',     '&',    '\'',
 /*  40  (    41  )    42  *    43  +    44  ,    45  -    46  .    47  /  */
         0,       0,      '*',     '+',      0,      '-',     '.',      0,
 /*  48  0    49  1    50  2    51  3    52  4    53  5    54  6    55  7  */
@@ -417,14 +419,14 @@ enum http_host_state
   (c) == ';' || (c) == ':' || (c) == '&' || (c) == '=' || (c) == '+' || \
   (c) == '$' || (c) == ',')
 
-#define STRICT_TOKEN(c)     (tokens[(unsigned char)c])
+#define STRICT_TOKEN(c)     ((c == ' ') ? 0 : tokens[(unsigned char)c])
 
 #if HTTP_PARSER_STRICT
-#define TOKEN(c)            (tokens[(unsigned char)c])
+#define TOKEN(c)            STRICT_TOKEN(c)
 #define IS_URL_CHAR(c)      (BIT_AT(normal_url_char, (unsigned char)c))
 #define IS_HOST_CHAR(c)     (IS_ALPHANUM(c) || (c) == '.' || (c) == '-')
 #else
-#define TOKEN(c)            ((c == ' ') ? ' ' : tokens[(unsigned char)c])
+#define TOKEN(c)            tokens[(unsigned char)c]
 #define IS_URL_CHAR(c)                                                         \
   (BIT_AT(normal_url_char, (unsigned char)c) || ((c) & 0x80))
 #define IS_HOST_CHAR(c)                                                        \
@@ -642,6 +644,7 @@ size_t http_parser_execute (http_parser *parser,
   const char *status_mark = 0;
   enum state p_state = (enum state) parser->state;
   const unsigned int lenient = parser->lenient_http_headers;
+  uint32_t nread = parser->nread;
 
   /* We're in an error state. Don't bother doing anything. */
   if (HTTP_PARSER_ERRNO(parser) != HPE_OK) {
@@ -1236,8 +1239,14 @@ reexecute:
             break;
 
           switch (parser->header_state) {
-            case h_general:
+            case h_general: {
+              size_t limit = data + len - p;
+              limit = MIN(limit, HTTP_MAX_HEADER_SIZE);
+              while (p+1 < data + limit && TOKEN(*(p+1))) {
+                p++;
+              }
               break;
+            }
 
             case h_C:
               parser->index++;
@@ -1483,7 +1492,6 @@ reexecute:
                 p = data + len;
               }
               --p;
-
               break;
             }
 
@@ -1777,6 +1785,7 @@ reexecute:
         STRICT_CHECK(ch != LF);
 
         parser->nread = 0;
+        nread = 0;
 
         hasBody = parser->flags & F_CHUNKED ||
           (parser->content_length > 0 && parser->content_length != ULLONG_MAX);
@@ -1871,7 +1880,7 @@ reexecute:
 
       case s_chunk_size_start:
       {
-        assert(parser->nread == 1);
+        assert(nread == 1);
         assert(parser->flags & F_CHUNKED);
 
         unhex_val = unhex[(unsigned char)ch];
@@ -1939,6 +1948,7 @@ reexecute:
         STRICT_CHECK(ch != LF);
 
         parser->nread = 0;
+        nread = 0;
 
         if (parser->content_length == 0) {
           parser->flags |= F_TRAILING;
@@ -1985,6 +1995,7 @@ reexecute:
         assert(parser->flags & F_CHUNKED);
         STRICT_CHECK(ch != LF);
         parser->nread = 0;
+        nread = 0;
         UPDATE_STATE(s_chunk_size_start);
         CALLBACK_NOTIFY(chunk_complete);
         break;
@@ -2404,6 +2415,7 @@ http_parser_pause(http_parser *parser, int paused) {
    */
   if (HTTP_PARSER_ERRNO(parser) == HPE_OK ||
       HTTP_PARSER_ERRNO(parser) == HPE_PAUSED) {
+    uint32_t nread = parser->nread;
     SET_ERRNO((paused) ? HPE_PAUSED : HPE_OK);
   } else {
     assert(0 && "Attempting to pause parser in error state");
