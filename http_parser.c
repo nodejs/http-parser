@@ -1242,7 +1242,7 @@ reexecute:
             case h_general: {
               size_t limit = data + len - p;
               limit = MIN(limit, HTTP_MAX_HEADER_SIZE);
-              while (p+1 < data + limit && TOKEN(*(p+1))) {
+              while (p+1 < data + limit && TOKEN(p[1])) {
                 p++;
               }
               break;
