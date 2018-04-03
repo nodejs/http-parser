@@ -62,7 +62,7 @@ LDFLAGS_LIB = $(LDFLAGS) -shared
 
 INSTALL ?= install
 PREFIX ?= /usr/local
-LIBDIR = $(PREFIX)/lib
+LIBDIR ?= $(PREFIX)/lib
 INCLUDEDIR = $(PREFIX)/include
 
 ifeq (darwin,$(PLATFORM))
