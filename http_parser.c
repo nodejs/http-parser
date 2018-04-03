@@ -2415,7 +2415,7 @@ http_parser_pause(http_parser *parser, int paused) {
    */
   if (HTTP_PARSER_ERRNO(parser) == HPE_OK ||
       HTTP_PARSER_ERRNO(parser) == HPE_PAUSED) {
-    uint32_t nread = parser->nread;
+    uint32_t nread = parser->nread; /* used by the SET_ERRNO macro */
     SET_ERRNO((paused) ? HPE_PAUSED : HPE_OK);
   } else {
     assert(0 && "Attempting to pause parser in error state");
