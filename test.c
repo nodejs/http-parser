@@ -4095,6 +4095,39 @@ test_message_connect (const struct message *msg)
   parser_free();
 }
 
+/* Verify that `on_message_begin` callback isn't called until the first
+ * byte of message's start line is received. */
+void
+test_message_empty_prefix_lines (enum http_parser_type type)
+{
+  parser_init(type);
+
+  const char* parser_type = type == HTTP_REQUEST ? "request" :
+    (type == HTTP_RESPONSE ? "response" : "both");
+
+  const char *empty_lines = "\r\n\r\r\r\n";
+  parse(empty_lines, strlen(empty_lines));
+
+  if (messages[0].message_begin_cb_called) {
+    fprintf(stderr, "\n*** message_begin callback was called after "
+            "empty prefix lines, parser type '%s' ***\n\n", parser_type);
+    abort();
+  }
+
+  // NOTE: We use 'H' as the first message's byte as it's suitable for
+  // both request's and response's start lines.
+  parse("H", 1);
+
+  if (!messages[0].message_begin_cb_called) {
+    fprintf(stderr, "\n*** message_begin callback was not called after the "
+            "first message byte was received, parser type '%s' ***\n\n",
+            parser_type);
+    abort();
+  }
+
+  parser_free();
+}
+
 int
 main (void)
 {
@@ -4117,6 +4150,9 @@ main (void)
   test_preserve_data();
   test_parse_url();
   test_method_str();
+  test_message_empty_prefix_lines(HTTP_REQUEST);
+  test_message_empty_prefix_lines(HTTP_RESPONSE);
+  test_message_empty_prefix_lines(HTTP_BOTH);
 
   //// NREAD
   test_header_nread_value();
