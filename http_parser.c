@@ -643,7 +643,8 @@ size_t http_parser_execute (http_parser *parser,
   const char *body_mark = 0;
   const char *status_mark = 0;
   enum state p_state = (enum state) parser->state;
-  const unsigned int lenient = parser->lenient_http_headers;
+  const unsigned int lenient =
+    (settings->flags & SETTINGS_FLAG_LENIENT_HTTP_HEADERS);
 
   /* We're in an error state. Don't bother doing anything. */
   if (HTTP_PARSER_ERRNO(parser) != HPE_OK) {
