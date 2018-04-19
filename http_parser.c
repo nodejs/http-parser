@@ -1388,7 +1388,7 @@ reexecute:
 
           case h_transfer_encoding:
             /* looking for 'Transfer-Encoding: chunked' */
-            if ('c' == c) {
+            if ('c' == c && settings->ignore_header_transfer_encoding_chunked == 0) {
               parser->header_state = h_matching_transfer_encoding_chunked;
             } else {
               parser->header_state = h_general;
@@ -1794,6 +1794,10 @@ reexecute:
         STRICT_CHECK(ch != LF);
 
         parser->nread = 0;
+        if ((settings->ignore_header_content_length != 0) &&
+            (parser->flags & F_CONTENTLENGTH)) {
+          parser->flags |= F_CONTENTLENGTH_IGNORED;
+        }
 
         hasBody = parser->flags & F_CHUNKED ||
           (parser->content_length > 0 && parser->content_length != ULLONG_MAX);
@@ -1818,7 +1822,11 @@ reexecute:
             CALLBACK_NOTIFY(message_complete);
           } else if (parser->content_length != ULLONG_MAX) {
             /* Content-Length header given and non-zero */
-            UPDATE_STATE(s_body_identity);
+            if (parser->flags & F_CONTENTLENGTH_IGNORED) {
+              UPDATE_STATE(s_body_identity_eof);
+            } else {
+              UPDATE_STATE(s_body_identity);
+            }
           } else {
             if (!http_message_needs_eof(parser)) {
               /* Assume content-length 0 - read the next */
@@ -2050,6 +2058,9 @@ error:
 int
 http_message_needs_eof (const http_parser *parser)
 {
+  if (parser->flags & F_CONTENTLENGTH_IGNORED) {
+    return 1;
+  }
   if (parser->type == HTTP_REQUEST) {
     return 0;
   }
