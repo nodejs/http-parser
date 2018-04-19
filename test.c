@@ -27,9 +27,7 @@
 #include <stdarg.h>
 
 #if defined(__APPLE__)
-# undef strlcat
 # undef strlncpy
-# undef strlcpy
 #endif  /* defined(__APPLE__) */
 
 #undef TRUE
@@ -42,6 +40,8 @@
 #define MAX_CHUNKS 16
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
+
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*x))
 
 static http_parser *parser;
 
@@ -1154,7 +1154,25 @@ const struct message requests[] =
   ,.body= ""
   }
 
-, {.name= NULL } /* sentinel */
+#define SOURCE_REQUEST 42
+, {.name = "source request"
+  ,.type= HTTP_REQUEST
+  ,.raw= "SOURCE /music/sweet/music HTTP/1.1\r\n"
+         "Host: example.com\r\n"
+         "\r\n"
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_SOURCE
+  ,.request_path= "/music/sweet/music"
+  ,.request_url= "/music/sweet/music"
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.num_headers= 1
+  ,.headers= { { "Host", "example.com" } }
+  ,.body= ""
+  }
 };
 
 /* * R E S P O N S E S * */
@@ -1932,8 +1950,6 @@ const struct message responses[] =
   ,.num_chunks_complete= 3
   ,.chunk_lengths= { 2, 2 }
   }
-
-, {.name= NULL } /* sentinel */
 };
 
 /* strnlen() is a POSIX.2008 addition. Can't rely on it being available so
@@ -1974,12 +1990,6 @@ strlncat(char *dst, size_t len, const char *src, size_t n)
 }
 
 size_t
-strlcat(char *dst, const char *src, size_t len)
-{
-  return strlncat(dst, len, src, (size_t) -1);
-}
-
-size_t
 strlncpy(char *dst, size_t len, const char *src, size_t n)
 {
   size_t slen;
@@ -1995,12 +2005,6 @@ strlncpy(char *dst, size_t len, const char *src, size_t n)
 
   assert(len > slen);
   return slen;
-}
-
-size_t
-strlcpy(char *dst, const char *src, size_t len)
-{
-  return strlncpy(dst, len, src, (size_t) -1);
 }
 
 int
@@ -3665,6 +3669,30 @@ test_header_cr_no_lf_error (int req)
 }
 
 void
+test_no_overflow_parse_url (void)
+{
+  int rv;
+  struct http_parser_url u;
+
+  http_parser_url_init(&u);
+  rv = http_parser_parse_url("http://example.com:8001", 22, 0, &u);
+
+  if (rv != 0) {
+    fprintf(stderr,
+            "\n*** test_no_overflow_parse_url invalid return value=%d\n",
+            rv);
+    abort();
+  }
+
+  if (u.port != 800) {
+    fprintf(stderr,
+            "\n*** test_no_overflow_parse_url invalid port number=%d\n",
+            u.port);
+    abort();
+  }
+}
+
+void
 test_header_overflow_error (int req)
 {
   http_parser parser;
@@ -4071,9 +4099,7 @@ int
 main (void)
 {
   parser = NULL;
-  int i, j, k;
-  int request_count;
-  int response_count;
+  unsigned i, j, k;
   unsigned long version;
   unsigned major;
   unsigned minor;
@@ -4087,9 +4113,6 @@ main (void)
 
   printf("sizeof(http_parser) = %u\n", (unsigned int)sizeof(http_parser));
 
-  for (request_count = 0; requests[request_count].name; request_count++);
-  for (response_count = 0; responses[response_count].name; response_count++);
-
   //// API
   test_preserve_data();
   test_parse_url();
@@ -4099,6 +4122,7 @@ main (void)
   test_header_nread_value();
 
   //// OVERFLOW CONDITIONS
+  test_no_overflow_parse_url();
 
   test_header_overflow_error(HTTP_REQUEST);
   test_no_overflow_long_body(HTTP_REQUEST, 1000);
@@ -4123,6 +4147,27 @@ main (void)
   test_invalid_header_field_token_error(HTTP_RESPONSE);
   test_invalid_header_field_content_error(HTTP_RESPONSE);
 
+  test_simple_type(
+      "POST / HTTP/1.1\r\n"
+      "Content-Length:  42 \r\n"  // Note the surrounding whitespace.
+      "\r\n",
+      HPE_OK,
+      HTTP_REQUEST);
+
+  test_simple_type(
+      "POST / HTTP/1.1\r\n"
+      "Content-Length: 4 2\r\n"
+      "\r\n",
+      HPE_INVALID_CONTENT_LENGTH,
+      HTTP_REQUEST);
+
+  test_simple_type(
+      "POST / HTTP/1.1\r\n"
+      "Content-Length: 13 37\r\n"
+      "\r\n",
+      HPE_INVALID_CONTENT_LENGTH,
+      HTTP_REQUEST);
+
   //// RESPONSES
 
   test_simple_type("HTP/1.1 200 OK\r\n\r\n", HPE_INVALID_VERSION, HTTP_RESPONSE);
@@ -4131,23 +4176,23 @@ main (void)
   test_simple_type("HTTP/1.01 200 OK\r\n\r\n", HPE_INVALID_VERSION, HTTP_RESPONSE);
   test_simple_type("HTTP/1.1\t200 OK\r\n\r\n", HPE_INVALID_VERSION, HTTP_RESPONSE);
 
-  for (i = 0; i < response_count; i++) {
+  for (i = 0; i < ARRAY_SIZE(responses); i++) {
     test_message(&responses[i]);
   }
 
-  for (i = 0; i < response_count; i++) {
+  for (i = 0; i < ARRAY_SIZE(responses); i++) {
     test_message_pause(&responses[i]);
   }
 
-  for (i = 0; i < response_count; i++) {
+  for (i = 0; i < ARRAY_SIZE(responses); i++) {
     test_message_connect(&responses[i]);
   }
 
-  for (i = 0; i < response_count; i++) {
+  for (i = 0; i < ARRAY_SIZE(responses); i++) {
     if (!responses[i].should_keep_alive) continue;
-    for (j = 0; j < response_count; j++) {
+    for (j = 0; j < ARRAY_SIZE(responses); j++) {
       if (!responses[j].should_keep_alive) continue;
-      for (k = 0; k < response_count; k++) {
+      for (k = 0; k < ARRAY_SIZE(responses); k++) {
         test_multiple3(&responses[i], &responses[j], &responses[k]);
       }
     }
@@ -4363,19 +4408,19 @@ main (void)
 
 
   /* check to make sure our predefined requests are okay */
-  for (i = 0; requests[i].name; i++) {
+  for (i = 0; i < ARRAY_SIZE(requests); i++) {
     test_message(&requests[i]);
   }
 
-  for (i = 0; i < request_count; i++) {
+  for (i = 0; i < ARRAY_SIZE(requests); i++) {
     test_message_pause(&requests[i]);
   }
 
-  for (i = 0; i < request_count; i++) {
+  for (i = 0; i < ARRAY_SIZE(requests); i++) {
     if (!requests[i].should_keep_alive) continue;
-    for (j = 0; j < request_count; j++) {
+    for (j = 0; j < ARRAY_SIZE(requests); j++) {
       if (!requests[j].should_keep_alive) continue;
-      for (k = 0; k < request_count; k++) {
+      for (k = 0; k < ARRAY_SIZE(requests); k++) {
         test_multiple3(&requests[i], &requests[j], &requests[k]);
       }
     }

@@ -22,7 +22,6 @@
 #include <assert.h>
 #include <stddef.h>
 #include <ctype.h>
-#include <stdlib.h>
 #include <string.h>
 #include <limits.h>
 
@@ -371,6 +370,8 @@ enum header_states
 
   , h_connection
   , h_content_length
+  , h_content_length_num
+  , h_content_length_ws
   , h_transfer_encoding
   , h_upgrade
 
@@ -943,7 +944,7 @@ reexecute:
             /* or PROPFIND|PROPPATCH|PUT|PATCH|PURGE */
             break;
           case 'R': parser->method = HTTP_REPORT; /* or REBIND */ break;
-          case 'S': parser->method = HTTP_SUBSCRIBE; /* or SEARCH */ break;
+          case 'S': parser->method = HTTP_SUBSCRIBE; /* or SEARCH, SOURCE */ break;
           case 'T': parser->method = HTTP_TRACE; break;
           case 'U': parser->method = HTTP_UNLOCK; /* or UNSUBSCRIBE, UNBIND, UNLINK */ break;
           default:
@@ -989,6 +990,7 @@ reexecute:
             XX(MKCOL,     2, 'A', MKACTIVITY)
             XX(MKCOL,     3, 'A', MKCALENDAR)
             XX(SUBSCRIBE, 1, 'E', SEARCH)
+            XX(SUBSCRIBE, 1, 'O', SOURCE)
             XX(REPORT,    2, 'B', REBIND)
             XX(PROPFIND,  4, 'P', PROPPATCH)
             XX(LOCK,      1, 'I', LINK)
@@ -1406,6 +1408,7 @@ reexecute:
 
             parser->flags |= F_CONTENTLENGTH;
             parser->content_length = ch - '0';
+            parser->header_state = h_content_length_num;
             break;
 
           case h_connection:
@@ -1493,10 +1496,18 @@ reexecute:
               break;
 
             case h_content_length:
+              if (ch == ' ') break;
+              h_state = h_content_length_num;
+              /* FALLTHROUGH */
+
+            case h_content_length_num:
             {
               uint64_t t;
 
-              if (ch == ' ') break;
+              if (ch == ' ') {
+                h_state = h_content_length_ws;
+                break;
+              }
 
               if (UNLIKELY(!IS_NUM(ch))) {
                 SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
@@ -1518,6 +1529,12 @@ reexecute:
               parser->content_length = t;
               break;
             }
+
+            case h_content_length_ws:
+              if (ch == ' ') break;
+              SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
+              parser->header_state = h_state;
+              goto error;
 
             /* Transfer-Encoding: chunked */
             case h_matching_transfer_encoding_chunked:
@@ -2378,12 +2395,27 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   }
 
   if (u->field_set & (1 << UF_PORT)) {
-    /* Don't bother with endp; we've already validated the string */
-    unsigned long v = strtoul(buf + u->field_data[UF_PORT].off, NULL, 10);
+    uint16_t off;
+    uint16_t len;
+    const char* p;
+    const char* end;
+    unsigned long v;
 
-    /* Ports have a max value of 2^16 */
-    if (v > 0xffff) {
-      return 1;
+    off = u->field_data[UF_PORT].off;
+    len = u->field_data[UF_PORT].len;
+    end = buf + off + len;
+
+    /* NOTE: The characters are already validated and are in the [0-9] range */
+    assert(off + len <= buflen && "Port number overflow");
+    v = 0;
+    for (p = buf + off; p < end; p++) {
+      v *= 10;
+      v += *p - '0';
+
+      /* Ports have a max value of 2^16 */
+      if (v > 0xffff) {
+        return 1;
+      }
     }
 
     u->port = (uint16_t) v;
