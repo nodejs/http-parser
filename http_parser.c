@@ -2303,7 +2303,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   enum http_parser_url_fields uf, old_uf;
   int found_at = 0;
 
-  if (buf == NULL || buf[0] == '\0') {
+  if (buflen == 0) {
     return 1;
   }
 
