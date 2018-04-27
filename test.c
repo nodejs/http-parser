@@ -3264,6 +3264,18 @@ const struct url_test url_tests[] =
   ,.rv=1 /* s_dead */
   }
 
+  , {.name="empty url"
+    ,.url=""
+    ,.is_connect=0
+    ,.rv=1
+    }
+
+  , {.name="NULL url"
+    ,.url=NULL
+    ,.is_connect=0
+    ,.rv=1
+    }
+
 #if HTTP_PARSER_STRICT
 
 , {.name="tab in URL"
@@ -3348,7 +3360,7 @@ test_parse_url (void)
     memset(&u, 0, sizeof(u));
 
     rv = http_parser_parse_url(test->url,
-                               strlen(test->url),
+                               test->url ? strlen(test->url) : 0,
                                test->is_connect,
                                &u);
 

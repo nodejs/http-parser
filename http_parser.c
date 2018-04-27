@@ -2303,6 +2303,10 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   enum http_parser_url_fields uf, old_uf;
   int found_at = 0;
 
+  if (buf == NULL || buf[0] == '\0') {
+    return 1;
+  }
+
   u->port = u->field_set = 0;
   s = is_connect ? s_req_server_start : s_req_spaces_before_url;
   old_uf = UF_MAX;
