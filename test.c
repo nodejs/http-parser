@@ -3276,6 +3276,12 @@ const struct url_test url_tests[] =
     ,.rv=1
     }
 
+  , {.name="full of spaces url"
+    ,.url="  "
+    ,.is_connect=0
+    ,.rv=1
+    }
+
 #if HTTP_PARSER_STRICT
 
 , {.name="tab in URL"
