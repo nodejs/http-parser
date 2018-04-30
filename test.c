@@ -153,10 +153,10 @@ const struct message requests[] =
   ,.body= ""
   }
 
-#define DUMBSTUFF 2
-, {.name= "dumbstuff"
+#define DUMBLUCK 2
+, {.name= "dumbluck"
   ,.type= HTTP_REQUEST
-  ,.raw= "GET /dumbstuff HTTP/1.1\r\n"
+  ,.raw= "GET /dumbluck HTTP/1.1\r\n"
          "aaaaaaaaaaaaa:++++++++++\r\n"
          "\r\n"
   ,.should_keep_alive= TRUE
@@ -166,8 +166,8 @@ const struct message requests[] =
   ,.method= HTTP_GET
   ,.query_string= ""
   ,.fragment= ""
-  ,.request_path= "/dumbstuff"
-  ,.request_url= "/dumbstuff"
+  ,.request_path= "/dumbluck"
+  ,.request_url= "/dumbluck"
   ,.num_headers= 1
   ,.headers=
     { { "aaaaaaaaaaaaa",  "++++++++++" }
@@ -377,7 +377,7 @@ const struct message requests[] =
   ,.raw= "POST /chunked_w_nonsense_after_length HTTP/1.1\r\n"
          "Transfer-Encoding: chunked\r\n"
          "\r\n"
-         "5; iheartw3;what=aretheseparametersfor\r\nhello\r\n"
+         "5; ilovew3;whattheluck=aretheseparametersfor\r\nhello\r\n"
          "6; blahblah; blah\r\n world\r\n"
          "0\r\n"
          "\r\n"
@@ -4339,7 +4339,7 @@ main (void)
               "\r\n",
               HPE_INVALID_HEADER_TOKEN);
 
-  const char *dumbstuff2 =
+  const char *dumbluck2 =
     "GET / HTTP/1.1\r\n"
     "X-SSL-Nonsense:   -----BEGIN CERTIFICATE-----\r\n"
     "\tMIIFbTCCBFWgAwIBAgICH4cwDQYJKoZIhvcNAQEFBQAwcDELMAkGA1UEBhMCVUsx\r\n"
@@ -4374,7 +4374,7 @@ main (void)
     "\tRA==\r\n"
     "\t-----END CERTIFICATE-----\r\n"
     "\r\n";
-  test_simple(dumbstuff2, HPE_OK);
+  test_simple(dumbluck2, HPE_OK);
 
   const char *corrupted_connection =
     "GET / HTTP/1.1\r\n"
