@@ -43,7 +43,7 @@
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*x))
 
-static http_parser *parser;
+static http_parser parser;
 
 struct message {
   const char *name; // for debugging purposes
@@ -2010,7 +2010,7 @@ strlncpy(char *dst, size_t len, const char *src, size_t n)
 int
 request_url_cb (http_parser *p, const char *buf, size_t len)
 {
-  assert(p == parser);
+  assert(p == &parser);
   strlncat(messages[num_messages].request_url,
            sizeof(messages[num_messages].request_url),
            buf,
@@ -2021,7 +2021,7 @@ request_url_cb (http_parser *p, const char *buf, size_t len)
 int
 header_field_cb (http_parser *p, const char *buf, size_t len)
 {
-  assert(p == parser);
+  assert(p == &parser);
   struct message *m = &messages[num_messages];
 
   if (m->last_header_element != FIELD)
@@ -2040,7 +2040,7 @@ header_field_cb (http_parser *p, const char *buf, size_t len)
 int
 header_value_cb (http_parser *p, const char *buf, size_t len)
 {
-  assert(p == parser);
+  assert(p == &parser);
   struct message *m = &messages[num_messages];
 
   strlncat(m->headers[m->num_headers-1][1],
@@ -2069,7 +2069,7 @@ check_body_is_final (const http_parser *p)
 int
 body_cb (http_parser *p, const char *buf, size_t len)
 {
-  assert(p == parser);
+  assert(p == &parser);
   strlncat(messages[num_messages].body,
            sizeof(messages[num_messages].body),
            buf,
@@ -2083,7 +2083,7 @@ body_cb (http_parser *p, const char *buf, size_t len)
 int
 count_body_cb (http_parser *p, const char *buf, size_t len)
 {
-  assert(p == parser);
+  assert(p == &parser);
   assert(buf);
   messages[num_messages].body_size += len;
   check_body_is_final(p);
@@ -2093,7 +2093,7 @@ count_body_cb (http_parser *p, const char *buf, size_t len)
 int
 message_begin_cb (http_parser *p)
 {
-  assert(p == parser);
+  assert(p == &parser);
   messages[num_messages].message_begin_cb_called = TRUE;
   return 0;
 }
@@ -2101,21 +2101,22 @@ message_begin_cb (http_parser *p)
 int
 headers_complete_cb (http_parser *p)
 {
-  assert(p == parser);
-  messages[num_messages].method = parser->method;
-  messages[num_messages].status_code = parser->status_code;
-  messages[num_messages].http_major = parser->http_major;
-  messages[num_messages].http_minor = parser->http_minor;
+  assert(p == &parser);
+  messages[num_messages].method = parser.method;
+  messages[num_messages].status_code = parser.status_code;
+  messages[num_messages].http_major = parser.http_major;
+  messages[num_messages].http_minor = parser.http_minor;
   messages[num_messages].headers_complete_cb_called = TRUE;
-  messages[num_messages].should_keep_alive = http_should_keep_alive(parser);
+  messages[num_messages].should_keep_alive = http_should_keep_alive(&parser);
   return 0;
 }
 
 int
 message_complete_cb (http_parser *p)
 {
-  assert(p == parser);
-  if (messages[num_messages].should_keep_alive != http_should_keep_alive(parser))
+  assert(p == &parser);
+  if (messages[num_messages].should_keep_alive !=
+      http_should_keep_alive(&parser))
   {
     fprintf(stderr, "\n\n *** Error http_should_keep_alive() should have same "
                     "value in both on_message_complete and on_headers_complete "
@@ -2146,7 +2147,7 @@ message_complete_cb (http_parser *p)
 int
 response_status_cb (http_parser *p, const char *buf, size_t len)
 {
-  assert(p == parser);
+  assert(p == &parser);
 
   messages[num_messages].status_cb_called = TRUE;
 
@@ -2160,7 +2161,7 @@ response_status_cb (http_parser *p, const char *buf, size_t len)
 int
 chunk_header_cb (http_parser *p)
 {
-  assert(p == parser);
+  assert(p == &parser);
   int chunk_idx = messages[num_messages].num_chunks;
   messages[num_messages].num_chunks++;
   if (chunk_idx < MAX_CHUNKS) {
@@ -2173,7 +2174,7 @@ chunk_header_cb (http_parser *p)
 int
 chunk_complete_cb (http_parser *p)
 {
-  assert(p == parser);
+  assert(p == &parser);
 
   /* Here we want to verify that each chunk_header_cb is matched by a
    * chunk_complete_cb, so not only should the total number of calls to
@@ -2378,7 +2379,7 @@ connect_headers_complete_cb (http_parser *p)
 int
 connect_message_complete_cb (http_parser *p)
 {
-  messages[num_messages].should_keep_alive = http_should_keep_alive(parser);
+  messages[num_messages].should_keep_alive = http_should_keep_alive(&parser);
   return message_complete_cb(p);
 }
 
@@ -2451,30 +2452,15 @@ void
 parser_init (enum http_parser_type type)
 {
   num_messages = 0;
-
-  assert(parser == NULL);
-
-  parser = malloc(sizeof(http_parser));
-
-  http_parser_init(parser, type);
-
+  http_parser_init(&parser, type);
   memset(&messages, 0, sizeof messages);
-
-}
-
-void
-parser_free ()
-{
-  assert(parser);
-  free(parser);
-  parser = NULL;
 }
 
 size_t parse (const char *buf, size_t len)
 {
   size_t nparsed;
   currently_parsing_eof = (len == 0);
-  nparsed = http_parser_execute(parser, &settings, buf, len);
+  nparsed = http_parser_execute(&parser, &settings, buf, len);
   return nparsed;
 }
 
@@ -2482,7 +2468,7 @@ size_t parse_count_body (const char *buf, size_t len)
 {
   size_t nparsed;
   currently_parsing_eof = (len == 0);
-  nparsed = http_parser_execute(parser, &settings_count_body, buf, len);
+  nparsed = http_parser_execute(&parser, &settings_count_body, buf, len);
   return nparsed;
 }
 
@@ -2493,7 +2479,7 @@ size_t parse_pause (const char *buf, size_t len)
 
   currently_parsing_eof = (len == 0);
   current_pause_parser = &s;
-  nparsed = http_parser_execute(parser, current_pause_parser, buf, len);
+  nparsed = http_parser_execute(&parser, current_pause_parser, buf, len);
   return nparsed;
 }
 
@@ -2501,7 +2487,7 @@ size_t parse_connect (const char *buf, size_t len)
 {
   size_t nparsed;
   currently_parsing_eof = (len == 0);
-  nparsed = http_parser_execute(parser, &settings_connect, buf, len);
+  nparsed = http_parser_execute(&parser, &settings_connect, buf, len);
   return nparsed;
 }
 
@@ -2721,7 +2707,7 @@ static void
 print_error (const char *raw, size_t error_location)
 {
   fprintf(stderr, "\n*** %s ***\n\n",
-          http_errno_description(HTTP_PARSER_ERRNO(parser)));
+          http_errno_description(HTTP_PARSER_ERRNO(&parser)));
 
   int this_line = 0, char_len = 0;
   size_t i, j, len = strlen(raw), error_location_line = 0;
@@ -3404,7 +3390,7 @@ test_message (const struct message *message)
     if (msg1len) {
       read = parse(msg1, msg1len);
 
-      if (message->upgrade && parser->upgrade && num_messages > 0) {
+      if (message->upgrade && parser.upgrade && num_messages > 0) {
         messages[num_messages - 1].upgrade = msg1 + read;
         goto test;
       }
@@ -3418,7 +3404,7 @@ test_message (const struct message *message)
 
     read = parse(msg2, msg2len);
 
-    if (message->upgrade && parser->upgrade) {
+    if (message->upgrade && parser.upgrade) {
       messages[num_messages - 1].upgrade = msg2 + read;
       goto test;
     }
@@ -3443,8 +3429,6 @@ test_message (const struct message *message)
     }
 
     if(!message_eq(0, 0, message)) abort();
-
-    parser_free();
   }
 }
 
@@ -3480,8 +3464,6 @@ test_message_count_body (const struct message *message)
   }
 
   if(!message_eq(0, 0, message)) abort();
-
-  parser_free();
 }
 
 void
@@ -3494,10 +3476,8 @@ test_simple_type (const char *buf,
   enum http_errno err;
 
   parse(buf, strlen(buf));
-  err = HTTP_PARSER_ERRNO(parser);
+  err = HTTP_PARSER_ERRNO(&parser);
   parse(NULL, 0);
-
-  parser_free();
 
   /* In strict mode, allow us to pass with an unexpected HPE_STRICT as
    * long as the caller isn't expecting success.
@@ -3838,7 +3818,7 @@ test_multiple3 (const struct message *r1, const struct message *r2, const struct
 
   read = parse(total, strlen(total));
 
-  if (parser->upgrade) {
+  if (parser.upgrade) {
     upgrade_message_fix(total, read, 3, r1, r2, r3);
     goto test;
   }
@@ -3865,8 +3845,6 @@ test:
   if (!message_eq(0, 0, r1)) abort();
   if (message_count > 1 && !message_eq(1, 0, r2)) abort();
   if (message_count > 2 && !message_eq(2, 0, r3)) abort();
-
-  parser_free();
 }
 
 /* SCAN through every possible breaking to make sure the
@@ -3922,7 +3900,7 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
 
         read = parse(buf1, buf1_len);
 
-        if (parser->upgrade) goto test;
+        if (parser.upgrade) goto test;
 
         if (read != buf1_len) {
           print_error(buf1, read);
@@ -3931,7 +3909,7 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
 
         read += parse(buf2, buf2_len);
 
-        if (parser->upgrade) goto test;
+        if (parser.upgrade) goto test;
 
         if (read != buf1_len + buf2_len) {
           print_error(buf2, read);
@@ -3940,7 +3918,7 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
 
         read += parse(buf3, buf3_len);
 
-        if (parser->upgrade) goto test;
+        if (parser.upgrade) goto test;
 
         if (read != buf1_len + buf2_len + buf3_len) {
           print_error(buf3, read);
@@ -3950,7 +3928,7 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
         parse(NULL, 0);
 
 test:
-        if (parser->upgrade) {
+        if (parser.upgrade) {
           upgrade_message_fix(total, read, 3, r1, r2, r3);
         }
 
@@ -3974,8 +3952,6 @@ test:
           fprintf(stderr, "\n\nError matching messages[2] in test_scan.\n");
           goto error;
         }
-
-        parser_free();
       }
     }
   }
@@ -4039,7 +4015,7 @@ test_message_pause (const struct message *msg)
     // completion callback.
     if (messages[0].message_complete_cb_called &&
         msg->upgrade &&
-        parser->upgrade) {
+        parser.upgrade) {
       messages[0].upgrade = buf + nread;
       goto test;
     }
@@ -4047,17 +4023,16 @@ test_message_pause (const struct message *msg)
     if (nread < buflen) {
 
       // Not much do to if we failed a strict-mode check
-      if (HTTP_PARSER_ERRNO(parser) == HPE_STRICT) {
-        parser_free();
+      if (HTTP_PARSER_ERRNO(&parser) == HPE_STRICT) {
         return;
       }
 
-      assert (HTTP_PARSER_ERRNO(parser) == HPE_PAUSED);
+      assert (HTTP_PARSER_ERRNO(&parser) == HPE_PAUSED);
     }
 
     buf += nread;
     buflen -= nread;
-    http_parser_pause(parser, 0);
+    http_parser_pause(&parser, 0);
   } while (buflen > 0);
 
   nread = parse_pause(NULL, 0);
@@ -4070,8 +4045,6 @@ test:
   }
 
   if(!message_eq(0, 0, msg)) abort();
-
-  parser_free();
 }
 
 /* Verify that body and next message won't be parsed in responses to CONNECT */
@@ -4091,14 +4064,11 @@ test_message_connect (const struct message *msg)
   }
 
   if(!message_eq(0, 1, msg)) abort();
-
-  parser_free();
 }
 
 int
 main (void)
 {
-  parser = NULL;
   unsigned i, j, k;
   unsigned long version;
   unsigned major;
