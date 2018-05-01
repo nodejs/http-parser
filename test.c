@@ -3388,7 +3388,16 @@ test_message (const struct message *message)
     size_t msg2len = raw_len - msg1len;
 
     if (msg1len) {
+      assert(num_messages == 0);
+      messages[0].headers_complete_cb_called = FALSE;
+
       read = parse(msg1, msg1len);
+
+      if (!messages[0].headers_complete_cb_called && parser.nread != read) {
+        assert(parser.nread == read);
+        print_error(msg1, read);
+        abort();
+      }
 
       if (message->upgrade && parser.upgrade && num_messages > 0) {
         messages[num_messages - 1].upgrade = msg1 + read;
@@ -3898,7 +3907,15 @@ test_scan (const struct message *r1, const struct message *r2, const struct mess
         strlncpy(buf3, sizeof(buf1), total+j, buf3_len);
         buf3[buf3_len] = 0;
 
+        assert(num_messages == 0);
+        messages[0].headers_complete_cb_called = FALSE;
+
         read = parse(buf1, buf1_len);
+
+        if (!messages[0].headers_complete_cb_called && parser.nread != read) {
+          print_error(buf1, read);
+          goto error;
+        }
 
         if (parser.upgrade) goto test;
 
