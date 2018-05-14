@@ -540,7 +540,7 @@ parse_url_char(enum state s, const char ch)
         return s_dead;
       }
 
-    /* FALLTHROUGH */
+    /* fall through */
     case s_req_server_start:
     case s_req_server:
       if (ch == '/') {
@@ -1369,7 +1369,7 @@ reexecute:
           break;
         }
 
-        /* FALLTHROUGH */
+	/* fall through */
 
       case s_header_value_start:
       {
@@ -1498,7 +1498,7 @@ reexecute:
             case h_content_length:
               if (ch == ' ') break;
               h_state = h_content_length_num;
-              /* FALLTHROUGH */
+	      /* fall through */
 
             case h_content_length_num:
             {
@@ -1770,7 +1770,7 @@ reexecute:
             case 2:
               parser->upgrade = 1;
 
-            /* FALLTHROUGH */
+	    /* fall through */
             case 1:
               parser->flags |= F_SKIPBODY;
               break;
@@ -2155,7 +2155,7 @@ http_parse_host_char(enum http_host_state s, const char ch) {
         return s_http_host;
       }
 
-    /* FALLTHROUGH */
+    /* fall through */
     case s_http_host_v6_end:
       if (ch == ':') {
         return s_http_host_port_start;
@@ -2168,7 +2168,7 @@ http_parse_host_char(enum http_host_state s, const char ch) {
         return s_http_host_v6_end;
       }
 
-    /* FALLTHROUGH */
+    /* fall through */
     case s_http_host_v6_start:
       if (IS_HEX(ch) || ch == ':' || ch == '.') {
         return s_http_host_v6;
@@ -2184,7 +2184,7 @@ http_parse_host_char(enum http_host_state s, const char ch) {
         return s_http_host_v6_end;
       }
 
-    /* FALLTHROUGH */
+    /* fall through */
     case s_http_host_v6_zone_start:
       /* RFC 6874 Zone ID consists of 1*( unreserved / pct-encoded) */
       if (IS_ALPHANUM(ch) || ch == '%' || ch == '.' || ch == '-' || ch == '_' ||
@@ -2330,7 +2330,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
       case s_req_server_with_at:
         found_at = 1;
 
-      /* FALLTHROUGH */
+      /* fall through */
       case s_req_server:
         uf = UF_HOST;
         break;
