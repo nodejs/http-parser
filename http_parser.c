@@ -2096,6 +2096,16 @@ http_method_str (enum http_method m)
   return ELEM_AT(method_strings, m, "<unknown>");
 }
 
+const char *
+http_status_str (enum http_status s)
+{
+  switch (s) {
+#define XX(num, name, string) case HTTP_STATUS_##name: return #string;
+    HTTP_STATUS_MAP(XX)
+#undef XX
+    default: return "<unknown>";
+  }
+}
 
 void
 http_parser_init (http_parser *parser, enum http_parser_type t)
