@@ -3389,6 +3389,14 @@ test_method_str (void)
 }
 
 void
+test_status_str( void )
+{
+  assert(0 == strcmp("OK", http_status_str(HTTP_STATUS_OK)));
+  assert(0 == strcmp("Not Found", http_status_str(HTTP_STATUS_NOT_FOUND)));
+  assert(0 == strcmp("<unknown>", http_status_str(1337)));
+}
+
+void
 test_message (const struct message *message)
 {
   size_t raw_len = strlen(message->raw);
@@ -4117,6 +4125,7 @@ main (void)
   test_preserve_data();
   test_parse_url();
   test_method_str();
+  test_status_str();
 
   //// NREAD
   test_header_nread_value();
