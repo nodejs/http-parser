@@ -3389,7 +3389,7 @@ test_method_str (void)
 }
 
 void
-test_status_str( void )
+test_status_str (void)
 {
   assert(0 == strcmp("OK", http_status_str(HTTP_STATUS_OK)));
   assert(0 == strcmp("Not Found", http_status_str(HTTP_STATUS_NOT_FOUND)));
