@@ -69,6 +69,7 @@ struct message {
   int num_chunks;
   int num_chunks_complete;
   int chunk_lengths[MAX_CHUNKS];
+  char chunk_extensions[MAX_CHUNKS][MAX_ELEMENT_SIZE];
 
   const char *upgrade; // upgraded body
 
@@ -397,6 +398,10 @@ const struct message requests[] =
   ,.body= "hello world"
   ,.num_chunks_complete= 3
   ,.chunk_lengths= { 5, 6 }
+  ,.chunk_extensions =
+    { "; ihatew3;whatthefuck=aretheseparametersfor"
+    , "; blahblah; blah"
+    }
   }
 
 #define WITH_QUOTES 12
@@ -1333,6 +1338,7 @@ const struct message responses[] =
          "and this is the second one\r\n"
   ,.num_chunks_complete= 3
   ,.chunk_lengths= { 0x25, 0x1c }
+  ,.chunk_extensions = { "  ", "" , "  " }
   }
 
 #define NO_CARRIAGE_RET 5
@@ -2186,6 +2192,20 @@ chunk_complete_cb (http_parser *p)
   return 0;
 }
 
+int
+chunk_extensions_cb (http_parser *p, const char *buf, size_t len)
+{
+  assert(p == parser);
+
+  struct message *m = &messages[num_messages];
+  strlncat(m->chunk_extensions[m->num_chunks],
+           sizeof(m->chunk_extensions[m->num_chunks]),
+		   buf,
+		   len);
+
+  return 0;
+}
+
 /* These dontcall_* callbacks exist so that we can verify that when we're
  * paused, no additional callbacks are invoked */
 int
@@ -2271,6 +2291,15 @@ dontcall_chunk_complete_cb (http_parser *p)
   exit(1);
 }
 
+int
+dontcall_chunk_extensions_cb (http_parser *p, const char *buf, size_t len)
+{
+  if (p || buf || len) { } // gcc
+  fprintf(stderr, "\n\n*** on_chunk_extensions() "
+          "called on paused parser ***\n\n");
+  exit(1);
+}
+
 static http_parser_settings settings_dontcall =
   {.on_message_begin = dontcall_message_begin_cb
   ,.on_header_field = dontcall_header_field_cb
@@ -2282,6 +2311,7 @@ static http_parser_settings settings_dontcall =
   ,.on_message_complete = dontcall_message_complete_cb
   ,.on_chunk_header = dontcall_chunk_header_cb
   ,.on_chunk_complete = dontcall_chunk_complete_cb
+  ,.on_chunk_extensions = dontcall_chunk_extensions_cb
   };
 
 /* These pause_* callbacks always pause the parser and just invoke the regular
@@ -2369,6 +2399,14 @@ pause_chunk_complete_cb (http_parser *p)
 }
 
 int
+pause_chunk_extensions_cb (http_parser *p, const char *buf, size_t len)
+{
+  http_parser_pause(p, 1);
+  *current_pause_parser = settings_dontcall;
+  return chunk_extensions_cb(p, buf, len);
+}
+
+int
 connect_headers_complete_cb (http_parser *p)
 {
   headers_complete_cb(p);
@@ -2393,6 +2431,7 @@ static http_parser_settings settings_pause =
   ,.on_message_complete = pause_message_complete_cb
   ,.on_chunk_header = pause_chunk_header_cb
   ,.on_chunk_complete = pause_chunk_complete_cb
+  ,.on_chunk_extensions = pause_chunk_extensions_cb
   };
 
 static http_parser_settings settings =
@@ -2406,6 +2445,7 @@ static http_parser_settings settings =
   ,.on_message_complete = message_complete_cb
   ,.on_chunk_header = chunk_header_cb
   ,.on_chunk_complete = chunk_complete_cb
+  ,.on_chunk_extensions = chunk_extensions_cb
   };
 
 static http_parser_settings settings_count_body =
@@ -2419,6 +2459,7 @@ static http_parser_settings settings_count_body =
   ,.on_message_complete = message_complete_cb
   ,.on_chunk_header = chunk_header_cb
   ,.on_chunk_complete = chunk_complete_cb
+  ,.on_chunk_extensions = chunk_extensions_cb
   };
 
 static http_parser_settings settings_connect =
@@ -2432,6 +2473,7 @@ static http_parser_settings settings_connect =
   ,.on_message_complete = connect_message_complete_cb
   ,.on_chunk_header = chunk_header_cb
   ,.on_chunk_complete = chunk_complete_cb
+  ,.on_chunk_extensions = chunk_extensions_cb
   };
 
 static http_parser_settings settings_null =
@@ -2445,6 +2487,7 @@ static http_parser_settings settings_null =
   ,.on_message_complete = 0
   ,.on_chunk_header = 0
   ,.on_chunk_complete = 0
+  ,.on_chunk_extensions = 0
   };
 
 void
@@ -2633,6 +2676,7 @@ message_eq (int index, int connect, const struct message *expected)
     MESSAGE_CHECK_NUM_EQ(expected, m, num_chunks_complete);
     for (i = 0; i < m->num_chunks && i < MAX_CHUNKS; i++) {
       MESSAGE_CHECK_NUM_EQ(expected, m, chunk_lengths[i]);
+	  MESSAGE_CHECK_STR_EQ(expected, m, chunk_extensions[i]);
     }
   }
 
