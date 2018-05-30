@@ -1369,7 +1369,7 @@ reexecute:
           break;
         }
 
-	/* fall through */
+        /* fall through */
 
       case s_header_value_start:
       {
@@ -1498,7 +1498,7 @@ reexecute:
             case h_content_length:
               if (ch == ' ') break;
               h_state = h_content_length_num;
-	      /* fall through */
+              /* fall through */
 
             case h_content_length_num:
             {
@@ -1770,7 +1770,7 @@ reexecute:
             case 2:
               parser->upgrade = 1;
 
-	    /* fall through */
+              /* fall through */
             case 1:
               parser->flags |= F_SKIPBODY;
               break;
