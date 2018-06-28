@@ -2025,7 +2025,7 @@ reexecute:
     }
   }
 
-  /* Run callbacks for any marks that we have leftover after we ran our of
+  /* Run callbacks for any marks that we have leftover after we ran out of
    * bytes. There should be at most one of these set, so it's OK to invoke
    * them in series (unset marks will not result in callbacks).
    *
