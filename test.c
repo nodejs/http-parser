@@ -4138,28 +4138,25 @@ main (void)
   //// OVERFLOW CONDITIONS
   test_no_overflow_parse_url();
 
-  test_header_overflow_error(HTTP_REQUEST);
-  test_no_overflow_long_body(HTTP_REQUEST, 1000);
-  test_no_overflow_long_body(HTTP_REQUEST, 100000);
+  const int request_types[] = {
+    HTTP_REQUEST,
+    HTTP_RESPONSE
+  };
+  for (i = 0; i < ARRAY_SIZE(request_types); i++) {
+    test_header_overflow_error(request_types[i]);
+    test_no_overflow_long_body(request_types[i], 1000);
+    test_no_overflow_long_body(request_types[i], 100000);
 
-  test_header_overflow_error(HTTP_RESPONSE);
-  test_no_overflow_long_body(HTTP_RESPONSE, 1000);
-  test_no_overflow_long_body(HTTP_RESPONSE, 100000);
+    //// HEADER FIELD CONDITIONS
+    test_double_content_length_error(request_types[i]);
+    test_chunked_content_length_error(request_types[i]);
+    test_header_cr_no_lf_error(request_types[i]);
+    test_invalid_header_field_token_error(request_types[i]);
+    test_invalid_header_field_content_error(request_types[i]);
+  }
 
   test_header_content_length_overflow_error();
   test_chunk_content_length_overflow_error();
-
-  //// HEADER FIELD CONDITIONS
-  test_double_content_length_error(HTTP_REQUEST);
-  test_chunked_content_length_error(HTTP_REQUEST);
-  test_header_cr_no_lf_error(HTTP_REQUEST);
-  test_invalid_header_field_token_error(HTTP_REQUEST);
-  test_invalid_header_field_content_error(HTTP_REQUEST);
-  test_double_content_length_error(HTTP_RESPONSE);
-  test_chunked_content_length_error(HTTP_RESPONSE);
-  test_header_cr_no_lf_error(HTTP_RESPONSE);
-  test_invalid_header_field_token_error(HTTP_RESPONSE);
-  test_invalid_header_field_content_error(HTTP_RESPONSE);
 
   test_simple_type(
       "POST / HTTP/1.1\r\n"
@@ -4183,7 +4180,6 @@ main (void)
       HTTP_REQUEST);
 
   //// RESPONSES
-
   test_simple_type("HTP/1.1 200 OK\r\n\r\n", HPE_INVALID_VERSION, HTTP_RESPONSE);
   test_simple_type("HTTP/01.1 200 OK\r\n\r\n", HPE_INVALID_VERSION, HTTP_RESPONSE);
   test_simple_type("HTTP/11.1 200 OK\r\n\r\n", HPE_INVALID_VERSION, HTTP_RESPONSE);
@@ -4192,17 +4188,9 @@ main (void)
 
   for (i = 0; i < ARRAY_SIZE(responses); i++) {
     test_message(&responses[i]);
-  }
-
-  for (i = 0; i < ARRAY_SIZE(responses); i++) {
     test_message_pause(&responses[i]);
-  }
-
-  for (i = 0; i < ARRAY_SIZE(responses); i++) {
     test_message_connect(&responses[i]);
-  }
 
-  for (i = 0; i < ARRAY_SIZE(responses); i++) {
     if (!responses[i].should_keep_alive) continue;
     for (j = 0; j < ARRAY_SIZE(responses); j++) {
       if (!responses[j].should_keep_alive) continue;
@@ -4248,7 +4236,6 @@ main (void)
   }
 
 
-
   printf("response scan 1/2      ");
   test_scan( &responses[TRAILING_SPACE_ON_CHUNKED_BODY]
            , &responses[NO_BODY_HTTP10_KA_204]
@@ -4265,7 +4252,6 @@ main (void)
 
 
   /// REQUESTS
-
   test_simple("GET / HTP/1.1\r\n\r\n", HPE_INVALID_VERSION);
   test_simple("GET / HTTP/01.1\r\n\r\n", HPE_INVALID_VERSION);
   test_simple("GET / HTTP/11.1\r\n\r\n", HPE_INVALID_VERSION);
@@ -4424,13 +4410,8 @@ main (void)
   /* check to make sure our predefined requests are okay */
   for (i = 0; i < ARRAY_SIZE(requests); i++) {
     test_message(&requests[i]);
-  }
-
-  for (i = 0; i < ARRAY_SIZE(requests); i++) {
     test_message_pause(&requests[i]);
-  }
 
-  for (i = 0; i < ARRAY_SIZE(requests); i++) {
     if (!requests[i].should_keep_alive) continue;
     for (j = 0; j < ARRAY_SIZE(requests); j++) {
       if (!requests[j].should_keep_alive) continue;
