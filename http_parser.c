@@ -758,21 +758,16 @@ reexecute:
 
       case s_start_res:
       {
+        if (ch == CR || ch == LF)
+          break;
         parser->flags = 0;
         parser->content_length = ULLONG_MAX;
 
-        switch (ch) {
-          case 'H':
-            UPDATE_STATE(s_res_H);
-            break;
-
-          case CR:
-          case LF:
-            break;
-
-          default:
-            SET_ERRNO(HPE_INVALID_CONSTANT);
-            goto error;
+        if (ch == 'H') {
+          UPDATE_STATE(s_res_H);
+        } else {
+          SET_ERRNO(HPE_INVALID_CONSTANT);
+          goto error;
         }
 
         CALLBACK_NOTIFY(message_begin);
