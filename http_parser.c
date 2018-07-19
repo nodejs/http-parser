@@ -2407,7 +2407,6 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   if (u->field_set & (1 << UF_PORT)) {
     uint16_t off;
     uint16_t len;
-    const char* p;
     const char* end;
     unsigned long v;
 
