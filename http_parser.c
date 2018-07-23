@@ -2323,6 +2323,10 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   if (buflen == 0) {
     return 1;
   }
+  
+  /* Ensure these are initialized to sane values */                              
+  u->field_data[UF_HOST].off = 0;                                                
+  u->field_data[UF_HOST].len = 0; 
 
   u->port = u->field_set = 0;
   s = is_connect ? s_req_server_start : s_req_spaces_before_url;
