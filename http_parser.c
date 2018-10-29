@@ -314,6 +314,8 @@ enum state
   , s_req_http_HT
   , s_req_http_HTT
   , s_req_http_HTTP
+  , s_req_http_I
+  , s_req_http_IC
   , s_req_http_major
   , s_req_http_dot
   , s_req_http_minor
@@ -1084,11 +1086,17 @@ reexecute:
 
       case s_req_http_start:
         switch (ch) {
+          case ' ':
+            break;
           case 'H':
             UPDATE_STATE(s_req_http_H);
             break;
-          case ' ':
-            break;
+          case 'I':
+            if (parser->method == HTTP_SOURCE) {
+              UPDATE_STATE(s_req_http_I);
+              break;
+            }
+            /* fall through */
           default:
             SET_ERRNO(HPE_INVALID_CONSTANT);
             goto error;
@@ -1108,6 +1116,16 @@ reexecute:
       case s_req_http_HTT:
         STRICT_CHECK(ch != 'P');
         UPDATE_STATE(s_req_http_HTTP);
+        break;
+
+      case s_req_http_I:
+        STRICT_CHECK(ch != 'C');
+        UPDATE_STATE(s_req_http_IC);
+        break;
+
+      case s_req_http_IC:
+        STRICT_CHECK(ch != 'E');
+        UPDATE_STATE(s_req_http_HTTP);  /* Treat "ICE" as "HTTP". */
         break;
 
       case s_req_http_HTTP:

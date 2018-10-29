@@ -1173,6 +1173,26 @@ const struct message requests[] =
   ,.headers= { { "Host", "example.com" } }
   ,.body= ""
   }
+
+#define SOURCE_ICE_REQUEST 42
+, {.name = "source request"
+  ,.type= HTTP_REQUEST
+  ,.raw= "SOURCE /music/sweet/music ICE/1.0\r\n"
+         "Host: example.com\r\n"
+         "\r\n"
+  ,.should_keep_alive= FALSE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 0
+  ,.method= HTTP_SOURCE
+  ,.request_path= "/music/sweet/music"
+  ,.request_url= "/music/sweet/music"
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.num_headers= 1
+  ,.headers= { { "Host", "example.com" } }
+  ,.body= ""
+  }
 };
 
 /* * R E S P O N S E S * */
@@ -4268,6 +4288,8 @@ main (void)
 
   /// REQUESTS
 
+  test_simple("GET / IHTTP/1.0\r\n\r\n", HPE_INVALID_CONSTANT);
+  test_simple("GET / ICE/1.0\r\n\r\n", HPE_INVALID_CONSTANT);
   test_simple("GET / HTP/1.1\r\n\r\n", HPE_INVALID_VERSION);
   test_simple("GET / HTTP/01.1\r\n\r\n", HPE_INVALID_VERSION);
   test_simple("GET / HTTP/11.1\r\n\r\n", HPE_INVALID_VERSION);
