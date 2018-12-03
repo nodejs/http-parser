@@ -25,6 +25,8 @@
 #include <string.h>
 #include <limits.h>
 
+static uint32_t max_header_size = HTTP_MAX_HEADER_SIZE;
+
 #ifndef ULLONG_MAX
 # define ULLONG_MAX ((uint64_t) -1) /* 2^64-1 */
 #endif
@@ -139,20 +141,20 @@ do {                                                                 \
 } while (0)
 
 /* Don't allow the total size of the HTTP headers (including the status
- * line) to exceed HTTP_MAX_HEADER_SIZE.  This check is here to protect
+ * line) to exceed max_header_size.  This check is here to protect
  * embedders against denial-of-service attacks where the attacker feeds
  * us a never-ending header that the embedder keeps buffering.
  *
  * This check is arguably the responsibility of embedders but we're doing
  * it on the embedder's behalf because most won't bother and this way we
- * make the web a little safer.  HTTP_MAX_HEADER_SIZE is still far bigger
+ * make the web a little safer.  max_header_size is still far bigger
  * than any reasonable request or response so this should never affect
  * day-to-day operation.
  */
 #define COUNT_HEADER_SIZE(V)                                         \
 do {                                                                 \
   nread += (V);                                                      \
-  if (UNLIKELY(nread > (HTTP_MAX_HEADER_SIZE))) {                    \
+  if (UNLIKELY(nread > max_header_size)) {                           \
     SET_ERRNO(HPE_HEADER_OVERFLOW);                                  \
     goto error;                                                      \
   }                                                                  \
@@ -1256,7 +1258,7 @@ reexecute:
           switch (parser->header_state) {
             case h_general: {
               size_t limit = data + len - p;
-              limit = MIN(limit, HTTP_MAX_HEADER_SIZE);
+              limit = MIN(limit, max_header_size);
               while (p+1 < data + limit && TOKEN(p[1])) {
                 p++;
               }
@@ -1494,7 +1496,7 @@ reexecute:
               const char* p_lf;
               size_t limit = data + len - p;
 
-              limit = MIN(limit, HTTP_MAX_HEADER_SIZE);
+              limit = MIN(limit, max_header_size);
 
               p_cr = (const char*) memchr(p, CR, limit);
               p_lf = (const char*) memchr(p, LF, limit);
@@ -2477,4 +2479,9 @@ http_parser_version(void) {
   return HTTP_PARSER_VERSION_MAJOR * 0x10000 |
          HTTP_PARSER_VERSION_MINOR * 0x00100 |
          HTTP_PARSER_VERSION_PATCH * 0x00001;
+}
+
+void
+http_parser_set_max_header_size(uint32_t size) {
+  max_header_size = size;
 }
