@@ -1729,6 +1729,11 @@ reexecute:
             case h_transfer_encoding_chunked:
               parser->flags |= F_CHUNKED;
               break;
+            case h_content_length:
+              // do not allow empty content length
+              SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
+              goto error;
+              break;
             default:
               break;
           }
