@@ -4184,6 +4184,13 @@ main (void)
 
   test_simple_type(
       "POST / HTTP/1.1\r\n"
+      "Content-Length:\r\n"  // empty
+      "\r\n",
+      HPE_INVALID_CONTENT_LENGTH,
+      HTTP_REQUEST);
+
+  test_simple_type(
+      "POST / HTTP/1.1\r\n"
       "Content-Length:  42 \r\n"  // Note the surrounding whitespace.
       "\r\n",
       HPE_OK,
