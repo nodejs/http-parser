@@ -4203,6 +4203,20 @@ main (void)
       HPE_INVALID_CONTENT_LENGTH,
       HTTP_REQUEST);
 
+  test_simple_type(
+      "POST / HTTP/1.1\r\n"
+      "Content-Length:  42\r\n"
+      " Hello world!\r\n",
+      HPE_INVALID_CONTENT_LENGTH,
+      HTTP_REQUEST);
+
+  test_simple_type(
+      "POST / HTTP/1.1\r\n"
+      "Content-Length:  42\r\n"
+      " \r\n",
+      HPE_OK,
+      HTTP_REQUEST);
+
   //// RESPONSES
 
   test_simple_type("HTP/1.1 200 OK\r\n\r\n", HPE_INVALID_VERSION, HTTP_RESPONSE);
