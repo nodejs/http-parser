@@ -1424,12 +1424,6 @@ reexecute:
               goto error;
             }
 
-            if (parser->flags & F_CONTENTLENGTH) {
-              SET_ERRNO(HPE_UNEXPECTED_CONTENT_LENGTH);
-              goto error;
-            }
-
-            parser->flags |= F_CONTENTLENGTH;
             parser->content_length = ch - '0';
             parser->header_state = h_content_length_num;
             break;
@@ -1694,6 +1688,20 @@ reexecute:
             break;
           case h_connection_upgrade:
             parser->flags |= F_CONNECTION_UPGRADE;
+            break;
+          case h_content_length_num:
+          case h_content_length_ws:
+            if (parser->flags & F_CONTENTLENGTH) {
+                // content length sent multiple times, check if value is the same
+                if (parser->initial_content_length != parser->content_length) {
+                    SET_ERRNO(HPE_UNEXPECTED_CONTENT_LENGTH);
+                    goto error;
+                }
+            } else {
+                // set content length flag
+                parser->flags |= F_CONTENTLENGTH;
+                parser->initial_content_length = parser->content_length;
+            }
             break;
           default:
             break;
