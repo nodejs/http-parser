@@ -1692,13 +1692,14 @@ reexecute:
           case h_content_length_num:
           case h_content_length_ws:
             if (parser->flags & F_CONTENTLENGTH) {
-                // content length sent multiple times, check if value is the same
+                /* content length sent multiple times,
+                 * check if value is the same */
                 if (parser->initial_content_length != parser->content_length) {
                     SET_ERRNO(HPE_UNEXPECTED_CONTENT_LENGTH);
                     goto error;
                 }
             } else {
-                // set content length flag
+                /* set content length flag */
                 parser->flags |= F_CONTENTLENGTH;
                 parser->initial_content_length = parser->content_length;
             }
