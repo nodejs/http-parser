@@ -1730,7 +1730,7 @@ reexecute:
               parser->flags |= F_CHUNKED;
               break;
             case h_content_length:
-              // do not allow empty content length
+              /* do not allow empty content length */
               SET_ERRNO(HPE_INVALID_CONTENT_LENGTH);
               goto error;
               break;
