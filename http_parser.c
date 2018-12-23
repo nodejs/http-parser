@@ -1434,7 +1434,8 @@ reexecute:
             parser->header_state = h_content_length_num;
             break;
 
-          // when obsolete line folding is encountered for content length continue to the s_header_value state
+          /* when obsolete line folding is encountered for content length
+           * continue to the s_header_value state */
           case h_content_length_ws:
             break;
 
@@ -1682,7 +1683,7 @@ reexecute:
       {
         if (ch == ' ' || ch == '\t') {
           if (parser->header_state == h_content_length_num) {
-              // treat obsolete line folding as space
+              /* treat obsolete line folding as space */
               parser->header_state = h_content_length_ws;
           }
           UPDATE_STATE(s_header_value_start);
