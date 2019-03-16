@@ -3756,6 +3756,32 @@ test_header_overflow_error (int req)
   abort();
 }
 
+void
+test_URL_OVERFLOW_error ()
+{
+  http_parser parser;
+  http_parser_init(&parser, HTTP_REQUEST);
+  size_t parsed;
+  const char *buf;
+  buf = "GET /";
+  parsed = http_parser_execute(&parser, &settings_null, buf, strlen(buf));
+  assert(parsed == strlen(buf));
+
+  buf = "a";
+  size_t buflen = strlen(buf);
+
+  int i;
+  for (i = 0; i < HTTP_MAX_URL_SIZE - 1; i++) { //-1 because it started with a slash
+    parsed = http_parser_execute(&parser, &settings_null, buf, buflen);
+    if (parsed != buflen) {
+      assert(HTTP_PARSER_ERRNO(&parser) == HPE_URL_OVERFLOW);
+      return;
+    }
+  }
+
+  fprintf(stderr, "\n*** Error expected but none in uri overflow test ***\n");
+  abort();
+}
 
 void
 test_header_nread_value ()
@@ -4158,6 +4184,8 @@ main (void)
 
   //// OVERFLOW CONDITIONS
   test_no_overflow_parse_url();
+
+  test_URL_OVERFLOW_error();
 
   test_header_overflow_error(HTTP_REQUEST);
   test_no_overflow_long_body(HTTP_REQUEST, 1000);

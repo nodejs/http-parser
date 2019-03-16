@@ -26,6 +26,7 @@
 #include <limits.h>
 
 static uint32_t max_header_size = HTTP_MAX_HEADER_SIZE;
+static uint32_t max_url_size = HTTP_MAX_URL_SIZE;
 
 #ifndef ULLONG_MAX
 # define ULLONG_MAX ((uint64_t) -1) /* 2^64-1 */
@@ -160,6 +161,24 @@ do {                                                                 \
   }                                                                  \
 } while (0)
 
+/* Don't allow the total size of the request uri to exceed 
+ * the max_url_size. If we don't check the request uri size and 
+ * it exceeds the max_header_size, the embedder will get an 
+ * HPE_HEADER_OVERFLOW, which is ambiguous in situations where
+ * what caused the overflow matters, e.g. servers deciding to 
+ * reply either 414 or 431 status.
+ */
+#include <stdio.h>
+#define COUNT_URL_SIZE(V, O)                                         \
+do {                                                                 \
+  nread += (uint32_t)(V);                                            \
+  url_offset = (uint8_t)(O);                                         \
+  if (UNLIKELY(nread > url_offset &&                                 \
+      (nread - url_offset) > max_url_size)) {                        \
+    SET_ERRNO(HPE_URL_OVERFLOW);                                     \
+    goto error;                                                      \
+  }                                                                  \
+} while(0)                                                           \
 
 #define PROXY_CONNECTION "proxy-connection"
 #define CONNECTION "connection"
@@ -173,12 +192,17 @@ do {                                                                 \
 
 static const char *method_strings[] =
   {
-#define XX(num, name, string) #string,
+#define XX(num, name, string, length) #string,
   HTTP_METHOD_MAP(XX)
 #undef XX
   };
 
-
+static const uint8_t method_lengths[] =
+  {
+#define XX(num, name, string, length) length,
+  HTTP_METHOD_MAP(XX)
+#undef XX
+  };
 /* Tokens as defined by rfc 2616. Also lowercases them.
  *        token       = 1*<any CHAR except CTLs or separators>
  *     separators     = "(" | ")" | "<" | ">" | "@"
@@ -358,9 +382,9 @@ enum state
   , s_message_done
   };
 
-
-#define PARSING_HEADER(state) (state <= s_headers_done)
-
+#define PARSING_HEADER(state) (state > s_req_http_end && state <= s_headers_done)
+#define PARSING_URL(state) (state > s_req_spaces_before_url && state < s_req_http_start)
+#define PARSING_START_LINE(state) (state <= s_req_spaces_before_url || (state >= s_req_http_start && state <= s_req_http_end))
 
 enum header_states
   { h_general = 0
@@ -642,6 +666,8 @@ size_t http_parser_execute (http_parser *parser,
 {
   char c, ch;
   int8_t unhex_val;
+  uint8_t url_offset;
+  uint32_t spaces_before_url = 0;
   const char *p = data;
   const char *header_field_mark = 0;
   const char *header_value_mark = 0;
@@ -707,9 +733,14 @@ size_t http_parser_execute (http_parser *parser,
   for (p=data; p != data + len; p++) {
     ch = *p;
 
-    if (PARSING_HEADER(CURRENT_STATE()))
+    if (PARSING_HEADER(CURRENT_STATE())) {
       COUNT_HEADER_SIZE(1);
-
+    } else if (PARSING_URL(CURRENT_STATE())) {
+      COUNT_URL_SIZE(1, method_lengths[parser->method] + spaces_before_url);
+    } else if (PARSING_START_LINE(CURRENT_STATE())) {
+      nread++;
+    }
+    
 reexecute:
     switch (CURRENT_STATE()) {
 
@@ -1015,7 +1046,10 @@ reexecute:
 
       case s_req_spaces_before_url:
       {
-        if (ch == ' ') break;
+        if (ch == ' ') {
+          ++spaces_before_url;
+          break;
+        }
 
         MARK(url);
         if (parser->method == HTTP_CONNECT) {
@@ -2498,4 +2532,9 @@ http_parser_version(void) {
 void
 http_parser_set_max_header_size(uint32_t size) {
   max_header_size = size;
+}
+
+void
+http_parser_set_max_uri_size(uint32_t size) {
+  max_url_size = size;
 }
