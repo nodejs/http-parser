@@ -474,8 +474,6 @@ static struct {
 };
 #undef HTTP_STRERROR_GEN
 
-int http_message_needs_eof(const http_parser *parser);
-
 /* Our URL parser.
  *
  * This is designed to be shared by http_parser_execute() for URL validation,
@@ -887,6 +885,12 @@ reexecute:
 
       case s_res_status_start:
       {
+        /* See RFC 7230 section 3.3.3, step 1 */
+        if (parser->status_code / 100 == 1 || /* 1xx e.g. Continue */
+            parser->status_code == 204 ||     /* No Content */
+            parser->status_code == 304) {     /* Not Modified */
+            parser->flags |= F_SKIPBODY;
+        }
         MARK(status);
         UPDATE_STATE(s_res_status);
         parser->index = 0;
@@ -1856,7 +1860,7 @@ reexecute:
             /* Content-Length header given and non-zero */
             UPDATE_STATE(s_body_identity);
           } else {
-            if (!http_message_needs_eof(parser)) {
+            if (parser->type == HTTP_REQUEST) {
               /* Assume content-length 0 - read the next */
               UPDATE_STATE(NEW_MESSAGE());
               CALLBACK_NOTIFY(message_complete);
@@ -2084,30 +2088,6 @@ error:
 }
 
 
-/* Does the parser need to see an EOF to find the end of the message? */
-int
-http_message_needs_eof (const http_parser *parser)
-{
-  if (parser->type == HTTP_REQUEST) {
-    return 0;
-  }
-
-  /* See RFC 2616 section 4.4 */
-  if (parser->status_code / 100 == 1 || /* 1xx e.g. Continue */
-      parser->status_code == 204 ||     /* No Content */
-      parser->status_code == 304 ||     /* Not Modified */
-      parser->flags & F_SKIPBODY) {     /* response to a HEAD request */
-    return 0;
-  }
-
-  if ((parser->flags & F_CHUNKED) || parser->content_length != ULLONG_MAX) {
-    return 0;
-  }
-
-  return 1;
-}
-
-
 int
 http_should_keep_alive (const http_parser *parser)
 {
@@ -2123,7 +2103,19 @@ http_should_keep_alive (const http_parser *parser)
     }
   }
 
-  return !http_message_needs_eof(parser);
+  /* RFC 7230 section 3.3.3, step 7:
+   * ... this is a response message without a declared message body length, so
+   * the message body length is determined by the number of octets received
+   * prior to the server closing the connection.
+   */
+  if (parser->type == HTTP_RESPONSE &&
+      !(parser->flags & F_SKIPBODY) &&
+      !(parser->flags & F_CHUNKED) &&
+      parser->content_length == ULLONG_MAX) {
+    return 0;
+  }
+
+  return 1;
 }
 
 

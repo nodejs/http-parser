@@ -1848,8 +1848,7 @@ const struct message responses[] =
   ,.http_minor= 1
   ,.status_code= 101
   ,.response_status= "Switching Protocols"
-  ,.body= "body"
-  ,.upgrade= "proto"
+  ,.upgrade= "bodyproto"
   ,.num_headers= 3
   ,.headers=
     { { "Connection", "upgrade" }
@@ -1879,16 +1878,13 @@ const struct message responses[] =
   ,.http_minor= 1
   ,.status_code= 101
   ,.response_status= "Switching Protocols"
-  ,.body= "body"
-  ,.upgrade= "proto"
+  ,.upgrade= "2\r\nbo\r\n2\r\ndy\r\n0\r\n\r\nproto"
   ,.num_headers= 3
   ,.headers=
     { { "Connection", "upgrade" }
     , { "Upgrade", "h2c" }
     , { "Transfer-Encoding", "chunked" }
     }
-  ,.num_chunks_complete= 3
-  ,.chunk_lengths= { 2, 2 }
   }
 
 #define HTTP_200_RESPONSE_WITH_UPGRADE_HEADER 25
