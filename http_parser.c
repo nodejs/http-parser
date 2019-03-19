@@ -886,10 +886,11 @@ reexecute:
       case s_res_status_start:
       {
         /* See RFC 7230 section 3.3.3, step 1 */
-        if (parser->status_code / 100 == 1 || /* 1xx e.g. Continue */
+        if ((parser->status_code >= 100 &&
+             parser->status_code < 200) ||    /* 1xx e.g. Continue */
             parser->status_code == 204 ||     /* No Content */
             parser->status_code == 304) {     /* Not Modified */
-            parser->flags |= F_SKIPBODY;
+          parser->flags |= F_SKIPBODY;
         }
         MARK(status);
         UPDATE_STATE(s_res_status);
