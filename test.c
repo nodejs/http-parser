@@ -4040,7 +4040,8 @@ create_large_chunked_message (int body_size_in_kb, const char* headers)
   size_t headers_len = strlen(headers);
   size_t bufsize = headers_len + (5+1024+2)*body_size_in_kb + 6;
   char * buf = malloc(bufsize);
-
+  assert(buf);
+  
   memcpy(buf, headers, headers_len);
   wrote += headers_len;
 
