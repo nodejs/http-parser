@@ -130,6 +130,7 @@ typedef int (*http_cb) (http_parser*);
   XX(415, UNSUPPORTED_MEDIA_TYPE,          Unsupported Media Type)          \
   XX(416, RANGE_NOT_SATISFIABLE,           Range Not Satisfiable)           \
   XX(417, EXPECTATION_FAILED,              Expectation Failed)              \
+  XX(418, IM_A_TEAPOT,                     I am a Teapot)                   \
   XX(421, MISDIRECTED_REQUEST,             Misdirected Request)             \
   XX(422, UNPROCESSABLE_ENTITY,            Unprocessable Entity)            \
   XX(423, LOCKED,                          Locked)                          \
@@ -150,6 +151,7 @@ typedef int (*http_cb) (http_parser*);
   XX(508, LOOP_DETECTED,                   Loop Detected)                   \
   XX(510, NOT_EXTENDED,                    Not Extended)                    \
   XX(511, NETWORK_AUTHENTICATION_REQUIRED, Network Authentication Required) \
+  XX(599, NETWORK_CONNECT_TIMEOUT_ERROR,   Network Connect Timeout Error)   \
 
 enum http_status
   {
