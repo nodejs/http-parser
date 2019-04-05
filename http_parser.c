@@ -1496,28 +1496,20 @@ reexecute:
 
           switch (h_state) {
             case h_general:
-            {
-              const char* p_cr;
-              const char* p_lf;
-              size_t limit = data + len - p;
-
-              limit = MIN(limit, max_header_size);
-
-              p_cr = (const char*) memchr(p, CR, limit);
-              p_lf = (const char*) memchr(p, LF, limit);
-              if (p_cr != NULL) {
-                if (p_lf != NULL && p_cr >= p_lf)
-                  p = p_lf;
-                else
-                  p = p_cr;
-              } else if (UNLIKELY(p_lf != NULL)) {
-                p = p_lf;
-              } else {
-                p = data + len;
+              for (; p != data + len; p++) {
+                ch = *p;
+                if (ch == CR || ch == LF) {
+                  --p;
+                  break;
+                }
+                if (!lenient && !IS_HEADER_CHAR(ch)) {
+                  SET_ERRNO(HPE_INVALID_HEADER_TOKEN);
+                  goto error;
+                }
               }
+              if (p == data + len)
               --p;
               break;
-            }
 
             case h_connection:
             case h_transfer_encoding:
