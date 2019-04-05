@@ -1508,7 +1508,7 @@ reexecute:
                 }
               }
               if (p == data + len)
-              --p;
+                --p;
               break;
 
             case h_connection:
