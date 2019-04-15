@@ -1257,9 +1257,9 @@ reexecute:
 
           switch (parser->header_state) {
             case h_general: {
-              size_t limit = data + len - p;
-              limit = MIN(limit, max_header_size);
-              while (p+1 < data + limit && TOKEN(p[1])) {
+              size_t left = data + len - p;
+              const char* pe = p + MIN(left, max_header_size);
+              while (p+1 < pe && TOKEN(p[1])) {
                 p++;
               }
               break;
