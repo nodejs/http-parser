@@ -1497,9 +1497,10 @@ reexecute:
           switch (h_state) {
             case h_general:
               {
-                const char* limit = p + MIN(data + len - p, max_header_size);
+                size_t left = data + len - p;
+                const char* pe = p + MIN(left, max_header_size);
 
-                for (; p != limit; p++) {
+                for (; p != pe; p++) {
                   ch = *p;
                   if (ch == CR || ch == LF) {
                     --p;
