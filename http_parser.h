@@ -427,6 +427,14 @@ int http_parser_parse_url(const char *buf, size_t buflen,
 /* Pause or un-pause the parser; a nonzero value pauses */
 void http_parser_pause(http_parser *parser, int paused);
 
+/* Change the parser state as if the on_headers_complete callback
+ * returned `result` and un-pause the parser - only makes sense
+ * between two consecutive invocations of http_parser_execute
+ * when the first one returned due to the on_headers_complete pausing
+ * the parser and returning 0.
+ */
+void http_parser_continue_after_on_headers_complete(http_parser *parser, int result);
+
 /* Checks if this is the final chunk of the body. */
 int http_body_is_final(const http_parser *parser);
 
