@@ -244,3 +244,11 @@ See examples of reading in headers:
 * [partial example](http://gist.github.com/155877) in C
 * [from http-parser tests](http://github.com/joyent/http-parser/blob/37a0ff8/test.c#L403) in C
 * [from Node library](http://github.com/joyent/node/blob/842eaf4/src/http.js#L284) in Javascript
+
+Body parsers
+------------
+
+This library does not parse the request body. Use other libraries to parse the body. Here is a list of some libraries in the same ideology:
+
+* [Multipart form data parser](https://github.com/iafonov/multipart-parser-c)
+* [WebSocket frame parser and builder](https://github.com/php-ion/websocket-parser)
