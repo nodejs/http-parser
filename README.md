@@ -248,7 +248,7 @@ See examples of reading in headers:
 Body parsers
 ------------
 
-This library does not parse the request body. Use other libraries to parse the body. Here is a list of some libraries in the same ideology:
+This library does not parse the request/response body. Use other libraries to parse the body. Here is a list of some libraries in the same ideology:
 
 * [Multipart form data parser](https://github.com/iafonov/multipart-parser-c)
-* [WebSocket frame parser and builder](https://github.com/php-ion/websocket-parser)
+* [WebSocket frame parser](https://github.com/php-ion/websocket-parser)
