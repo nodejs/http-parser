@@ -2825,6 +2825,25 @@ const struct url_test url_tests[] =
   ,.rv=0
   }
 
+, {.name="proxy empty port"
+  ,.url="http://hostname:/"
+  ,.is_connect=0
+  ,.u=
+    {.field_set=(1 << UF_SCHEMA) | (1 << UF_HOST) | (1 << UF_PATH)
+    ,.port=0
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{  7,  8 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{ 16,  1 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
+      }
+    }
+  ,.rv=0
+  }
+
 , {.name="CONNECT request"
   ,.url="hostname:443"
   ,.is_connect=1
@@ -3055,12 +3074,6 @@ const struct url_test url_tests[] =
 
 , {.name="proxy empty host"
   ,.url="http://:443/"
-  ,.is_connect=0
-  ,.rv=1
-  }
-
-, {.name="proxy empty port"
-  ,.url="http://hostname:/"
   ,.is_connect=0
   ,.rv=1
   }
