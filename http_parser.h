@@ -346,7 +346,8 @@ enum http_parser_url_fields
   , UF_QUERY            = 4
   , UF_FRAGMENT         = 5
   , UF_USERINFO         = 6
-  , UF_MAX              = 7
+  , UF_OPAQUE           = 7
+  , UF_MAX              = 8
   };
 
 
