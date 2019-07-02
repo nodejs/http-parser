@@ -3137,6 +3137,33 @@ const struct url_test url_tests[] =
   ,.rv=0
   }
 
+  , {.name="scheme full test. https://tools.ietf.org/html/rfc3986#section-3.1"
+  ,.url="sch3m3+full-test.v21:somethig_here"
+  ,.is_connect=0
+  ,.u=
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_OPAQUE)
+    ,.port=0
+    ,.field_data=
+      {{  0,  20 } /* UF_SCHEMA */
+      ,{  0,  0 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{  0,  0 } /* UF_PATH */
+      ,{  0,  0 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
+      ,{  21,  13 } /* UF_OPAQUE */
+      }
+    }
+  ,.rv=0
+  }
+
+    , {.name="scheme start with num. https://tools.ietf.org/html/rfc3986#section-3.1"
+  ,.url="5ch3m3+full-test.v21:somethig_here"
+  ,.is_connect=0
+  ,.rv=1
+  }
+
+
 , {.name="double @"
   ,.url="http://a:b@@hostname:443/"
   ,.is_connect=0

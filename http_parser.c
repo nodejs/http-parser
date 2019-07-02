@@ -426,6 +426,8 @@ enum http_host_state
   (c) == ';' || (c) == ':' || (c) == '&' || (c) == '=' || (c) == '+' || \
   (c) == '$' || (c) == ',')
 
+#define IS_SCHEME_CHAR(c) (IS_ALPHANUM(c) || c == '.' || c == '+' || c == '-')
+
 #define STRICT_TOKEN(c)     ((c == ' ') ? 0 : tokens[(unsigned char)c])
 
 #if HTTP_PARSER_STRICT
@@ -518,7 +520,8 @@ parse_url_char(enum state s, const char ch)
       break;
 
     case s_req_schema:
-      if (IS_ALPHA(ch)) {
+      // scheme spec: https://tools.ietf.org/html/rfc3986#section-3.1
+      if (IS_SCHEME_CHAR(ch)) {
         return s;
       }
 
