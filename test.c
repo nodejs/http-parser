@@ -2801,7 +2801,7 @@ const struct url_test url_tests[] =
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  0,  0 } /* UF_OPAQUE */
+      ,{  0,  0 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -2821,7 +2821,7 @@ const struct url_test url_tests[] =
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  0,  0 } /* UF_OPAQUE */
+      ,{  0,  0 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -2841,7 +2841,7 @@ const struct url_test url_tests[] =
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  0,  0 } /* UF_OPAQUE */
+      ,{  0,  0 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -2867,7 +2867,7 @@ const struct url_test url_tests[] =
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  0,  0 } /* UF_OPAQUE */
+      ,{  0,  0 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -2887,7 +2887,7 @@ const struct url_test url_tests[] =
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  0,  0 } /* UF_OPAQUE */
+      ,{  0,  0 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -2907,7 +2907,7 @@ const struct url_test url_tests[] =
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  0,  0 } /* UF_OPAQUE */
+      ,{  0,  0 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -2927,7 +2927,7 @@ const struct url_test url_tests[] =
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  0,  0 } /* UF_OPAQUE */
+      ,{  0,  0 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -2949,7 +2949,7 @@ const struct url_test url_tests[] =
       ,{ 30,187 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  0,  0 } /* UF_OPAQUE */
+      ,{  0,  0 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -2969,7 +2969,7 @@ const struct url_test url_tests[] =
       ,{ 11, 10 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  0,  0 } /* UF_OPAQUE */
+      ,{  0,  0 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -2990,7 +2990,7 @@ const struct url_test url_tests[] =
       ,{  0,  0 } /* UF_QUERY */
       ,{ 11,  4 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  0,  0 } /* UF_OPAQUE */
+      ,{  0,  0 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -3012,7 +3012,7 @@ const struct url_test url_tests[] =
       ,{ 36, 69 } /* UF_QUERY */
       ,{106,  7 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  0,  0 } /* UF_OPAQUE */
+      ,{  0,  0 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -3033,7 +3033,7 @@ const struct url_test url_tests[] =
       ,{ 29, 12 } /* UF_QUERY */
       ,{ 42,  4 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  0,  0 } /* UF_OPAQUE */
+      ,{  0,  0 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -3054,7 +3054,7 @@ const struct url_test url_tests[] =
       ,{ 33, 12 } /* UF_QUERY */
       ,{ 46,  4 } /* UF_FRAGMENT */
       ,{  7,  3 } /* UF_USERINFO */
-      ,{  0,  0 } /* UF_OPAQUE */
+      ,{  0,  0 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -3063,7 +3063,7 @@ const struct url_test url_tests[] =
   ,.url="http:www.google.com/?q=go+language"
   ,.is_connect=0
   ,.u=
-    {.field_set= (1<<UF_SCHEMA) | (1<<UF_QUERY) | (1<<UF_OPAQUE)
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_QUERY) | (1<<UF_OPAQ)
     ,.port=0
     ,.field_data=
       {{  0,  4 } /* UF_SCHEMA */
@@ -3073,7 +3073,7 @@ const struct url_test url_tests[] =
       ,{ 21, 13 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  5,  15 } /* UF_OPAQUE */
+      ,{  5,  15 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -3083,7 +3083,7 @@ const struct url_test url_tests[] =
   ,.url="mailto:admin@example.com"
   ,.is_connect=0
   ,.u=
-    {.field_set= (1<<UF_SCHEMA) | (1<<UF_OPAQUE)
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_OPAQ)
     ,.port=0
     ,.field_data=
       {{  0,  6 } /* UF_SCHEMA */
@@ -3093,7 +3093,7 @@ const struct url_test url_tests[] =
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  7,  17 } /* UF_OPAQUE */
+      ,{  7,  17 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -3112,7 +3112,7 @@ const struct url_test url_tests[] =
       ,{  8,  55 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  0,  0 } /* UF_OPAQUE */
+      ,{  0,  0 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -3131,7 +3131,7 @@ const struct url_test url_tests[] =
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  0,  0 } /* UF_OPAQUE */
+      ,{  0,  0 } /* UF_OPAQ */
       }
     }
   ,.rv=0
@@ -3141,7 +3141,7 @@ const struct url_test url_tests[] =
   ,.url="sch3m3+full-test.v21:somethig_here"
   ,.is_connect=0
   ,.u=
-    {.field_set= (1<<UF_SCHEMA) | (1<<UF_OPAQUE)
+    {.field_set= (1<<UF_SCHEMA) | (1<<UF_OPAQ)
     ,.port=0
     ,.field_data=
       {{  0,  20 } /* UF_SCHEMA */
@@ -3151,7 +3151,7 @@ const struct url_test url_tests[] =
       ,{  0,  0 } /* UF_QUERY */
       ,{  0,  0 } /* UF_FRAGMENT */
       ,{  0,  0 } /* UF_USERINFO */
-      ,{  21,  13 } /* UF_OPAQUE */
+      ,{  21,  13 } /* UF_OPAQ */
       }
     }
   ,.rv=0

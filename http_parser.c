@@ -2415,7 +2415,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
         break;
 
       case s_req_opague:
-        uf = UF_OPAQUE;
+        uf = UF_OPAQ;
         break;
 
       default:
