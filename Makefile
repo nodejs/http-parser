@@ -85,7 +85,7 @@ test_g.o: test.c http_parser.h Makefile
 http_parser_g.o: http_parser.c http_parser.h Makefile
 	$(CC) $(CPPFLAGS_DEBUG) $(CFLAGS_DEBUG) -c http_parser.c -o $@
 
-test_fast: http_parser.o test.o http_parser.h
+test_fast: http_parser.o test.o
 	$(CC) $(CFLAGS_FAST) $(LDFLAGS) http_parser.o test.o -o $@
 
 test.o: test.c http_parser.h Makefile
@@ -115,16 +115,16 @@ library: libhttp_parser.o
 package: http_parser.o
 	$(AR) rcs libhttp_parser.a http_parser.o
 
-url_parser: http_parser.o contrib/url_parser.c
+url_parser: http_parser.o contrib/url_parser.c http_parser.h
 	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_FAST) $^ -o $@
 
-url_parser_g: http_parser_g.o contrib/url_parser.c
+url_parser_g: http_parser_g.o contrib/url_parser.c http_parser.h
 	$(CC) $(CPPFLAGS_DEBUG) $(CFLAGS_DEBUG) $^ -o $@
 
-parsertrace: http_parser.o contrib/parsertrace.c
+parsertrace: http_parser.o contrib/parsertrace.c http_parser.h
 	$(CC) $(CPPFLAGS_FAST) $(CFLAGS_FAST) $^ -o parsertrace$(BINEXT)
 
-parsertrace_g: http_parser_g.o contrib/parsertrace.c
+parsertrace_g: http_parser_g.o contrib/parsertrace.c http_parser.h
 	$(CC) $(CPPFLAGS_DEBUG) $(CFLAGS_DEBUG) $^ -o parsertrace_g$(BINEXT)
 
 tags: http_parser.c http_parser.h test.c
