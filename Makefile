@@ -22,9 +22,9 @@ PLATFORM ?= $(shell sh -c 'uname -s | tr "[A-Z]" "[a-z]"')
 HELPER ?=
 BINEXT ?=
 SOLIBNAME = libhttp_parser
-SOMAJOR = 2
-SOMINOR = 9
-SOREV   = 2
+SOMAJOR = 3
+SOMINOR = 0
+SOREV   = 0
 ifeq (darwin,$(PLATFORM))
 SOEXT ?= dylib
 SONAME ?= $(SOLIBNAME).$(SOMAJOR).$(SOMINOR).$(SOEXT)

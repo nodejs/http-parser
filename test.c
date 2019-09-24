@@ -2554,7 +2554,7 @@ check_num_eq (const struct message *m,
 
 #define MESSAGE_CHECK_URL_EQ(u, expected, found, prop, fn)           \
 do {                                                                 \
-  char ubuf[256];                                                    \
+  char ubuf[65537+1];                                                \
                                                                      \
   if ((u)->field_set & (1 << (fn))) {                                \
     memcpy(ubuf, (found)->request_url + (u)->field_data[(fn)].off,   \
@@ -3337,6 +3337,29 @@ const struct url_test url_tests[] =
   ,.rv=0
   }
 #endif
+#define REP32(X) X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X
+#define REP256(X) REP32(X) REP32(X) REP32(X) REP32(X) REP32(X) REP32(X) REP32(X) REP32(X)
+#define REP2048(X) REP256(X) REP256(X) REP256(X) REP256(X) REP256(X) REP256(X) REP256(X) REP256(X)
+#define REP16384(X) REP2048(X) REP2048(X) REP2048(X) REP2048(X) REP2048(X) REP2048(X) REP2048(X) REP2048(X)
+#define REP65536(X) REP16384(X) REP16384(X) REP16384(X) REP16384(X)
+, {.name="very long path and query"
+  ,.url="http://hostname/" REP65536("A") "?" REP65536("B")
+  ,.is_connect=0
+  ,.u=
+    {.field_set=(1 << UF_SCHEMA) | (1 << UF_HOST) | (1 << UF_PATH) | (1 << UF_QUERY)
+    ,.port=0
+    ,.field_data=
+      {{  0,  4 } /* UF_SCHEMA */
+      ,{  7,  8 } /* UF_HOST */
+      ,{  0,  0 } /* UF_PORT */
+      ,{ 15,  65537 } /* UF_PATH */
+      ,{ 65553, 65536 } /* UF_QUERY */
+      ,{  0,  0 } /* UF_FRAGMENT */
+      ,{  0,  0 } /* UF_USERINFO */
+      }
+    }
+  ,.rv=0
+  }
 };
 
 void
@@ -3351,11 +3374,11 @@ dump_url (const char *url, const struct http_parser_url *u)
       continue;
     }
 
-    printf("\tfield_data[%u]: off: %u len: %u part: \"%.*s\n\"",
+    printf("\tfield_data[%u]: off: %zu len: %zu part: \"%.*s\"\n",
            i,
            u->field_data[i].off,
            u->field_data[i].len,
-           u->field_data[i].len,
+           (int)u->field_data[i].len,
            url + u->field_data[i].off);
   }
 }

@@ -25,9 +25,9 @@ extern "C" {
 #endif
 
 /* Also update SONAME in the Makefile whenever you change these. */
-#define HTTP_PARSER_VERSION_MAJOR 2
-#define HTTP_PARSER_VERSION_MINOR 9
-#define HTTP_PARSER_VERSION_PATCH 2
+#define HTTP_PARSER_VERSION_MAJOR 3
+#define HTTP_PARSER_VERSION_MINOR 0
+#define HTTP_PARSER_VERSION_PATCH 0
 
 #include <stddef.h>
 #if defined(_WIN32) && !defined(__MINGW32__) && \
@@ -362,8 +362,8 @@ struct http_parser_url {
   uint16_t port;                /* Converted UF_PORT string */
 
   struct {
-    uint16_t off;               /* Offset into buffer in which field starts */
-    uint16_t len;               /* Length of run in buffer */
+    size_t off;                 /* Offset into buffer in which field starts */
+    size_t len;                 /* Length of run in buffer */
   } field_data[UF_MAX];
 };
 
