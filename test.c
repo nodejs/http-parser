@@ -1219,8 +1219,8 @@ const struct message requests[] =
   ,.chunk_lengths= { 0x1e }
   }
 
-#define POST_MULTI_LINE_TE_LAST_CHUNKED 43
-, {.name= "post - multi coding transfer-encoding chunked body"
+#define POST_MULTI_LINE_TE_LAST_CHUNKED 44
+, {.name= "post - multi line coding transfer-encoding chunked body"
   ,.type= HTTP_REQUEST
   ,.raw= "POST / HTTP/1.1\r\n"
          "Transfer-Encoding: deflate,\r\n"
