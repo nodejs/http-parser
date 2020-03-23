@@ -4221,6 +4221,7 @@ main (void)
   printf("http_parser v%u.%u.%u (0x%06lx)\n", major, minor, patch, version);
 
   printf("sizeof(http_parser) = %u\n", (unsigned int)sizeof(http_parser));
+  assert(sizeof(http_parser) == 4 + 4 + 8 + 2 + 2 + 4 + sizeof(void *));
 
   //// API
   test_preserve_data();
