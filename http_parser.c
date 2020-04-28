@@ -1801,7 +1801,7 @@ reexecute:
           REEXECUTE();
         }
 
-        /* Cannot us transfer-encoding and a content-length header together
+        /* Cannot use transfer-encoding and a content-length header together
            per the HTTP specification. (RFC 7230 Section 3.3.3) */
         if ((parser->extra_flags & (F_TRANSFER_ENCODING >> 8)) &&
             (parser->flags & F_CONTENTLENGTH)) {
