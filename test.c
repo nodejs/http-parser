@@ -40,7 +40,6 @@
 #define MAX_CHUNKS 16
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
-
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*x))
 
 static http_parser parser;
@@ -81,6 +80,7 @@ struct message {
   int status_cb_called;
   int message_complete_on_eof;
   int body_is_final;
+  int allow_cl_te;
 };
 
 static int currently_parsing_eof;
@@ -1245,6 +1245,36 @@ const struct message requests[] =
   ,.body= "all your base are belong to us"
   ,.num_chunks_complete= 2
   ,.chunk_lengths= { 0x1e }
+  }
+
+#define CHUNKED_CONTENT_LENGTH 46
+, {.name= "chunked with content-length set, allow_cl_te flag is set"
+  ,.type= HTTP_REQUEST
+  ,.raw= "POST /chunked_w_content_length HTTP/1.1\r\n"
+         "Content-Length: 10\r\n"
+         "Transfer-Encoding: chunked\r\n"
+         "\r\n"
+         "5; ilovew3;whattheluck=aretheseparametersfor\r\nhello\r\n"
+         "6; blahblah; blah\r\n world\r\n"
+         "0\r\n"
+         "\r\n"
+  ,.allow_cl_te = 1
+  ,.should_keep_alive= TRUE
+  ,.message_complete_on_eof= FALSE
+  ,.http_major= 1
+  ,.http_minor= 1
+  ,.method= HTTP_POST
+  ,.query_string= ""
+  ,.fragment= ""
+  ,.request_path= "/chunked_w_content_length"
+  ,.request_url= "/chunked_w_content_length"
+  ,.num_headers= 2
+  ,.headers={ { "Content-Length", "10"}
+            , { "Transfer-Encoding", "chunked" }
+  }
+  ,.body= "hello world"
+  ,.num_chunks_complete= 3
+  ,.chunk_lengths= { 5, 6 }
   }
 };
 
@@ -3503,6 +3533,9 @@ test_message (const struct message *message)
   size_t msg1len;
   for (msg1len = 0; msg1len < raw_len; msg1len++) {
     parser_init(message->type);
+    if (message->allow_cl_te) {
+      parser.allow_cl_te = 1;
+    }
 
     size_t read;
     const char *msg1 = message->raw;
@@ -3567,7 +3600,6 @@ void
 test_message_count_body (const struct message *message)
 {
   parser_init(message->type);
-
   size_t read;
   size_t l = strlen(message->raw);
   size_t i, toread;
@@ -3944,6 +3976,9 @@ test_multiple3 (const struct message *r1, const struct message *r2, const struct
   strcat(total, r3->raw);
 
   parser_init(r1->type);
+  if (r1->allow_cl_te || r2->allow_cl_te || r3->allow_cl_te) {
+    parser.allow_cl_te = 1;
+  }
 
   size_t read;
 
@@ -4146,6 +4181,9 @@ test_message_pause (const struct message *msg)
   size_t nread;
 
   parser_init(msg->type);
+  if (msg-> allow_cl_te) {
+    parser.allow_cl_te = 1;
+  }
 
   do {
     nread = parse_pause(buf, buflen);
@@ -4165,7 +4203,6 @@ test_message_pause (const struct message *msg)
       if (HTTP_PARSER_ERRNO(&parser) == HPE_STRICT) {
         return;
       }
-
       assert (HTTP_PARSER_ERRNO(&parser) == HPE_PAUSED);
     }
 
@@ -4221,7 +4258,7 @@ main (void)
   printf("http_parser v%u.%u.%u (0x%06lx)\n", major, minor, patch, version);
 
   printf("sizeof(http_parser) = %u\n", (unsigned int)sizeof(http_parser));
-  assert(sizeof(http_parser) == 4 + 4 + 8 + 2 + 2 + 4 + sizeof(void *));
+  assert(sizeof(http_parser) == 4 + 4 + 8 + 2 + 2 + 4 + 8 + sizeof(void *));
 
   //// API
   test_preserve_data();

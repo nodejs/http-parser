@@ -304,6 +304,7 @@ struct http_parser {
   unsigned int index : 5;        /* index into current matcher */
   unsigned int extra_flags : 2;
   unsigned int lenient_http_headers : 1;
+  unsigned int allow_cl_te: 1;
 
   uint32_t nread;          /* # bytes read in various scenarios */
   uint64_t content_length; /* # bytes in body. `(uint64_t) -1` (all bits one)

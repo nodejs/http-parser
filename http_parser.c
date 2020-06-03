@@ -653,6 +653,8 @@ size_t http_parser_execute (http_parser *parser,
   const char *status_mark = 0;
   enum state p_state = (enum state) parser->state;
   const unsigned int lenient = parser->lenient_http_headers;
+  const unsigned int allow_cl_te = parser->allow_cl_te;
+
   uint32_t nread = parser->nread;
 
   /* We're in an error state. Don't bother doing anything. */
@@ -1801,14 +1803,19 @@ reexecute:
           REEXECUTE();
         }
 
-        /* Cannot us transfer-encoding and a content-length header together
+        /* Cannot use transfer-encoding and a content-length header together
            per the HTTP specification. (RFC 7230 Section 3.3.3) */
         if ((parser->extra_flags & (F_TRANSFER_ENCODING >> 8)) &&
             (parser->flags & F_CONTENTLENGTH)) {
           /* Allow it for lenient parsing as long as `Transfer-Encoding` is
-           * not `chunked`
+           * not `chunked` or allow_cl_te is set
            */
-          if (!lenient || (parser->flags & F_CHUNKED)) {
+          if (parser->flags & F_CHUNKED) {
+              if (!allow_cl_te) {
+                SET_ERRNO(HPE_UNEXPECTED_CONTENT_LENGTH);
+                goto error;
+              }
+          } else if (!lenient) {
             SET_ERRNO(HPE_UNEXPECTED_CONTENT_LENGTH);
             goto error;
           }
