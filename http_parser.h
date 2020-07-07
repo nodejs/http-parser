@@ -302,7 +302,7 @@ struct http_parser {
   unsigned int state : 7;        /* enum state from http_parser.c */
   unsigned int header_state : 7; /* enum header_state from http_parser.c */
   unsigned int index : 5;        /* index into current matcher */
-  unsigned int extra_flags : 2;
+  unsigned int extra_flags : 1;
   unsigned int lenient_http_headers : 1;
   unsigned int allow_cl_te: 1;
 
