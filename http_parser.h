@@ -303,8 +303,8 @@ struct http_parser {
   unsigned int header_state : 7; /* enum header_state from http_parser.c */
   unsigned int index : 5;        /* index into current matcher */
   unsigned int extra_flags : 1;
+  unsigned int allow_nonrfc_clients : 1;  /* allow headers with both `Content-Length` and `Transfer-Encoding: chunked` set */
   unsigned int lenient_http_headers : 1;
-  unsigned int allow_cl_te: 1;
 
   uint32_t nread;          /* # bytes read in various scenarios */
   uint64_t content_length; /* # bytes in body. `(uint64_t) -1` (all bits one)

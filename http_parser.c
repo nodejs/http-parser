@@ -653,7 +653,7 @@ size_t http_parser_execute (http_parser *parser,
   const char *status_mark = 0;
   enum state p_state = (enum state) parser->state;
   const unsigned int lenient = parser->lenient_http_headers;
-  const unsigned int allow_cl_te = parser->allow_cl_te;
+  const unsigned int allow_nonrfc_clients = parser->allow_nonrfc_clients;
 
   uint32_t nread = parser->nread;
 
@@ -1808,10 +1808,10 @@ reexecute:
         if ((parser->extra_flags & (F_TRANSFER_ENCODING >> 8)) &&
             (parser->flags & F_CONTENTLENGTH)) {
           /* Allow it for lenient parsing as long as `Transfer-Encoding` is
-           * not `chunked` or allow_cl_te is set
+           * not `chunked` or allow_nonrfc_clients is set
            */
           if (parser->flags & F_CHUNKED) {
-              if (!allow_cl_te) {
+              if (!allow_nonrfc_clients) {
                 SET_ERRNO(HPE_UNEXPECTED_CONTENT_LENGTH);
                 goto error;
               }

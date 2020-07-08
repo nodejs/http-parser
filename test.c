@@ -80,7 +80,7 @@ struct message {
   int status_cb_called;
   int message_complete_on_eof;
   int body_is_final;
-  int allow_cl_te;
+  int allow_nonrfc_clients;
 };
 
 static int currently_parsing_eof;
@@ -1248,7 +1248,7 @@ const struct message requests[] =
   }
 
 #define CHUNKED_CONTENT_LENGTH 46
-, {.name= "chunked with content-length set, allow_cl_te flag is set"
+, {.name= "chunked with content-length set, allow_nonrfc_clients flag is set"
   ,.type= HTTP_REQUEST
   ,.raw= "POST /chunked_w_content_length HTTP/1.1\r\n"
          "Content-Length: 10\r\n"
@@ -1258,7 +1258,7 @@ const struct message requests[] =
          "6; blahblah; blah\r\n world\r\n"
          "0\r\n"
          "\r\n"
-  ,.allow_cl_te = 1
+  ,.allow_nonrfc_clients = 1
   ,.should_keep_alive= TRUE
   ,.message_complete_on_eof= FALSE
   ,.http_major= 1
@@ -3533,8 +3533,8 @@ test_message (const struct message *message)
   size_t msg1len;
   for (msg1len = 0; msg1len < raw_len; msg1len++) {
     parser_init(message->type);
-    if (message->allow_cl_te) {
-      parser.allow_cl_te = 1;
+    if (message->allow_nonrfc_clients) {
+      parser.allow_nonrfc_clients = 1;
     }
 
     size_t read;
@@ -3976,8 +3976,8 @@ test_multiple3 (const struct message *r1, const struct message *r2, const struct
   strcat(total, r3->raw);
 
   parser_init(r1->type);
-  if (r1->allow_cl_te || r2->allow_cl_te || r3->allow_cl_te) {
-    parser.allow_cl_te = 1;
+  if (r1->allow_nonrfc_clients || r2->allow_nonrfc_clients || r3->allow_nonrfc_clients) {
+    parser.allow_nonrfc_clients = 1;
   }
 
   size_t read;
@@ -4181,8 +4181,8 @@ test_message_pause (const struct message *msg)
   size_t nread;
 
   parser_init(msg->type);
-  if (msg-> allow_cl_te) {
-    parser.allow_cl_te = 1;
+  if (msg->allow_nonrfc_clients) {
+    parser.allow_nonrfc_clients = 1;
   }
 
   do {
