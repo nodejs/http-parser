@@ -1315,6 +1315,7 @@ const struct message requests[] =
   ,.fragment= ""
   ,.request_path= "/chunked_w_content_length"
   ,.request_url= "/chunked_w_content_length"
+  ,.content_length= 10
   ,.num_headers= 2
   ,.headers={ { "Content-Length", "10"}
             , { "Transfer-Encoding", "chunked" }
