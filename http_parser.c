@@ -653,7 +653,7 @@ size_t http_parser_execute (http_parser *parser,
   const char *status_mark = 0;
   enum state p_state = (enum state) parser->state;
   const unsigned int lenient = parser->lenient_http_headers;
-  const unsigned int allow_length_with_encoding = parser->allow_length_with_encoding;
+  const unsigned int allow_chunked_length = parser->allow_chunked_length;
 
   uint32_t nread = parser->nread;
 
@@ -1811,7 +1811,7 @@ reexecute:
            * not `chunked` or allow_length_with_encoding is set
            */
           if (parser->flags & F_CHUNKED) {
-              if (!allow_length_with_encoding) {
+              if (!allow_chunked_length) {
                 SET_ERRNO(HPE_UNEXPECTED_CONTENT_LENGTH);
                 goto error;
               }

@@ -302,7 +302,7 @@ struct http_parser {
   unsigned int header_state : 7; /* enum header_state from http_parser.c */
   unsigned int index : 5;        /* index into current matcher */
   unsigned int uses_transfer_encoding : 1; /* Transfer-Encoding header is present */
-  unsigned int allow_length_with_encoding : 1;  /* allow headers with both `Content-Length` and `Transfer-Encoding: chunked` set */
+  unsigned int allow_chunked_length : 1;  /* allow headers with both `Content-Length` and `Transfer-Encoding: chunked` set */
   unsigned int lenient_http_headers : 1;
 
   uint32_t nread;          /* # bytes read in various scenarios */
