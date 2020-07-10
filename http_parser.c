@@ -653,6 +653,8 @@ size_t http_parser_execute (http_parser *parser,
   const char *status_mark = 0;
   enum state p_state = (enum state) parser->state;
   const unsigned int lenient = parser->lenient_http_headers;
+  const unsigned int allow_chunked_length = parser->allow_chunked_length;
+
   uint32_t nread = parser->nread;
 
   /* We're in an error state. Don't bother doing anything. */
@@ -731,7 +733,7 @@ reexecute:
         if (ch == CR || ch == LF)
           break;
         parser->flags = 0;
-        parser->extra_flags = 0;
+        parser->uses_transfer_encoding = 0;
         parser->content_length = ULLONG_MAX;
 
         if (ch == 'H') {
@@ -769,7 +771,7 @@ reexecute:
         if (ch == CR || ch == LF)
           break;
         parser->flags = 0;
-        parser->extra_flags = 0;
+        parser->uses_transfer_encoding = 0;
         parser->content_length = ULLONG_MAX;
 
         if (ch == 'H') {
@@ -927,7 +929,7 @@ reexecute:
         if (ch == CR || ch == LF)
           break;
         parser->flags = 0;
-        parser->extra_flags = 0;
+        parser->uses_transfer_encoding = 0;
         parser->content_length = ULLONG_MAX;
 
         if (UNLIKELY(!IS_ALPHA(ch))) {
@@ -1341,7 +1343,7 @@ reexecute:
                 parser->header_state = h_general;
               } else if (parser->index == sizeof(TRANSFER_ENCODING)-2) {
                 parser->header_state = h_transfer_encoding;
-                parser->extra_flags |= F_TRANSFER_ENCODING >> 8;
+                parser->uses_transfer_encoding = 1;
               }
               break;
 
@@ -1801,14 +1803,19 @@ reexecute:
           REEXECUTE();
         }
 
-        /* Cannot us transfer-encoding and a content-length header together
+        /* Cannot use transfer-encoding and a content-length header together
            per the HTTP specification. (RFC 7230 Section 3.3.3) */
-        if ((parser->extra_flags & (F_TRANSFER_ENCODING >> 8)) &&
+        if ((parser->uses_transfer_encoding == 1) &&
             (parser->flags & F_CONTENTLENGTH)) {
           /* Allow it for lenient parsing as long as `Transfer-Encoding` is
-           * not `chunked`
+           * not `chunked` or allow_length_with_encoding is set
            */
-          if (!lenient || (parser->flags & F_CHUNKED)) {
+          if (parser->flags & F_CHUNKED) {
+            if (!allow_chunked_length) {
+              SET_ERRNO(HPE_UNEXPECTED_CONTENT_LENGTH);
+              goto error;
+            }
+          } else if (!lenient) {
             SET_ERRNO(HPE_UNEXPECTED_CONTENT_LENGTH);
             goto error;
           }
@@ -1889,7 +1896,7 @@ reexecute:
           /* chunked encoding - ignore Content-Length header,
            * prepare for a chunk */
           UPDATE_STATE(s_chunk_size_start);
-        } else if (parser->extra_flags & (F_TRANSFER_ENCODING >> 8)) {
+        } else if (parser->uses_transfer_encoding == 1) {
           if (parser->type == HTTP_REQUEST && !lenient) {
             /* RFC 7230 3.3.3 */
 
@@ -2165,7 +2172,7 @@ http_message_needs_eof (const http_parser *parser)
   }
 
   /* RFC 7230 3.3.3, see `s_headers_almost_done` */
-  if ((parser->extra_flags & (F_TRANSFER_ENCODING >> 8)) &&
+  if ((parser->uses_transfer_encoding == 1) &&
       (parser->flags & F_CHUNKED) == 0) {
     return 1;
   }

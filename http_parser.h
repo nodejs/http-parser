@@ -227,7 +227,6 @@ enum flags
   , F_UPGRADE               = 1 << 5
   , F_SKIPBODY              = 1 << 6
   , F_CONTENTLENGTH         = 1 << 7
-  , F_TRANSFER_ENCODING     = 1 << 8  /* Never set in http_parser.flags */
   };
 
 
@@ -302,7 +301,10 @@ struct http_parser {
   unsigned int state : 7;        /* enum state from http_parser.c */
   unsigned int header_state : 7; /* enum header_state from http_parser.c */
   unsigned int index : 5;        /* index into current matcher */
-  unsigned int extra_flags : 2;
+  unsigned int uses_transfer_encoding : 1; /* Transfer-Encoding header is present */
+  unsigned int allow_chunked_length : 1; /* Allow headers with both
+                                          * `Content-Length` and
+                                          * `Transfer-Encoding: chunked` set */
   unsigned int lenient_http_headers : 1;
 
   uint32_t nread;          /* # bytes read in various scenarios */
