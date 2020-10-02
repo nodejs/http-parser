@@ -249,6 +249,7 @@ enum flags
   XX(CB_status, "the on_status callback failed")                     \
   XX(CB_chunk_header, "the on_chunk_header callback failed")         \
   XX(CB_chunk_complete, "the on_chunk_complete callback failed")     \
+  XX(CB_chunk_extensions, "the on_chunk_extensions callback failed") \
                                                                      \
   /* Parsing-related errors */                                       \
   XX(INVALID_EOF_STATE, "stream ended at an unexpected time")        \
@@ -345,6 +346,7 @@ struct http_parser_settings {
    */
   http_cb      on_chunk_header;
   http_cb      on_chunk_complete;
+  http_data_cb on_chunk_extensions;
 };
 
 

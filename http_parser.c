@@ -651,6 +651,7 @@ size_t http_parser_execute (http_parser *parser,
   const char *url_mark = 0;
   const char *body_mark = 0;
   const char *status_mark = 0;
+  const char *chunk_extensions_mark = 0;
   enum state p_state = (enum state) parser->state;
   const unsigned int lenient = parser->lenient_http_headers;
   const unsigned int allow_chunked_length = parser->allow_chunked_length;
@@ -688,6 +689,8 @@ size_t http_parser_execute (http_parser *parser,
     header_field_mark = data;
   if (CURRENT_STATE() == s_header_value)
     header_value_mark = data;
+  if (CURRENT_STATE() == s_chunk_parameters)
+    chunk_extensions_mark = data;
   switch (CURRENT_STATE()) {
   case s_req_path:
   case s_req_schema:
@@ -2024,10 +2027,11 @@ reexecute:
 
         if (unhex_val == -1) {
           if (ch == ';' || ch == ' ') {
+            /* Parse chunk extensions */
+            MARK(chunk_extensions);
             UPDATE_STATE(s_chunk_parameters);
             break;
           }
-
           SET_ERRNO(HPE_INVALID_CHUNK_SIZE);
           goto error;
         }
@@ -2052,6 +2056,7 @@ reexecute:
         /* just ignore this shit. TODO check for overflow */
         if (ch == CR) {
           UPDATE_STATE(s_chunk_size_almost_done);
+          CALLBACK_DATA(chunk_extensions);
           break;
         }
         break;
@@ -2136,13 +2141,15 @@ reexecute:
           (header_value_mark ? 1 : 0) +
           (url_mark ? 1 : 0)  +
           (body_mark ? 1 : 0) +
-          (status_mark ? 1 : 0)) <= 1);
+          (status_mark ? 1 : 0) +
+          (chunk_extensions_mark ? 1 : 0)) <= 1);
 
   CALLBACK_DATA_NOADVANCE(header_field);
   CALLBACK_DATA_NOADVANCE(header_value);
   CALLBACK_DATA_NOADVANCE(url);
   CALLBACK_DATA_NOADVANCE(body);
   CALLBACK_DATA_NOADVANCE(status);
+  CALLBACK_DATA_NOADVANCE(chunk_extensions);
 
   RETURN(len);
 
