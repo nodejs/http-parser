@@ -160,6 +160,25 @@ do {                                                                 \
   }                                                                  \
 } while (0)
 
+#define APPLY_ON_HEADERS_COMPLETE_RESULT(V, DEFAULT)                 \
+do {                                                                 \
+  switch (V) {                                                       \
+    case 0:                                                          \
+      break;                                                         \
+                                                                     \
+    case 2:                                                          \
+      parser->upgrade = 1;                                           \
+                                                                     \
+      /* fall through */                                             \
+    case 1:                                                          \
+      parser->flags |= F_SKIPBODY;                                   \
+      break;                                                         \
+                                                                     \
+    default:                                                         \
+      DEFAULT                                                        \
+  }                                                                  \
+} while (0)
+
 
 #define PROXY_CONNECTION "proxy-connection"
 #define CONNECTION "connection"
@@ -1846,22 +1865,10 @@ reexecute:
          * we have to simulate it by handling a change in errno below.
          */
         if (settings->on_headers_complete) {
-          switch (settings->on_headers_complete(parser)) {
-            case 0:
-              break;
-
-            case 2:
-              parser->upgrade = 1;
-
-              /* fall through */
-            case 1:
-              parser->flags |= F_SKIPBODY;
-              break;
-
-            default:
+          APPLY_ON_HEADERS_COMPLETE_RESULT(settings->on_headers_complete(parser),
               SET_ERRNO(HPE_CB_headers_complete);
               RETURN(p - data); /* Error */
-          }
+          );
         }
 
         if (HTTP_PARSER_ERRNO(parser) != HPE_OK) {
@@ -2555,6 +2562,20 @@ http_parser_pause(http_parser *parser, int paused) {
   } else {
     assert(0 && "Attempting to pause parser in error state");
   }
+}
+
+void
+http_parser_continue_after_on_headers_complete(http_parser *parser, int result) {
+  uint32_t nread;
+  assert(parser->state == s_headers_done &&
+         (HTTP_PARSER_ERRNO(parser) == HPE_OK ||
+          HTTP_PARSER_ERRNO(parser) == HPE_PAUSED));
+  APPLY_ON_HEADERS_COMPLETE_RESULT(result,
+    ;
+  );
+  nread = parser->nread; /* used by the SET_ERRNO macro */
+  /* unpause the parser - after all, it says "continue", right? */
+  SET_ERRNO(HPE_OK);
 }
 
 int
