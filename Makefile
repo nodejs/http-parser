@@ -19,6 +19,10 @@
 # IN THE SOFTWARE.
 
 PLATFORM ?= $(shell sh -c 'uname -s | tr "[A-Z]" "[a-z]"')
+ifeq ($(findstring mingw,$(PLATFORM)), mingw)
+PLATFORM = mingw
+endif
+
 HELPER ?=
 BINEXT ?=
 SOLIBNAME = libhttp_parser
@@ -33,6 +37,10 @@ else ifeq (wine,$(PLATFORM))
 CC = winegcc
 BINEXT = .exe.so
 HELPER = wine
+else ifeq (mingw,$(PLATFORM))
+CC = gcc
+SONAME ?= libhttp_parser.2.6.2.dll
+SOEXT  ?= dll
 else
 SOEXT ?= so
 SONAME ?= $(SOLIBNAME).$(SOEXT).$(SOMAJOR).$(SOMINOR)
@@ -56,7 +64,11 @@ CFLAGS += -Wall -Wextra -Werror
 CFLAGS_DEBUG = $(CFLAGS) -O0 -g $(CFLAGS_DEBUG_EXTRA)
 CFLAGS_FAST = $(CFLAGS) -O3 $(CFLAGS_FAST_EXTRA)
 CFLAGS_BENCH = $(CFLAGS_FAST) -Wno-unused-parameter
+ifneq (mingw,$(PLATFORM))
 CFLAGS_LIB = $(CFLAGS_FAST) -fPIC
+else
+CFLAGS_LIB = $(CFLAGS_FAST)
+endif
 
 LDFLAGS_LIB = $(LDFLAGS) -shared
 
@@ -152,7 +164,7 @@ clean:
 	rm -f *.o *.a tags test test_fast test_g \
 		http_parser.tar libhttp_parser.so.* \
 		url_parser url_parser_g parsertrace parsertrace_g \
-		*.exe *.exe.so
+		*.exe *.exe.so *.dll
 
 contrib/url_parser.c:	http_parser.h
 contrib/parsertrace.c:	http_parser.h
