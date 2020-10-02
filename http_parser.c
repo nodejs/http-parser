@@ -55,12 +55,38 @@ do {                                                                 \
   parser->http_errno = (e);                                          \
 } while(0)
 
+#define CALLBACK_RAW_ON_RETURN(V)                                    \
+ do {                                                                \
+   if (HTTP_PARSER_ERRNO(parser) == HPE_OK) {                        \
+     if ((p >= raw_mark) &&                                          \
+         (raw_mark < data + len) &&                                  \
+         ((ptrdiff_t)(V) == (ptrdiff_t)(len)))                       \
+     {                                                               \
+       if (p_state <= s_header_almost_done) {                        \
+         if (settings->on_header_raw) {                              \
+           settings->on_header_raw(parser,                           \
+                                   raw_mark,                         \
+                                   len - (raw_mark - data));         \
+         }                                                           \
+       } else {                                                      \
+         if (settings->on_body_raw) {                                \
+           settings->on_body_raw(parser,                             \
+                                 raw_mark,                           \
+                                 len - (raw_mark - data));           \
+         }                                                           \
+       }                                                             \
+     }                                                               \
+   }                                                                 \
+ }                                                                   \
+ while (0);
+
 #define CURRENT_STATE() p_state
 #define UPDATE_STATE(V) p_state = (enum state) (V);
 #define RETURN(V)                                                    \
 do {                                                                 \
   parser->nread = nread;                                             \
   parser->state = CURRENT_STATE();                                   \
+  CALLBACK_RAW_ON_RETURN(V);                                         \
   return (V);                                                        \
 } while (0);
 #define REEXECUTE()                                                  \
@@ -80,6 +106,17 @@ do {                                                                 \
 #define CALLBACK_NOTIFY_(FOR, ER)                                    \
 do {                                                                 \
   assert(HTTP_PARSER_ERRNO(parser) == HPE_OK);                       \
+                                                                     \
+  if (e_on_##FOR == e_on_message_complete) {                         \
+     if ((HTTP_PARSER_ERRNO(parser) == HPE_OK) &&                    \
+         (settings->on_body_raw) &&                                  \
+         (p >= raw_mark) &&                                          \
+         (raw_mark < data + len))                                    \
+   {                                                                 \
+       settings->on_body_raw(parser, raw_mark, p - raw_mark + 1);    \
+       raw_mark = p + 1;                                             \
+     }                                                               \
+   }                                                                 \
                                                                      \
   if (LIKELY(settings->on_##FOR)) {                                  \
     parser->state = CURRENT_STATE();                                 \
@@ -646,6 +683,7 @@ size_t http_parser_execute (http_parser *parser,
   char c, ch;
   int8_t unhex_val;
   const char *p = data;
+  const char *raw_mark = data;
   const char *header_field_mark = 0;
   const char *header_value_mark = 0;
   const char *url_mark = 0;
@@ -1834,6 +1872,18 @@ reexecute:
               (parser->type == HTTP_REQUEST || parser->status_code == 101);
         } else {
           parser->upgrade = (parser->method == HTTP_CONNECT);
+        }
+
+        /* Here we call final headers_raw. It's based on different variables,
+         * so we can't use CALLBACK_DATA.
+         */
+        if ((HTTP_PARSER_ERRNO(parser) == HPE_OK) && 
+            (settings->on_header_raw) && 
+            (p >= raw_mark) && 
+            (raw_mark < data + len)) 
+        {
+          settings->on_header_raw(parser, raw_mark, p - raw_mark + 1);
+          raw_mark = p + 1;
         }
 
         /* Here we call the headers_complete callback. This is somewhat
