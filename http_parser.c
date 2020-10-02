@@ -311,6 +311,7 @@ enum state
   , s_req_query_string
   , s_req_fragment_start
   , s_req_fragment
+  , s_req_opague
   , s_req_http_start
   , s_req_http_H
   , s_req_http_HT
@@ -428,6 +429,8 @@ enum http_host_state
   (c) == ';' || (c) == ':' || (c) == '&' || (c) == '=' || (c) == '+' || \
   (c) == '$' || (c) == ',')
 
+#define IS_SCHEME_CHAR(c) (IS_ALPHANUM(c) || c == '.' || c == '+' || c == '-')
+
 #define STRICT_TOKEN(c)     ((c == ' ') ? 0 : tokens[(unsigned char)c])
 
 #if HTTP_PARSER_STRICT
@@ -520,7 +523,8 @@ parse_url_char(enum state s, const char ch)
       break;
 
     case s_req_schema:
-      if (IS_ALPHA(ch)) {
+      // scheme spec: https://tools.ietf.org/html/rfc3986#section-3.1
+      if (IS_SCHEME_CHAR(ch)) {
         return s;
       }
 
@@ -535,7 +539,18 @@ parse_url_char(enum state s, const char ch)
         return s_req_schema_slash_slash;
       }
 
-      break;
+      if (ch == '?') {
+          return s_req_query_string_start;
+      }
+
+      return s_req_opague;
+
+    case s_req_opague:
+      if (ch == '?') {
+        return s_req_query_string_start;
+      }
+
+      return s;
 
     case s_req_schema_slash_slash:
       if (ch == '/') {
@@ -2476,6 +2491,10 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
         uf = UF_FRAGMENT;
         break;
 
+      case s_req_opague:
+        uf = UF_OPAQ;
+        break;
+
       default:
         assert(!"Unexpected state");
         return 1;
@@ -2496,10 +2515,10 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
 
   /* host must be present if there is a schema */
   /* parsing http:///toto will fail */
-  if ((u->field_set & (1 << UF_SCHEMA)) &&
-      (u->field_set & (1 << UF_HOST)) == 0) {
-    return 1;
-  }
+//  if ((u->field_set & (1 << UF_SCHEMA)) &&
+//      (u->field_set & (1 << UF_HOST)) == 0) {
+//    return 1;
+//  }
 
   if (u->field_set & (1 << UF_HOST)) {
     if (http_parse_host(buf, u, found_at) != 0) {
