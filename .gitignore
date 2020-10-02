@@ -15,8 +15,6 @@ parsertrace_g
 *.exe.*
 *.exe
 *.a
-
-
 # Visual Studio uglies
 *.suo
 *.sln
@@ -28,3 +26,5 @@ parsertrace_g
 *.sdf
 *.vsp
 *.psess
+.deps
+.dirstamp
