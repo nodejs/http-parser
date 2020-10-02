@@ -65,6 +65,17 @@ typedef unsigned __int64 uint64_t;
 # define HTTP_MAX_HEADER_SIZE (80*1024)
 #endif
 
+/* Maximium uri size allowed. If the macro is not defined
+ * before including this header then the default is used. To
+ * change the maximum uri size, define the macro in the build
+ * environment (e.g. -DHTTP_MAX_URL_SIZE=<value>). To remove
+ * the effective limit on the size of the uri, define the macro
+ * to a very large number (e.g. -DHTTP_MAX_URL_SIZE=0x7fffffff)
+ */
+#ifndef HTTP_MAX_URL_SIZE
+# define HTTP_MAX_URL_SIZE (80*1024)
+#endif
+
 typedef struct http_parser http_parser;
 typedef struct http_parser_settings http_parser_settings;
 
@@ -162,53 +173,53 @@ enum http_status
 
 
 /* Request Methods */
-#define HTTP_METHOD_MAP(XX)         \
-  XX(0,  DELETE,      DELETE)       \
-  XX(1,  GET,         GET)          \
-  XX(2,  HEAD,        HEAD)         \
-  XX(3,  POST,        POST)         \
-  XX(4,  PUT,         PUT)          \
-  /* pathological */                \
-  XX(5,  CONNECT,     CONNECT)      \
-  XX(6,  OPTIONS,     OPTIONS)      \
-  XX(7,  TRACE,       TRACE)        \
-  /* WebDAV */                      \
-  XX(8,  COPY,        COPY)         \
-  XX(9,  LOCK,        LOCK)         \
-  XX(10, MKCOL,       MKCOL)        \
-  XX(11, MOVE,        MOVE)         \
-  XX(12, PROPFIND,    PROPFIND)     \
-  XX(13, PROPPATCH,   PROPPATCH)    \
-  XX(14, SEARCH,      SEARCH)       \
-  XX(15, UNLOCK,      UNLOCK)       \
-  XX(16, BIND,        BIND)         \
-  XX(17, REBIND,      REBIND)       \
-  XX(18, UNBIND,      UNBIND)       \
-  XX(19, ACL,         ACL)          \
-  /* subversion */                  \
-  XX(20, REPORT,      REPORT)       \
-  XX(21, MKACTIVITY,  MKACTIVITY)   \
-  XX(22, CHECKOUT,    CHECKOUT)     \
-  XX(23, MERGE,       MERGE)        \
-  /* upnp */                        \
-  XX(24, MSEARCH,     M-SEARCH)     \
-  XX(25, NOTIFY,      NOTIFY)       \
-  XX(26, SUBSCRIBE,   SUBSCRIBE)    \
-  XX(27, UNSUBSCRIBE, UNSUBSCRIBE)  \
-  /* RFC-5789 */                    \
-  XX(28, PATCH,       PATCH)        \
-  XX(29, PURGE,       PURGE)        \
-  /* CalDAV */                      \
-  XX(30, MKCALENDAR,  MKCALENDAR)   \
-  /* RFC-2068, section 19.6.1.2 */  \
-  XX(31, LINK,        LINK)         \
-  XX(32, UNLINK,      UNLINK)       \
-  /* icecast */                     \
-  XX(33, SOURCE,      SOURCE)       \
+#define HTTP_METHOD_MAP(XX)            \
+  XX(0,  DELETE,      DELETE,  6)      \
+  XX(1,  GET,         GET,  3)         \
+  XX(2,  HEAD,        HEAD,  4)        \
+  XX(3,  POST,        POST,  4)        \
+  XX(4,  PUT,         PUT,  3)         \
+  /* pathological */                   \
+  XX(5,  CONNECT,     CONNECT,  7)     \
+  XX(6,  OPTIONS,     OPTIONS,  7)     \
+  XX(7,  TRACE,       TRACE,  5)       \
+  /* WebDAV */                         \
+  XX(8,  COPY,        COPY,  4)        \
+  XX(9,  LOCK,        LOCK,  4)        \
+  XX(10, MKCOL,       MKCOL, 5)        \
+  XX(11, MOVE,        MOVE, 4)         \
+  XX(12, PROPFIND,    PROPFIND, 8)     \
+  XX(13, PROPPATCH,   PROPPATCH, 9)    \
+  XX(14, SEARCH,      SEARCH, 6)       \
+  XX(15, UNLOCK,      UNLOCK, 6)       \
+  XX(16, BIND,        BIND, 4)         \
+  XX(17, REBIND,      REBIND, 6)       \
+  XX(18, UNBIND,      UNBIND, 6)       \
+  XX(19, ACL,         ACL, 3)          \
+  /* subversion */                     \
+  XX(20, REPORT,      REPORT, 6)       \
+  XX(21, MKACTIVITY,  MKACTIVITY, 10)  \
+  XX(22, CHECKOUT,    CHECKOUT, 8)     \
+  XX(23, MERGE,       MERGE, 5)        \
+  /* upnp */                           \
+  XX(24, MSEARCH,     M-SEARCH, 7)     \
+  XX(25, NOTIFY,      NOTIFY, 6)       \
+  XX(26, SUBSCRIBE,   SUBSCRIBE, 9)    \
+  XX(27, UNSUBSCRIBE, UNSUBSCRIBE, 11) \
+  /* RFC-5789 */                       \
+  XX(28, PATCH,       PATCH, 5)        \
+  XX(29, PURGE,       PURGE, 5)        \
+  /* CalDAV */                         \
+  XX(30, MKCALENDAR,  MKCALENDAR, 10)  \
+  /* RFC-2068, section 19.6.1.2 */     \
+  XX(31, LINK,        LINK, 4)         \
+  XX(32, UNLINK,      UNLINK, 6)       \
+  /* icecast */                        \
+  XX(33, SOURCE,      SOURCE, 6)       \
 
 enum http_method
   {
-#define XX(num, name, string) HTTP_##name = num,
+#define XX(num, name, string, length) HTTP_##name = num,
   HTTP_METHOD_MAP(XX)
 #undef XX
   };
@@ -254,6 +265,8 @@ enum flags
   XX(INVALID_EOF_STATE, "stream ended at an unexpected time")        \
   XX(HEADER_OVERFLOW,                                                \
      "too many header bytes seen; overflow detected")                \
+  XX(URL_OVERFLOW,                                                   \
+     "too many url bytes seen; overflow detected")                   \
   XX(CLOSED_CONNECTION,                                              \
      "data received after completed connection: close message")      \
   XX(INVALID_VERSION, "invalid HTTP version")                        \
@@ -442,6 +455,9 @@ int http_body_is_final(const http_parser *parser);
 
 /* Change the maximum header size provided at compile time. */
 void http_parser_set_max_header_size(uint32_t size);
+
+/* Change the maximum uri size provided at compile time. */
+void http_parser_set_max_uri_size(uint32_t size);
 
 #ifdef __cplusplus
 }
