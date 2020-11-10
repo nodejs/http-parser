@@ -4348,7 +4348,7 @@ main (void)
   /* Should be 32 on both 32 bits and 64 bits x86 because of struct padding,
    * see https://github.com/nodejs/http-parser/issues/507.
    */
-  assert(sizeof(http_parser) == 32);
+  assert(sizeof(http_parser) == 24 + sizeof(void*));
 #endif
 
   //// API
