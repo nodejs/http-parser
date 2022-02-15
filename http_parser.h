@@ -229,15 +229,8 @@ enum flags
   , F_CONTENTLENGTH         = 1 << 7
   };
 
-
-/* Map for errno-related constants
- *
- * The provided argument should be a macro that takes 2 arguments.
- */
-#define HTTP_ERRNO_MAP(XX)                                           \
-  /* No error */                                                     \
-  XX(OK, "success")                                                  \
-                                                                     \
+/* Map for callback error related constans */
+#define HTTP_ERRNO_CALLBACK_MAP(XX)                                  \
   /* Callback-related errors */                                      \
   XX(CB_message_begin, "the on_message_begin callback failed")       \
   XX(CB_url, "the on_url callback failed")                           \
@@ -249,7 +242,9 @@ enum flags
   XX(CB_status, "the on_status callback failed")                     \
   XX(CB_chunk_header, "the on_chunk_header callback failed")         \
   XX(CB_chunk_complete, "the on_chunk_complete callback failed")     \
-                                                                     \
+
+/* Map for parsing error related constans */
+#define HTTP_ERRNO_PARSING_MAP(XX)                                   \
   /* Parsing-related errors */                                       \
   XX(INVALID_EOF_STATE, "stream ended at an unexpected time")        \
   XX(HEADER_OVERFLOW,                                                \
@@ -281,6 +276,15 @@ enum flags
   XX(INVALID_TRANSFER_ENCODING,                                      \
      "request has invalid transfer-encoding")                        \
 
+/* Map for errno-related constants
+ *
+ * The provided argument should be a macro that takes 2 arguments.
+ */
+#define HTTP_ERRNO_MAP(XX)                                           \
+  /* No error */                                                     \
+  XX(OK, "success")                                                  \
+  HTTP_ERRNO_CALLBACK_MAP(XX)                                        \
+  HTTP_ERRNO_PARSING_MAP(XX)                                         \
 
 /* Define HPE_* values for each errno value above */
 #define HTTP_ERRNO_GEN(n, s) HPE_##n,
