@@ -181,7 +181,7 @@ const struct message requests[] =
   }
 
 #define FRAGMENT_IN_URI 3
-, {.name= "fragment in url"
+, {.name= "fragment in uri"
   ,.type= HTTP_REQUEST
   ,.raw= "GET /forums/1/topics/2375?page=1#posts-17408 HTTP/1.1\r\n"
          "\r\n"
